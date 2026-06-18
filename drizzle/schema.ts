@@ -1,17 +1,17 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  date,
+  boolean,
+} from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+// ─── Usuários (auth) ──────────────────────────────────────────────────────────
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -25,4 +25,133 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// ─── Clientes ─────────────────────────────────────────────────────────────────
+export const clientes = mysqlTable("clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  cnpj: varchar("cnpj", { length: 18 }).notNull().unique(),
+  razaoSocial: varchar("razaoSocial", { length: 255 }).notNull(),
+  nomeFantasia: varchar("nomeFantasia", { length: 255 }),
+  inscricaoEstadual: varchar("inscricaoEstadual", { length: 50 }),
+  inscricaoMunicipal: varchar("inscricaoMunicipal", { length: 50 }),
+  // Endereço
+  logradouro: varchar("logradouro", { length: 255 }),
+  numero: varchar("numero", { length: 20 }),
+  complemento: varchar("complemento", { length: 100 }),
+  bairro: varchar("bairro", { length: 100 }),
+  cidade: varchar("cidade", { length: 100 }),
+  uf: varchar("uf", { length: 2 }),
+  cep: varchar("cep", { length: 9 }),
+  // Contato
+  nomeContato: varchar("nomeContato", { length: 255 }),
+  telefone: varchar("telefone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  // Dados
+  dataAbertura: date("dataAbertura"),
+  observacoesPreventivas: text("observacoesPreventivas"),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Cliente = typeof clientes.$inferSelect;
+export type InsertCliente = typeof clientes.$inferInsert;
+
+// ─── E-mails de Alerta por Cliente ───────────────────────────────────────────
+export const emailsAlerta = mysqlTable("emails_alerta", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailAlerta = typeof emailsAlerta.$inferSelect;
+export type InsertEmailAlerta = typeof emailsAlerta.$inferInsert;
+
+// ─── Tipos de Alvará ──────────────────────────────────────────────────────────
+export const TIPOS_ALVARA = [
+  "Funcionamento",
+  "Sanitário",
+  "Bombeiros",
+  "Ambiental",
+  "Publicidade",
+  "Obras",
+  "Outros",
+] as const;
+
+export type TipoAlvara = (typeof TIPOS_ALVARA)[number];
+
+// ─── Status de Renovação ──────────────────────────────────────────────────────
+export const STATUS_RENOVACAO = [
+  "Pendente",
+  "Contato Realizado",
+  "Tratativa Comercial",
+  "Documentação Solicitada",
+  "Documentação Recebida",
+  "Em Renovação",
+  "Renovado",
+  "Cancelado",
+] as const;
+
+export type StatusRenovacao = (typeof STATUS_RENOVACAO)[number];
+
+// Status que cessam os alertas
+export const STATUS_SEM_ALERTA: StatusRenovacao[] = [
+  "Em Renovação",
+  "Renovado",
+  "Cancelado",
+];
+
+// ─── Alvarás ──────────────────────────────────────────────────────────────────
+export const alvaras = mysqlTable("alvaras", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  numeroAlvara: varchar("numeroAlvara", { length: 100 }),
+  tipo: varchar("tipo", { length: 50 }).notNull(),
+  orgaoEmissor: varchar("orgaoEmissor", { length: 255 }),
+  dataEmissao: date("dataEmissao"),
+  dataVencimento: date("dataVencimento").notNull(),
+  status: varchar("status", { length: 50 }).default("Pendente").notNull(),
+  arquivoPdfKey: varchar("arquivoPdfKey", { length: 500 }),
+  arquivoPdfUrl: varchar("arquivoPdfUrl", { length: 500 }),
+  ativo: boolean("ativo").default(true).notNull(),
+  // Controle de alertas enviados
+  alertaEnviado30: boolean("alertaEnviado30").default(false).notNull(),
+  alertaEnviado15: boolean("alertaEnviado15").default(false).notNull(),
+  alertaEnviado7: boolean("alertaEnviado7").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Alvara = typeof alvaras.$inferSelect;
+export type InsertAlvara = typeof alvaras.$inferInsert;
+
+// ─── Histórico de Movimentações ───────────────────────────────────────────────
+export const alvaraHistorico = mysqlTable("alvara_historico", {
+  id: int("id").autoincrement().primaryKey(),
+  alvaraId: int("alvaraId").notNull(),
+  statusAnterior: varchar("statusAnterior", { length: 50 }),
+  statusNovo: varchar("statusNovo", { length: 50 }).notNull(),
+  observacao: text("observacao"),
+  colaborador: varchar("colaborador", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AlvaraHistorico = typeof alvaraHistorico.$inferSelect;
+export type InsertAlvaraHistorico = typeof alvaraHistorico.$inferInsert;
+
+// ─── Log de Importações ───────────────────────────────────────────────────────
+export const importacoes = mysqlTable("importacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  nomeArquivo: varchar("nomeArquivo", { length: 255 }).notNull(),
+  tipoArquivo: varchar("tipoArquivo", { length: 10 }).notNull(),
+  totalRegistros: int("totalRegistros").default(0),
+  registrosImportados: int("registrosImportados").default(0),
+  registrosErro: int("registrosErro").default(0),
+  status: varchar("status", { length: 20 }).default("pendente").notNull(),
+  erros: text("erros"),
+  realizadoPor: varchar("realizadoPor", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Importacao = typeof importacoes.$inferSelect;
+export type InsertImportacao = typeof importacoes.$inferInsert;

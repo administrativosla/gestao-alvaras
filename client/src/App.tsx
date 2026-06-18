@@ -4,35 +4,57 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import DashboardLayout from "./components/DashboardLayout";
 
-function Router() {
-  // make sure to consider if you need authentication for certain routes
+// Pages
+import Dashboard from "./pages/Dashboard";
+import ClientesList from "./pages/ClientesList";
+import ClienteForm from "./pages/ClienteForm";
+import ClienteDetail from "./pages/ClienteDetail";
+import AlvarasList from "./pages/AlvarasList";
+import AlvaraForm from "./pages/AlvaraForm";
+import AlvaraDetail from "./pages/AlvaraDetail";
+import ImportarPage from "./pages/ImportarPage";
+import ExportarPage from "./pages/ExportarPage";
+import ConfiguracaoAlertas from "./pages/ConfiguracaoAlertas";
+
+function AppRoutes() {
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <DashboardLayout>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/clientes" component={ClientesList} />
+        <Route path="/clientes/novo">{() => <ClienteForm />}</Route>
+        <Route path="/clientes/:id/editar">
+          {(params) => <ClienteForm id={Number(params.id)} />}
+        </Route>
+        <Route path="/clientes/:id">
+          {(params) => <ClienteDetail id={Number(params.id)} />}
+        </Route>
+        <Route path="/alvaras" component={AlvarasList} />
+        <Route path="/alvaras/novo">{() => <AlvaraForm />}</Route>
+        <Route path="/alvaras/:id/editar">
+          {(params) => <AlvaraForm id={Number(params.id)} />}
+        </Route>
+        <Route path="/alvaras/:id">
+          {(params) => <AlvaraDetail id={Number(params.id)} />}
+        </Route>
+        <Route path="/importar" component={ImportarPage} />
+        <Route path="/exportar" component={ExportarPage} />
+        <Route path="/alertas" component={ConfiguracaoAlertas} />
+        <Route component={NotFound} />
+      </Switch>
+    </DashboardLayout>
   );
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <Toaster richColors position="top-right" />
+          <AppRoutes />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -1,0 +1,78 @@
+# Gestão de Alvarás — TODO
+
+## Banco de Dados
+- [x] Schema: tabela `clientes` (CNPJ, razão social, nome fantasia, IE, IM, endereço, contato, telefone, email, data abertura, obs preventivas)
+- [x] Schema: tabela `alvaras` (vinculado ao cliente, número, tipo, órgão emissor, datas, status, arquivo PDF key)
+- [x] Schema: tabela `alvara_historico` (movimentações de status com data, obs, colaborador)
+- [x] Schema: tabela `emails_alerta` (e-mails destinatários por cliente)
+- [x] Schema: tabela `importacoes` (log de importações realizadas)
+- [x] Executar migrations
+
+## Backend (tRPC Routers)
+- [x] Router `clientes`: list, get, create, update, delete, search
+- [x] Router `alvaras`: list, get, create, update, delete, updateStatus, getByCliente
+- [x] Router `historico`: listByAlvara, addMovimentacao
+- [x] Router `alertas`: listarEmails, adicionarEmail, removerEmail, dispararAlertas
+- [x] Router `importacao`: processarXlsxCsv, processarPdf, confirmarImportacao
+- [x] Router `exportacao`: exportarAlvaras, exportarHistorico
+- [x] Lógica de cessação automática de alertas a partir de "Em Renovação"
+- [x] Job de envio de e-mails nos marcos 30/15/7 dias (heartbeat)
+- [x] Handler heartbeat `/api/scheduled/alertas-vencimento`
+
+## Frontend — Layout e Navegação
+- [x] DashboardLayout com sidebar elegante
+- [x] Paleta de cores sofisticada (tons neutros premium)
+- [x] Tipografia refinada (Inter)
+- [x] Rota `/` → Dashboard
+- [x] Rota `/clientes` → Lista de clientes
+- [x] Rota `/clientes/novo` → Cadastro de cliente
+- [x] Rota `/clientes/:id` → Detalhe do cliente
+- [x] Rota `/alvaras` → Lista de alvarás
+- [x] Rota `/alvaras/novo` → Cadastro de alvará
+- [x] Rota `/alvaras/:id` → Detalhe do alvará com histórico e status
+- [x] Rota `/importar` → Importação de arquivos
+- [x] Rota `/exportar` → Exportação de dados
+- [x] Rota `/alertas` → Configuração de alertas por e-mail
+
+## Frontend — Dashboard
+- [x] Cards de resumo: total clientes, alvarás ativos, vencidos, a vencer em 30 dias
+- [x] Painel de alertas com código de cores (30/15/7/3/2/1 dia)
+- [x] Filtros rápidos no painel de alertas
+- [x] Busca por razão social ou CNPJ
+
+## Frontend — Cadastro de Clientes
+- [x] Formulário completo com todos os campos
+- [x] Validação de CNPJ
+- [x] Gerenciamento de e-mails de alerta (múltiplos)
+- [x] Lista de alvarás vinculados ao cliente
+
+## Frontend — Cadastro de Alvarás
+- [x] Formulário com todos os campos
+- [x] Upload de arquivo PDF do alvará
+- [x] Seleção de tipo de alvará
+- [x] Vinculação ao cliente por CNPJ
+
+## Frontend — Painel de Status e Histórico
+- [x] Barra de progresso visual com 8 etapas
+- [x] Atualização de status com campo de observação
+- [x] Histórico completo de movimentações
+- [x] Cessação visual de alerta a partir de "Em Renovação"
+
+## Frontend — Importação
+- [x] Upload de XLSX/CSV com tela de mapeamento de colunas (de-para)
+- [x] Upload de PDF com extração automática e tela de revisão
+- [x] Confirmação antes de salvar
+
+## Frontend — Exportação
+- [x] Exportação de lista de alvarás para XLSX
+- [x] Exportação de histórico de renovações para XLSX
+
+## Frontend — Alertas por E-mail
+- [x] Tela de configuração de destinatários por cliente
+- [x] Disparo manual de alertas
+- [x] Informativo dos marcos configurados
+
+## Testes
+- [x] Testes unitários dos routers principais (11 testes passando)
+- [x] Validação do fluxo de status (8 etapas)
+- [x] Validação da lógica de alertas (marcos e cessação)
