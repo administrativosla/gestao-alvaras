@@ -1,0 +1,203 @@
+import nodemailer from "nodemailer";
+
+// Configuração do transporter Gmail SMTP
+// Usa Senha de App gerada pelo Google (não a senha normal da conta)
+function createTransporter() {
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    throw new Error("Credenciais SMTP não configuradas. Verifique SMTP_USER e SMTP_PASS.");
+  }
+
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // SSL
+    auth: { user, pass },
+  });
+}
+
+export interface AlertaEmailData {
+  razaoSocial: string;
+  cnpj: string;
+  tipoAlvara: string;
+  numeroAlvara: string | null;
+  dataVencimento: Date;
+  diasParaVencimento: number;
+  statusAtual: string;
+  alvaraId: number;
+}
+
+/**
+ * Envia e-mail de alerta de vencimento para uma lista de destinatários.
+ */
+export async function enviarAlertaVencimento(
+  destinatarios: string[],
+  dados: AlertaEmailData
+): Promise<boolean> {
+  if (!destinatarios || destinatarios.length === 0) return false;
+
+  const transporter = createTransporter();
+  const { razaoSocial, cnpj, tipoAlvara, numeroAlvara, dataVencimento, diasParaVencimento } = dados;
+
+  const prazoTexto =
+    diasParaVencimento === 0
+      ? "VENCE HOJE"
+      : diasParaVencimento < 0
+        ? `VENCIDO HÁ ${Math.abs(diasParaVencimento)} DIA${Math.abs(diasParaVencimento) !== 1 ? "S" : ""}`
+        : `vence em ${diasParaVencimento} dia${diasParaVencimento !== 1 ? "s" : ""}`;
+
+  const urgencia =
+    diasParaVencimento <= 3 ? "🔴 URGENTE" :
+    diasParaVencimento <= 7 ? "🟠 ATENÇÃO" :
+    diasParaVencimento <= 15 ? "🟡 AVISO" : "🟢 LEMBRETE";
+
+  const dataFormatada = dataVencimento.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const assunto = `${urgencia} — Alvará de ${razaoSocial} ${prazoTexto}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerta de Vencimento de Alvará</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background:#1e293b;padding:28px 32px;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">GestãoAlvarás</p>
+              <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:600;">Alerta de Vencimento</h1>
+            </td>
+          </tr>
+
+          <!-- Urgência badge -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <div style="display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;
+                background:${diasParaVencimento <= 3 ? '#fee2e2' : diasParaVencimento <= 7 ? '#ffedd5' : diasParaVencimento <= 15 ? '#fef9c3' : '#dcfce7'};
+                color:${diasParaVencimento <= 3 ? '#b91c1c' : diasParaVencimento <= 7 ? '#c2410c' : diasParaVencimento <= 15 ? '#854d0e' : '#166534'};">
+                ${urgencia} — ${prazoTexto.toUpperCase()}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Dados do alvará -->
+          <tr>
+            <td style="padding:20px 32px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                <tr style="background:#f8fafc;">
+                  <td colspan="2" style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Cliente</p>
+                    <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#1e293b;">${razaoSocial}</p>
+                    <p style="margin:2px 0 0;font-size:13px;color:#64748b;">CNPJ: ${cnpj}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;border-right:1px solid #e2e8f0;width:50%;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Tipo de Alvará</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${tipoAlvara}</p>
+                  </td>
+                  <td style="padding:12px 16px;width:50%;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Número</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${numeroAlvara ?? "—"}</p>
+                  </td>
+                </tr>
+                <tr style="background:#f8fafc;">
+                  <td style="padding:12px 16px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Data de Vencimento</p>
+                    <p style="margin:4px 0 0;font-size:14px;font-weight:600;color:${diasParaVencimento <= 7 ? '#dc2626' : '#1e293b'};">${dataFormatada}</p>
+                  </td>
+                  <td style="padding:12px 16px;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Status Atual</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${dados.statusAtual}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Ação -->
+          <tr>
+            <td style="padding:0 32px 32px;">
+              <p style="margin:0 0 16px;font-size:14px;color:#64748b;">
+                Acesse o sistema para atualizar o status de renovação e registrar as providências tomadas.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                Este é um e-mail automático gerado pelo sistema GestãoAlvarás. Não responda a este e-mail.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    await transporter.sendMail({
+      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      to: destinatarios.join(", "),
+      subject: assunto,
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error("[Email] Falha ao enviar alerta:", err);
+    return false;
+  }
+}
+
+/**
+ * Envia e-mail de teste para validar as credenciais SMTP.
+ */
+export async function enviarEmailTeste(destinatario: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+
+    // Verifica a conexão antes de enviar
+    await transporter.verify();
+
+    await transporter.sendMail({
+      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      to: destinatario,
+      subject: "✅ Teste de Configuração — GestãoAlvarás",
+      html: `
+        <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:480px;margin:32px auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;">
+          <h2 style="color:#1e293b;margin:0 0 8px;">✅ Configuração de e-mail funcionando!</h2>
+          <p style="color:#64748b;margin:0 0 16px;">
+            O sistema GestãoAlvarás está corretamente configurado para enviar alertas automáticos de vencimento de alvarás.
+          </p>
+          <p style="color:#94a3b8;font-size:13px;margin:0;">
+            Remetente: ${process.env.SMTP_USER}<br>
+            Data/hora do teste: ${new Date().toLocaleString("pt-BR")}
+          </p>
+        </div>
+      `,
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? "Erro desconhecido" };
+  }
+}

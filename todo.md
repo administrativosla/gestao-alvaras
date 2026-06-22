@@ -91,3 +91,13 @@
 ## Melhorias V1.3
 - [x] Modal de nova data de vencimento ao marcar status "Renovado" (com campo de data obrigatório)
 - [x] Campo de busca na seção "Próximos Vencimentos" do dashboard (por razão social ou CNPJ)
+
+## Configuração de E-mail (V1.4)
+- [x] Instalar nodemailer e configurar SMTP Gmail
+- [x] Cadastrar secrets SMTP_USER e SMTP_PASS no sistema
+- [x] Criar serviço de envio de e-mail (server/services/email.ts)
+- [x] Integrar serviço de e-mail ao handler de alertas (alertasHeartbeat.ts)
+- [x] Adicionar botão "Testar Envio" na tela de Alertas
+- [x] Adicionar router de teste de e-mail no backend
+- [ ] Ativar heartbeat agendado diário às 8h
+- [ ] Adicionar suporte a lista global de e-mails (recebe todos os alertas)

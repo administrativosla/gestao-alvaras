@@ -1,10 +1,9 @@
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -17,15 +16,18 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  FlaskConical,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { formatCnpj } from "@/lib/alvaras";
 
 export default function ConfiguracaoAlertas() {
   const [clienteSelecionado, setClienteSelecionado] = useState<string>("");
   const [novoEmail, setNovoEmail] = useState("");
-  const [disparando, setDisparando] = useState(false);
+  const [emailTeste, setEmailTeste] = useState("");
+  const [testando, setTestando] = useState(false);
+  const [resultadoTeste, setResultadoTeste] = useState<{ success: boolean; error?: string } | null>(null);
 
   const { data: clientes } = trpc.clientes.list.useQuery({});
   const clienteId = clienteSelecionado ? Number(clienteSelecionado) : null;
@@ -54,12 +56,29 @@ export default function ConfiguracaoAlertas() {
 
   const dispararMutation = trpc.alertas.dispararAlertas.useMutation({
     onSuccess: (data) => {
-      toast.success(`Alertas disparados: ${data.enviados} e-mail(s) enviado(s).`);
-      setDisparando(false);
+      if (data.enviados > 0) {
+        toast.success(`${data.enviados} alerta(s) enviado(s) com sucesso!`);
+      } else {
+        toast.info("Nenhum alerta nos marcos de hoje.");
+      }
+    },
+    onError: (e) => toast.error("Erro ao disparar alertas: " + e.message),
+  });
+
+  const testarMutation = trpc.alertas.testarEmail.useMutation({
+    onSuccess: (data) => {
+      setTestando(false);
+      setResultadoTeste(data);
+      if (data.success) {
+        toast.success("E-mail de teste enviado! Verifique sua caixa de entrada.");
+      } else {
+        toast.error("Falha ao enviar e-mail de teste.");
+      }
     },
     onError: (e) => {
-      toast.error("Erro ao disparar alertas: " + e.message);
-      setDisparando(false);
+      setTestando(false);
+      setResultadoTeste({ success: false, error: e.message });
+      toast.error("Erro ao testar e-mail: " + e.message);
     },
   });
 
@@ -69,21 +88,99 @@ export default function ConfiguracaoAlertas() {
     adicionarMutation.mutate({ clienteId, email: novoEmail.trim() });
   };
 
-  const handleDisparar = () => {
-    setDisparando(true);
-    dispararMutation.mutate();
+  const handleTestarEmail = () => {
+    if (!emailTeste.trim()) { toast.error("Informe o e-mail de destino para o teste."); return; }
+    setTestando(true);
+    setResultadoTeste(null);
+    testarMutation.mutate({ destinatario: emailTeste.trim() });
   };
 
-  const clienteAtual = clientes?.find((c) => c.id === clienteId);
-
   return (
-    <div className="space-y-6 max-w-3xl animate-fade-in-up">
+    <div className="space-y-6 max-w-4xl animate-fade-in-up">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Alertas por E-mail</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure os destinatários dos alertas automáticos de vencimento por cliente
+          Configure os destinatários e valide o envio automático de alertas de vencimento
         </p>
       </div>
+
+      {/* Seção de teste de e-mail — destaque no topo */}
+      <Card className="border-2 border-primary/20 shadow-sm bg-primary/[0.02]">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <FlaskConical className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold">Testar Configuração de E-mail</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Valide se as credenciais Gmail estão corretas antes de ativar os alertas automáticos
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="seu@email.com — e-mail que receberá o teste"
+              value={emailTeste}
+              onChange={(e) => setEmailTeste(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleTestarEmail()}
+              className="text-sm h-9"
+            />
+            <Button
+              size="sm"
+              className="gap-1.5 shrink-0"
+              onClick={handleTestarEmail}
+              disabled={testando || testarMutation.isPending}
+            >
+              {testando || testarMutation.isPending ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Enviando...</>
+              ) : (
+                <><Send className="h-3.5 w-3.5" /> Enviar teste</>
+              )}
+            </Button>
+          </div>
+
+          {resultadoTeste && (
+            <div className={`p-3 rounded-lg flex items-start gap-2 text-xs border ${
+              resultadoTeste.success
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-red-50 border-red-200 text-red-700"
+            }`}>
+              {resultadoTeste.success ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <p className="font-medium">
+                  {resultadoTeste.success
+                    ? "✅ Configuração funcionando! E-mail enviado com sucesso."
+                    : "❌ Falha na configuração de e-mail."}
+                </p>
+                {resultadoTeste.error && (
+                  <p className="mt-0.5 font-mono text-xs opacity-80">{resultadoTeste.error}</p>
+                )}
+                {resultadoTeste.success && (
+                  <p className="mt-0.5 opacity-80">
+                    Verifique a caixa de entrada (e spam) de <strong>{emailTeste}</strong>.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="p-2.5 rounded-lg bg-muted/50 flex gap-2 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              Remetente configurado: <strong>alvarasmjp@gmail.com</strong> — Gmail com Senha de App.
+              Para trocar o remetente, atualize as credenciais SMTP nas configurações do sistema.
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Configuração por cliente */}
@@ -93,6 +190,9 @@ export default function ConfiguracaoAlertas() {
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Destinatários por Cliente
               </CardTitle>
+              <CardDescription className="text-xs">
+                Cada cliente pode ter múltiplos e-mails internos que receberão os alertas
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
@@ -153,7 +253,7 @@ export default function ConfiguracaoAlertas() {
                   <div className="flex gap-2">
                     <Input
                       type="email"
-                      placeholder="novo@email.com"
+                      placeholder="colaborador@empresa.com"
                       value={novoEmail}
                       onChange={(e) => setNovoEmail(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAdicionarEmail()}
@@ -179,38 +279,39 @@ export default function ConfiguracaoAlertas() {
           </Card>
         </div>
 
-        {/* Painel de disparo manual */}
+        {/* Painel de disparo e marcos */}
         <div className="space-y-4">
+          {/* Disparo manual */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Disparo Manual de Alertas
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-500" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Disparo Manual de Alertas
+                </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex gap-2">
                 <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                 <div className="text-xs text-blue-700 space-y-1">
-                  <p className="font-medium">Alertas automáticos</p>
+                  <p className="font-medium">Alertas automáticos diários às 8h</p>
                   <p>
-                    O sistema verifica e envia alertas automaticamente nos marcos de{" "}
-                    <strong>30, 15 e 7 dias</strong> antes do vencimento.
-                  </p>
-                  <p>
-                    Use o botão abaixo para disparar manualmente os alertas de todos os
-                    alvarás que estejam nos marcos de <strong>30, 15, 7, 3, 2 e 1 dia</strong>.
+                    O sistema verifica automaticamente nos marcos de{" "}
+                    <strong>30, 15, 7, 3, 2 e 1 dia</strong> antes do vencimento.
+                    Use o botão abaixo para disparar manualmente fora do horário programado.
                   </p>
                 </div>
               </div>
 
               <Button
                 className="w-full gap-2"
-                onClick={handleDisparar}
+                onClick={() => dispararMutation.mutate()}
                 disabled={dispararMutation.isPending}
                 variant="outline"
               >
                 {dispararMutation.isPending ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Enviando alertas...</>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Verificando alvarás...</>
                 ) : (
                   <><Send className="h-4 w-4" /> Disparar alertas agora</>
                 )}
@@ -220,10 +321,15 @@ export default function ConfiguracaoAlertas() {
                 <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div className="text-xs text-emerald-700">
-                    <p className="font-medium">Alertas disparados com sucesso</p>
+                    <p className="font-medium">Verificação concluída</p>
                     <p>{dispararMutation.data.enviados} e-mail(s) enviado(s)</p>
+                    {(dispararMutation.data.semEmail ?? 0) > 0 && (
+                      <p className="text-amber-600 mt-0.5">
+                        {dispararMutation.data.semEmail} alvarás sem e-mail cadastrado
+                      </p>
+                    )}
                     {dispararMutation.data.erros > 0 && (
-                      <p className="text-amber-600">{dispararMutation.data.erros} erro(s)</p>
+                      <p className="text-red-600 mt-0.5">{dispararMutation.data.erros} erro(s) de envio</p>
                     )}
                   </div>
                 </div>
@@ -258,7 +364,7 @@ export default function ConfiguracaoAlertas() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Alertas são suprimidos automaticamente quando o alvará entra no status{" "}
+                Alertas são suprimidos automaticamente quando o alvará entra em{" "}
                 <strong>"Em Renovação"</strong>, <strong>"Renovado"</strong> ou{" "}
                 <strong>"Cancelado"</strong>.
               </p>

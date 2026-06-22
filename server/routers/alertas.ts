@@ -3,76 +3,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { alvaras, clientes, emailsAlerta, STATUS_SEM_ALERTA } from "../../drizzle/schema";
 import { eq, notInArray } from "drizzle-orm";
-
-// Envio de e-mail via Manus notification ou SMTP simples
-async function enviarEmailAlerta(params: {
-  destinatarios: string[];
-  razaoSocial: string;
-  cnpj: string;
-  tipoAlvara: string;
-  dataVencimento: Date;
-  diasRestantes: number;
-}) {
-  const { destinatarios, razaoSocial, cnpj, tipoAlvara, dataVencimento, diasRestantes } = params;
-  const dataFormatada = dataVencimento.toLocaleDateString("pt-BR");
-  const urgencia = diasRestantes <= 3 ? "URGENTE" : diasRestantes <= 7 ? "ATENÇÃO" : "AVISO";
-
-  const assunto = `[${urgencia}] Alvará ${tipoAlvara} - ${razaoSocial} vence em ${diasRestantes} dia(s)`;
-  const corpo = `
-Prezado(a),
-
-Este é um alerta automático do Sistema de Gestão de Alvarás.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALERTA DE VENCIMENTO DE ALVARÁ
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Cliente:        ${razaoSocial}
-CNPJ:           ${cnpj}
-Tipo de Alvará: ${tipoAlvara}
-Vencimento:     ${dataFormatada}
-Prazo:          ${diasRestantes === 0 ? "VENCE HOJE" : `${diasRestantes} dia(s)`}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Por favor, acesse o sistema para verificar e atualizar o status de renovação.
-
-Este e-mail foi gerado automaticamente. Não responda a esta mensagem.
-  `.trim();
-
-  // Usar a API de notificação do Manus para envio
-  const forgeUrl = process.env.BUILT_IN_FORGE_API_URL;
-  const forgeKey = process.env.BUILT_IN_FORGE_API_KEY;
-
-  if (!forgeUrl || !forgeKey) {
-    console.warn("[Alertas] Variáveis de ambiente de notificação não configuradas.");
-    return false;
-  }
-
-  try {
-    const results = await Promise.allSettled(
-      destinatarios.map(async (email) => {
-        const res = await fetch(`${forgeUrl}/v1/notification/email`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${forgeKey}`,
-          },
-          body: JSON.stringify({
-            to: email,
-            subject: assunto,
-            text: corpo,
-          }),
-        });
-        return res.ok;
-      })
-    );
-    return results.every((r) => r.status === "fulfilled" && r.value);
-  } catch (err) {
-    console.error("[Alertas] Erro ao enviar e-mail:", err);
-    return false;
-  }
-}
+import { enviarAlertaVencimento, enviarEmailTeste } from "../services/email";
 
 export const alertasRouter = router({
   // Listar e-mails de alerta de um cliente
@@ -89,7 +20,6 @@ export const alertasRouter = router({
     .input(z.object({
       clienteId: z.number(),
       email: z.string().email(),
-      nome: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -111,6 +41,14 @@ export const alertasRouter = router({
       return { success: true };
     }),
 
+  // Testar envio de e-mail (valida credenciais SMTP e envia e-mail de confirmação)
+  testarEmail: publicProcedure
+    .input(z.object({ destinatario: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const resultado = await enviarEmailTeste(input.destinatario);
+      return resultado;
+    }),
+
   // Disparar alertas manualmente (ou chamado pelo heartbeat)
   dispararAlertas: publicProcedure.mutation(async () => {
     const db = await getDb();
@@ -122,6 +60,7 @@ export const alertasRouter = router({
     const marcos = [30, 15, 7, 3, 2, 1];
     let enviados = 0;
     let erros = 0;
+    let semEmail = 0;
 
     // Buscar todos os alvarás ativos (não em renovação/renovado/cancelado)
     const todosAlvaras = await db
@@ -150,37 +89,40 @@ export const alertasRouter = router({
         .from(emailsAlerta)
         .where(eq(emailsAlerta.clienteId, cliente.id));
 
-      if (emails.length === 0) continue;
+      if (emails.length === 0) {
+        semEmail++;
+        continue;
+      }
 
       const destinatarios = emails.map((e) => e.email);
 
-      const ok = await enviarEmailAlerta({
-        destinatarios,
+      const ok = await enviarAlertaVencimento(destinatarios, {
         razaoSocial: cliente.razaoSocial,
         cnpj: cliente.cnpj,
         tipoAlvara: alvara.tipo,
+        numeroAlvara: alvara.numeroAlvara ?? null,
         dataVencimento: vencimento,
-        diasRestantes,
+        diasParaVencimento: diasRestantes,
+        statusAtual: alvara.status,
+        alvaraId: alvara.id,
       });
 
       if (ok) enviados++;
       else erros++;
     }
 
-    return { enviados, erros, total: todosAlvaras.length };
+    return { enviados, erros, semEmail, total: todosAlvaras.length };
   }),
 
-  // Status dos alertas (quantos alvarás têm e-mails configurados)
+  // Status dos alertas (quantos clientes têm e-mails configurados)
   statusAlertas: publicProcedure.query(async () => {
     const db = await getDb();
-    if (!db) return { comEmail: 0, semEmail: 0 };
+    if (!db) return { comEmail: 0 };
 
     const comEmail = await db
       .selectDistinct({ clienteId: emailsAlerta.clienteId })
       .from(emailsAlerta);
 
-    return {
-      comEmail: comEmail.length,
-    };
+    return { comEmail: comEmail.length };
   }),
 });
