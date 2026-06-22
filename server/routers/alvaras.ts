@@ -99,15 +99,32 @@ export const alvarasRouter = router({
         status: statusEnum,
         observacao: z.string().optional(),
         colaborador: z.string().optional(),
+        novaDataVencimento: z.string().optional(), // obrigatório quando status = "Renovado"
       })
     )
     .mutation(async ({ input, ctx }) => {
       const row = await getAlvaraById(input.id);
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const statusAnterior = row.alvara.status;
-      await updateAlvara(input.id, { status: input.status });
+      // Ao marcar como Renovado, exige nova data de vencimento
+      if (input.status === "Renovado" && !input.novaDataVencimento) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Informe a nova data de vencimento para concluir a renovação.",
+        });
+      }
 
+      const statusAnterior = row.alvara.status;
+
+      // Monta o objeto de atualização
+      const updateData: Parameters<typeof updateAlvara>[1] = { status: input.status };
+      if (input.status === "Renovado" && input.novaDataVencimento) {
+        const novaData = parseDate(input.novaDataVencimento);
+        if (!novaData) throw new TRPCError({ code: "BAD_REQUEST", message: "Data de vencimento inválida." });
+        updateData.dataVencimento = novaData;
+      }
+
+      await updateAlvara(input.id, updateData);
       await addHistorico({
         alvaraId: input.id,
         statusAnterior,

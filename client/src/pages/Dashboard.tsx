@@ -26,10 +26,16 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroPrazo, setFiltroPrazo] = useState("todos");
+  const [searchProximos, setSearchProximos] = useState("");
 
   const { data: resumo, isLoading: loadingResumo } = trpc.dashboard.resumo.useQuery();
   const { data: alertas, isLoading: loadingAlertas, refetch } = trpc.dashboard.alertas.useQuery();
-  const { data: proximos, isLoading: loadingProximos, refetch: refetchProximos } = trpc.dashboard.proximosVencimentos.useQuery({ limite: 20 });
+  const { data: proximos, isLoading: loadingProximos, refetch: refetchProximos } = trpc.dashboard.proximosVencimentos.useQuery({ limite: 50 });
+  const proximosFiltrados = (proximos ?? []).filter((p) =>
+    !searchProximos ||
+    p.cliente.razaoSocial.toLowerCase().includes(searchProximos.toLowerCase()) ||
+    p.cliente.cnpj.includes(searchProximos)
+  );
 
   const alertasFiltrados = (alertas ?? []).filter((a) => {
     const matchSearch =
@@ -229,6 +235,16 @@ export default function Dashboard() {
             Ver todos <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
+        {/* Campo de busca nos próximos vencimentos */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Buscar por razão social ou CNPJ..."
+            value={searchProximos}
+            onChange={(e) => setSearchProximos(e.target.value)}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
 
         {loadingProximos ? (
           <div className="space-y-2">
@@ -247,16 +263,28 @@ export default function Dashboard() {
               </p>
             </CardContent>
           </Card>
+        ) : proximosFiltrados.length === 0 && searchProximos ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+              <div className="p-3 rounded-full bg-muted">
+                <Search className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Nenhum resultado para "{searchProximos}"</p>
+              <Button variant="ghost" size="sm" onClick={() => setSearchProximos("")} className="text-xs">
+                Limpar busca
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <Card className="border shadow-sm overflow-hidden">
             <CardHeader className="pb-0 pt-4 px-5">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-              {proximos.length} alvará{proximos.length !== 1 ? "s" : ""} ativo{proximos.length !== 1 ? "s" : ""}
+              {proximosFiltrados.length} alvará{proximosFiltrados.length !== 1 ? "s" : ""} ativo{proximosFiltrados.length !== 1 ? "s" : ""}{searchProximos && proximosFiltrados.length !== proximos!.length ? ` (de ${proximos!.length})` : ""}
             </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
-                {proximos.map((p, idx) => {
+                {proximosFiltrados.map((p, idx) => {
                   const prazoLabel = (() => {
                     if (p.diasParaVencimento < 0) return `Vencido há ${Math.abs(p.diasParaVencimento)} dia${Math.abs(p.diasParaVencimento) !== 1 ? "s" : ""}`;
                     if (p.diasParaVencimento === 0) return "Vence hoje";

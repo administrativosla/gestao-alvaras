@@ -87,3 +87,7 @@
 ## Bugs V1.2
 - [x] Alvará importado via PDF fica com status "Pendente" mesmo com vencimento > 30 dias (status inicial não atualizado no banco)
 - [x] Seção "Próximos Vencimentos" deve exibir TODOS os alvarás ativos (não apenas "Em Vigência"), ordenados por data crescente
+
+## Melhorias V1.3
+- [x] Modal de nova data de vencimento ao marcar status "Renovado" (com campo de data obrigatório)
+- [x] Campo de busca na seção "Próximos Vencimentos" do dashboard (por razão social ou CNPJ)
