@@ -101,3 +101,9 @@
 - [x] Adicionar router de teste de e-mail no backend
 - [x] Ativar heartbeat agendado diário às 8h (ativado após deploy — handler e e-mails globais integrados)
 - [x] Adicionar suporte a lista global de e-mails (recebe todos os alertas)
+
+## Melhorias V1.5
+- [x] Renomear status "Pendente" para "Vencido" em todo o sistema (schema, backend, frontend)
+- [x] Remover status "Documentação Recebida" do fluxo (schema, backend, frontend)
+- [x] Adicionar campo "responsável" na atualização de status (modal + histórico + banco)
+- [x] Disparar e-mail para os envolvidos a cada atualização de status

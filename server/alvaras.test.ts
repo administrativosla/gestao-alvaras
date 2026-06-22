@@ -100,29 +100,27 @@ describe("Sistema de Gestão de Alvarás — Testes de Integração", () => {
 
     it("não deve incluir status que mantêm alertas ativos", async () => {
       const { STATUS_SEM_ALERTA } = await import("../drizzle/schema");
-      expect(STATUS_SEM_ALERTA).not.toContain("Pendente");
+      expect(STATUS_SEM_ALERTA).not.toContain("Vencido");
       expect(STATUS_SEM_ALERTA).not.toContain("Contato Realizado");
       expect(STATUS_SEM_ALERTA).not.toContain("Tratativa Comercial");
       expect(STATUS_SEM_ALERTA).not.toContain("Documentação Solicitada");
-      expect(STATUS_SEM_ALERTA).not.toContain("Documentação Recebida");
     });
   });
 
-  describe("Lógica de status — fluxo de 9 etapas (inclui Em Vigência)", () => {
-    it("deve ter exatamente 9 status de renovação", async () => {
+  describe("Lógica de status — fluxo de 8 etapas", () => {
+    it("deve ter exatamente 8 status de renovação", async () => {
       const { STATUS_RENOVACAO } = await import("../drizzle/schema");
-      expect(STATUS_RENOVACAO).toHaveLength(9);
+      expect(STATUS_RENOVACAO).toHaveLength(8);
     });
 
     it("deve ter os status na ordem correta", async () => {
       const { STATUS_RENOVACAO } = await import("../drizzle/schema");
       const statusEsperados = [
         "Em Vigência",
-        "Pendente",
+        "Vencido",
         "Contato Realizado",
         "Tratativa Comercial",
         "Documentação Solicitada",
-        "Documentação Recebida",
         "Em Renovação",
         "Renovado",
         "Cancelado",

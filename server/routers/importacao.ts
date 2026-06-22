@@ -238,9 +238,9 @@ export const importacaoRouter = router({
                 orgaoEmissor: rowData.orgaoEmissor ? String(rowData.orgaoEmissor) : null,
                 dataEmissao: parseDate(rowData.dataEmissao),
                 dataVencimento,
-                status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })(),
+                status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })(),
               });
-              const _statusXlsx = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })();
+              const _statusXlsx = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })();
               await addHistorico({
                 alvaraId,
                 statusAnterior: null,
@@ -449,9 +449,9 @@ Se não encontrar um campo, use null.`,
             dataVencimento,
             arquivoPdfKey: dados.arquivoPdfKey ?? null,
             arquivoPdfUrl: dados.arquivoPdfUrl ?? null,
-            status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })(),
+            status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })(),
           });
-          const _statusPdf = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })();
+          const _statusPdf = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })();
           await addHistorico({
             alvaraId,
             statusAnterior: null,

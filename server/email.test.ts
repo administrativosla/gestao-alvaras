@@ -73,7 +73,7 @@ describe("Serviço de E-mail", () => {
         numeroAlvara: "ALV-2024-001",
         dataVencimento: new Date("2025-12-31"),
         diasParaVencimento: 7,
-        statusAtual: "Pendente",
+        statusAtual: "Vencido",
         alvaraId: 1,
       }
     );
@@ -97,7 +97,7 @@ describe("Serviço de E-mail", () => {
       numeroAlvara: null,
       dataVencimento: new Date(),
       diasParaVencimento: 7,
-      statusAtual: "Pendente",
+      statusAtual: "Vencido",
       alvaraId: 1,
     });
     expect(resultado).toBe(false);

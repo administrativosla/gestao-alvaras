@@ -172,11 +172,10 @@ export default function Dashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="Pendente">Pendente</SelectItem>
+              <SelectItem value="Vencido">Vencido</SelectItem>
               <SelectItem value="Contato Realizado">Contato Realizado</SelectItem>
               <SelectItem value="Tratativa Comercial">Tratativa Comercial</SelectItem>
               <SelectItem value="Documentação Solicitada">Documentação Solicitada</SelectItem>
-              <SelectItem value="Documentação Recebida">Documentação Recebida</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -434,11 +433,10 @@ function AlertaCard({
 export function StatusProgressBar({ status, compact = false }: { status: string; compact?: boolean }) {
   const steps = [
     "Em Vigência",
-    "Pendente",
+    "Vencido",
     "Contato Realizado",
     "Tratativa Comercial",
     "Documentação Solicitada",
-    "Documentação Recebida",
     "Em Renovação",
     "Renovado",
   ];

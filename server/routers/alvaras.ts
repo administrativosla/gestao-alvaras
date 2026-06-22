@@ -1,17 +1,20 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { publicProcedure, router } from "../_core/trpc";
 import {
   addHistorico,
   createAlvara,
   deleteAlvara,
   getAlvaraById,
+  getDb,
   getHistoricoByAlvara,
   listAlvaras,
   updateAlvara,
 } from "../db";
-import { STATUS_RENOVACAO } from "../../drizzle/schema";
+import { STATUS_RENOVACAO, emailsAlerta, emailsGlobais } from "../../drizzle/schema";
 import { parseDate } from "../utils/parseDate";
+import { enviarNotificacaoStatusAtualizado } from "../services/email";
 
 const statusEnum = z.enum(STATUS_RENOVACAO);
 
@@ -55,13 +58,13 @@ export const alvarasRouter = router({
   create: publicProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
     const { dataEmissao, dataVencimento, ...rest } = input;
     const parsedVenc = parseDate(dataVencimento) ?? new Date(dataVencimento);
-    // Determina status inicial: "Em Vigência" se vencer em mais de 30 dias, "Pendente" caso contrário
+    // Determina status inicial: "Em Vigência" se vencer em mais de 30 dias, "Vencido" caso contrário
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const venc = new Date(parsedVenc);
     venc.setHours(0, 0, 0, 0);
     const diasParaVencimento = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-    const statusInicial: string = diasParaVencimento > 30 ? "Em Vigência" : "Pendente";
+    const statusInicial: string = diasParaVencimento > 30 ? "Em Vigência" : "Vencido";
     const id = await createAlvara({
       ...rest,
       dataEmissao: parseDate(dataEmissao) ?? null,
@@ -115,6 +118,7 @@ export const alvarasRouter = router({
       }
 
       const statusAnterior = row.alvara.status;
+      const responsavel = input.colaborador ?? (ctx as any).user?.name ?? "Colaborador";
 
       // Monta o objeto de atualização
       const updateData: Parameters<typeof updateAlvara>[1] = { status: input.status };
@@ -130,9 +134,55 @@ export const alvarasRouter = router({
         statusAnterior,
         statusNovo: input.status,
         observacao: input.observacao ?? null,
-        colaborador:
-          input.colaborador ?? (ctx as any).user?.name ?? "Colaborador",
+        colaborador: responsavel,
       });
+
+      // Disparo de e-mail fire-and-forget (não bloqueia a resposta ao usuário)
+      const dataVencimentoFinal = updateData.dataVencimento ?? new Date(row.alvara.dataVencimento);
+      const clienteId = row.alvara.clienteId;
+      const emailPayload = {
+        razaoSocial: row.cliente.razaoSocial,
+        cnpj: row.cliente.cnpj,
+        tipoAlvara: row.alvara.tipo,
+        numeroAlvara: row.alvara.numeroAlvara ?? null,
+        statusAnterior,
+        statusNovo: input.status,
+        responsavel,
+        observacao: input.observacao ?? null,
+        dataVencimento: dataVencimentoFinal,
+      };
+
+      (async () => {
+        try {
+          const db = await getDb();
+          if (!db) return;
+
+          // Busca e-mails do cliente
+          const emailsDoCliente = await db
+            .select()
+            .from(emailsAlerta)
+            .where(eq(emailsAlerta.clienteId, clienteId));
+
+          // Busca e-mails globais ativos
+          const globais = await db
+            .select()
+            .from(emailsGlobais)
+            .where(eq(emailsGlobais.ativo, true));
+
+          const destinatarios = Array.from(
+            new Set([
+              ...emailsDoCliente.map((e) => e.email),
+              ...globais.map((g) => g.email),
+            ])
+          );
+
+          if (destinatarios.length === 0) return;
+
+          await enviarNotificacaoStatusAtualizado(destinatarios, emailPayload);
+        } catch (emailErr) {
+          console.error("[updateStatus] Falha ao enviar e-mail de notificação:", emailErr);
+        }
+      })();
 
       return { success: true };
     }),

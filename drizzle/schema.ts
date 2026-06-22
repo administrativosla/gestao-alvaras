@@ -83,11 +83,10 @@ export type TipoAlvara = (typeof TIPOS_ALVARA)[number];
 // ─── Status de Renovação ──────────────────────────────────────────────────────
 export const STATUS_RENOVACAO = [
   "Em Vigência",
-  "Pendente",
+  "Vencido",
   "Contato Realizado",
   "Tratativa Comercial",
   "Documentação Solicitada",
-  "Documentação Recebida",
   "Em Renovação",
   "Renovado",
   "Cancelado",
@@ -107,7 +106,7 @@ export const alvaras = mysqlTable("alvaras", {
   orgaoEmissor: varchar("orgaoEmissor", { length: 255 }),
   dataEmissao: date("dataEmissao"),
   dataVencimento: date("dataVencimento").notNull(),
-  status: varchar("status", { length: 50 }).default("Pendente").notNull(),
+  status: varchar("status", { length: 50 }).default("Vencido").notNull(),
   arquivoPdfKey: varchar("arquivoPdfKey", { length: 500 }),
   arquivoPdfUrl: varchar("arquivoPdfUrl", { length: 500 }),
   ativo: boolean("ativo").default(true).notNull(),

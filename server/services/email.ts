@@ -29,6 +29,18 @@ export interface AlertaEmailData {
   alvaraId: number;
 }
 
+export interface NotificacaoStatusData {
+  razaoSocial: string;
+  cnpj: string;
+  tipoAlvara: string;
+  numeroAlvara: string | null;
+  statusAnterior: string | null;
+  statusNovo: string;
+  responsavel: string;
+  observacao: string | null;
+  dataVencimento: Date;
+}
+
 /**
  * Envia e-mail de alerta de vencimento para uma lista de destinatários.
  */
@@ -164,6 +176,188 @@ export async function enviarAlertaVencimento(
     return true;
   } catch (err) {
     console.error("[Email] Falha ao enviar alerta:", err);
+    return false;
+  }
+}
+
+/**
+ * Envia e-mail de notificação de mudança de status para uma lista de destinatários.
+ */
+export async function enviarNotificacaoStatusAtualizado(
+  destinatarios: string[],
+  dados: NotificacaoStatusData
+): Promise<boolean> {
+  if (!destinatarios || destinatarios.length === 0) return false;
+
+  const transporter = createTransporter();
+  const {
+    razaoSocial,
+    cnpj,
+    tipoAlvara,
+    numeroAlvara,
+    statusAnterior,
+    statusNovo,
+    responsavel,
+    observacao,
+    dataVencimento,
+  } = dados;
+
+  const dataVencFormatada = dataVencimento.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const dataHoraAcao = new Date().toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const statusCorBg: Record<string, string> = {
+    "Em Vigência": "#dcfce7",
+    "Vencido": "#fee2e2",
+    "Contato Realizado": "#dbeafe",
+    "Tratativa Comercial": "#e0e7ff",
+    "Documentação Solicitada": "#fef9c3",
+    "Em Renovação": "#ffedd5",
+    "Renovado": "#d1fae5",
+    "Cancelado": "#f1f5f9",
+  };
+  const statusCorText: Record<string, string> = {
+    "Em Vigência": "#166534",
+    "Vencido": "#b91c1c",
+    "Contato Realizado": "#1d4ed8",
+    "Tratativa Comercial": "#3730a3",
+    "Documentação Solicitada": "#854d0e",
+    "Em Renovação": "#c2410c",
+    "Renovado": "#065f46",
+    "Cancelado": "#475569",
+  };
+
+  const bgNovo = statusCorBg[statusNovo] ?? "#f1f5f9";
+  const textNovo = statusCorText[statusNovo] ?? "#1e293b";
+
+  const assunto = `📋 Atualização de Status — ${razaoSocial} (${tipoAlvara})`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atualização de Status de Alvará</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1e293b;padding:28px 32px;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">GestãoAlvarás</p>
+              <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:600;">Atualização de Status</h1>
+              <p style="margin:6px 0 0;color:#94a3b8;font-size:13px;">${dataHoraAcao}</p>
+            </td>
+          </tr>
+
+          <!-- Mudança de status -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+                    ${statusAnterior ? `
+                    <span style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;">
+                      ${statusAnterior}
+                    </span>
+                    <span style="font-size:18px;color:#94a3b8;margin:0 8px;">→</span>
+                    ` : ""}
+                    <span style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;background:${bgNovo};color:${textNovo};">
+                      ${statusNovo}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Dados do alvará -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                <tr style="background:#f8fafc;">
+                  <td colspan="2" style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Cliente</p>
+                    <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#1e293b;">${razaoSocial}</p>
+                    <p style="margin:2px 0 0;font-size:13px;color:#64748b;">CNPJ: ${cnpj}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;border-right:1px solid #e2e8f0;width:50%;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Tipo de Alvará</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${tipoAlvara}</p>
+                  </td>
+                  <td style="padding:12px 16px;width:50%;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Número</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${numeroAlvara ?? "—"}</p>
+                  </td>
+                </tr>
+                <tr style="background:#f8fafc;">
+                  <td style="padding:12px 16px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Vencimento</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${dataVencFormatada}</p>
+                  </td>
+                  <td style="padding:12px 16px;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Responsável</p>
+                    <p style="margin:4px 0 0;font-size:14px;font-weight:500;color:#1e293b;">${responsavel}</p>
+                  </td>
+                </tr>
+                ${observacao ? `
+                <tr>
+                  <td colspan="2" style="padding:12px 16px;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Observação</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${observacao}</p>
+                  </td>
+                </tr>
+                ` : ""}
+              </table>
+            </td>
+          </tr>
+
+          <!-- Espaço -->
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                Este é um e-mail automático gerado pelo sistema GestãoAlvarás. Não responda a este e-mail.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    await transporter.sendMail({
+      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      to: destinatarios.join(", "),
+      subject: assunto,
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error("[Email] Falha ao enviar notificação de status:", err);
     return false;
   }
 }

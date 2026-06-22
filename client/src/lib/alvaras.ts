@@ -1,10 +1,9 @@
 export const STATUS_RENOVACAO = [
   "Em Vigência",
-  "Pendente",
+  "Vencido",
   "Contato Realizado",
   "Tratativa Comercial",
   "Documentação Solicitada",
-  "Documentação Recebida",
   "Em Renovação",
   "Renovado",
   "Cancelado",
@@ -120,16 +119,14 @@ export function getStatusColor(status: string): {
   switch (status) {
     case "Em Vigência":
       return { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" };
-    case "Pendente":
-      return { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" };
+    case "Vencido":
+      return { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" };
     case "Contato Realizado":
       return { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" };
     case "Tratativa Comercial":
       return { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" };
     case "Documentação Solicitada":
       return { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" };
-    case "Documentação Recebida":
-      return { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" };
     case "Em Renovação":
       return { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" };
     case "Renovado":
@@ -166,11 +163,11 @@ export function calcDiasParaVencimento(dataVencimento: Date | string | null | un
 /**
  * Determina o status inicial de um alvará com base na data de vencimento.
  * - Se vencer em mais de 30 dias → "Em Vigência"
- * - Se vencer em 30 dias ou menos (mas ainda não venceu) → "Pendente"
- * - Se já venceu → "Pendente" (para chamar atenção)
+ * - Se vencer em 30 dias ou menos (mas ainda não venceu) → "Vencido"
+ * - Se já venceu → "Vencido" (para chamar atenção)
  */
 export function getStatusInicial(dataVencimento: Date | string | null | undefined): StatusRenovacao {
   const dias = calcDiasParaVencimento(dataVencimento);
-  if (dias === null) return "Pendente";
-  return dias > 30 ? "Em Vigência" : "Pendente";
+  if (dias === null) return "Vencido";
+  return dias > 30 ? "Em Vigência" : "Vencido";
 }

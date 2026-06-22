@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { toast } from "sonner";
 import { STATUS_RENOVACAO, getStatusColor } from "@/lib/alvaras";
-import { ChevronRight, CalendarDays, CheckCircle2 } from "lucide-react";
+import { ChevronRight, CalendarDays, CheckCircle2, User } from "lucide-react";
 
 interface Props {
   alvaraId: number;
@@ -28,20 +28,25 @@ export default function StatusUpdateDialog({ alvaraId, statusAtual, onUpdated, t
   const [open, setOpen] = useState(false);
   const [novoStatus, setNovoStatus] = useState(statusAtual);
   const [observacao, setObservacao] = useState("");
+  const [responsavel, setResponsavel] = useState("");
+  const [responsavelTouched, setResponsavelTouched] = useState(false);
   const [novaDataVencimento, setNovaDataVencimento] = useState("");
   const utils = trpc.useUtils();
 
   const isRenovado = novoStatus === "Renovado";
+  const responsavelInvalido = responsavelTouched && !responsavel.trim();
 
   const mutation = trpc.alvaras.updateStatus.useMutation({
     onSuccess: () => {
       toast.success(
         isRenovado
           ? "Alvará renovado com sucesso! Nova data de vencimento registrada."
-          : "Status atualizado com sucesso!"
+          : "Status atualizado com sucesso! E-mail de notificação enviado aos envolvidos."
       );
       setOpen(false);
       setObservacao("");
+      setResponsavel("");
+      setResponsavelTouched(false);
       setNovaDataVencimento("");
       utils.dashboard.alertas.invalidate();
       utils.dashboard.proximosVencimentos.invalidate();
@@ -56,6 +61,11 @@ export default function StatusUpdateDialog({ alvaraId, statusAtual, onUpdated, t
 
   const handleSave = () => {
     if (!novoStatus) return;
+    if (!responsavel.trim()) {
+      setResponsavelTouched(true);
+      toast.error("Informe o responsável pela ação.");
+      return;
+    }
     if (isRenovado && !novaDataVencimento) {
       toast.error("Informe a nova data de vencimento para concluir a renovação.");
       return;
@@ -64,6 +74,7 @@ export default function StatusUpdateDialog({ alvaraId, statusAtual, onUpdated, t
       id: alvaraId,
       status: novoStatus as any,
       observacao: observacao || undefined,
+      colaborador: responsavel.trim(),
       novaDataVencimento: isRenovado ? novaDataVencimento : undefined,
     });
   };
@@ -73,6 +84,8 @@ export default function StatusUpdateDialog({ alvaraId, statusAtual, onUpdated, t
     if (v) {
       setNovoStatus(statusAtual);
       setObservacao("");
+      setResponsavel("");
+      setResponsavelTouched(false);
       setNovaDataVencimento("");
     }
   };
@@ -120,6 +133,24 @@ export default function StatusUpdateDialog({ alvaraId, statusAtual, onUpdated, t
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Responsável — obrigatório */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" />
+              Responsável pela ação <span className="text-red-500 ml-0.5">*</span>
+            </Label>
+            <Input
+              placeholder="Nome do colaborador responsável"
+              value={responsavel}
+              onChange={(e) => setResponsavel(e.target.value)}
+              onBlur={() => setResponsavelTouched(true)}
+              className={`text-sm ${responsavelInvalido ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+            />
+            {responsavelInvalido && (
+              <p className="text-xs text-red-500">Informe o responsável pela ação.</p>
+            )}
           </div>
 
           {/* Campo de nova data — aparece APENAS ao selecionar "Renovado" */}
@@ -175,6 +206,7 @@ export default function StatusUpdateDialog({ alvaraId, statusAtual, onUpdated, t
               disabled={
                 mutation.isPending ||
                 novoStatus === statusAtual ||
+                !responsavel.trim() ||
                 (isRenovado && !novaDataVencimento)
               }
               className={isRenovado ? "bg-green-600 hover:bg-green-700 text-white" : ""}
