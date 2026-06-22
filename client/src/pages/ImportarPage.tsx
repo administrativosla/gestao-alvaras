@@ -402,7 +402,7 @@ export default function ImportarPage() {
           <div className="flex gap-3 justify-between">
             <Button variant="outline" onClick={resetar}>Voltar</Button>
             <Button
-              onClick={() => confirmarPdfMutation.mutate(pdfRevisao)}
+              onClick={() => confirmarPdfMutation.mutate({ fileName: file?.name ?? "alvara.pdf", dados: pdfRevisao })}
               disabled={confirmarPdfMutation.isPending}
               className="gap-2"
             >
