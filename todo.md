@@ -115,3 +115,9 @@
 - [x] Melhorar seção de histórico no detalhe do alvará (visual timeline aprimorado)
 - [x] Adicionar gráficos no dashboard: distribuição por status, por tipo e vencimentos por mês
 - [x] Adicionar procedures de dados agregados no router do dashboard para os gráficos
+
+## Melhorias V1.7
+- [x] Página de Alertas: adicionar seção com informações do relatório diário às 13h (próxima execução, destinatários, última execução)
+- [x] Página de Alertas: adicionar botão "Enviar Relatório Agora" para disparo manual do relatório
+- [x] Criar procedure tRPC para disparar o relatório manualmente
+- [x] Dashboard: inverter posição dos cards "Alvarás Vencidos" e "A Vencer em 30 dias"

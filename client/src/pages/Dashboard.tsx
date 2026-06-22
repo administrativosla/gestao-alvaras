@@ -69,18 +69,18 @@ export default function Dashboard() {
       bg: "bg-emerald-50",
     },
     {
-      title: "Alvarás Vencidos",
-      value: resumo?.alvarasVencidos ?? 0,
-      icon: AlertTriangle,
-      color: "text-red-600",
-      bg: "bg-red-50",
-    },
-    {
       title: "A Vencer em 30 dias",
       value: resumo?.aVencer30 ?? 0,
       icon: Clock,
       color: "text-amber-600",
       bg: "bg-amber-50",
+    },
+    {
+      title: "Alvarás Vencidos",
+      value: resumo?.alvarasVencidos ?? 0,
+      icon: AlertTriangle,
+      color: "text-red-600",
+      bg: "bg-red-50",
     },
   ];
 

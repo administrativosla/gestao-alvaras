@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { alvaras, clientes, emailsAlerta, emailsGlobais, STATUS_SEM_ALERTA } from "../../drizzle/schema";
 import { eq, notInArray } from "drizzle-orm";
 import { enviarAlertaVencimento, enviarEmailTeste } from "../services/email";
+import { enviarRelatorioAlvaras, type ItemRelatorio } from "../services/emailRelatorio";
 
 export const alertasRouter = router({
   // ─── E-mails por Cliente ───────────────────────────────────────────────────
@@ -146,6 +147,68 @@ export const alertasRouter = router({
     }
 
     return { enviados, erros, semEmail, total: todosAlvaras.length };
+  }),
+
+  // ─── Disparar Relatório Diário Manualmente ────────────────────────────────
+
+  dispararRelatorio: publicProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Banco de dados indisponível");
+
+    const STATUS_EXCLUIDOS = ["Renovado", "Cancelado"];
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const globais = await db.select().from(emailsGlobais).where(eq(emailsGlobais.ativo, true));
+    const destinatarios = globais.map((g) => g.email);
+
+    if (destinatarios.length === 0) {
+      return { ok: false, motivo: "sem-destinatarios", vencidos: 0, aVencer: 0 };
+    }
+
+    const todosAlvaras = await db
+      .select({ alvara: alvaras, cliente: clientes })
+      .from(alvaras)
+      .innerJoin(clientes, eq(alvaras.clienteId, clientes.id))
+      .where(eq(alvaras.ativo, true));
+
+    const vencidos: ItemRelatorio[] = [];
+    const aVencer: ItemRelatorio[] = [];
+
+    for (const { alvara, cliente } of todosAlvaras) {
+      if (STATUS_EXCLUIDOS.includes(alvara.status)) continue;
+      const vencimento = new Date(alvara.dataVencimento);
+      vencimento.setHours(0, 0, 0, 0);
+      const diasParaVencimento = Math.round((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+      const item: ItemRelatorio = {
+        razaoSocial: cliente.razaoSocial,
+        cnpj: cliente.cnpj,
+        tipoAlvara: alvara.tipo,
+        numeroAlvara: alvara.numeroAlvara ?? null,
+        dataVencimento: vencimento,
+        diasParaVencimento,
+        status: alvara.status,
+        alvaraId: alvara.id,
+      };
+      if (diasParaVencimento < 0) vencidos.push(item);
+      else if (diasParaVencimento <= 30) aVencer.push(item);
+    }
+
+    vencidos.sort((a, b) => a.diasParaVencimento - b.diasParaVencimento);
+    aVencer.sort((a, b) => a.diasParaVencimento - b.diasParaVencimento);
+
+    let ok = false;
+    try {
+      ok = await enviarRelatorioAlvaras(destinatarios, {
+        vencidos,
+        aVencer,
+        dataRelatorio: new Date(),
+      });
+    } catch (err: any) {
+      throw new Error("Falha ao enviar e-mail: " + (err?.message ?? String(err)));
+    }
+
+    return { ok, vencidos: vencidos.length, aVencer: aVencer.length, destinatarios: destinatarios.length };
   }),
 
   // ─── Status Geral dos Alertas ─────────────────────────────────────────────

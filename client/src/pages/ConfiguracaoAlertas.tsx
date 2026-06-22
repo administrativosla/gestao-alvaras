@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Bell, Plus, Trash2, Mail, Loader2, Send, CheckCircle2,
   AlertCircle, Info, FlaskConical, Zap, Globe,
+  CalendarClock, Clock, FileText, Users, RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -65,10 +66,23 @@ export default function ConfiguracaoAlertas() {
 
   const dispararMutation = trpc.alertas.dispararAlertas.useMutation({
     onSuccess: (data) => {
-      if (data.enviados > 0) toast.success(`${data.enviados} alerta(s) enviado(s) com sucesso!`);
+      if (data.enviados > 0) toast.success(`${data.enviados} alerta(s) de vencimento enviado(s)!`);
       else toast.info("Nenhum alerta nos marcos de hoje.");
     },
     onError: (e) => toast.error("Erro ao disparar alertas: " + e.message),
+  });
+
+  const dispararRelatorioMutation = trpc.alertas.dispararRelatorio.useMutation({
+    onSuccess: (data) => {
+      if (!data.ok && (data as any).motivo === "sem-destinatarios") {
+        toast.warning("Nenhum destinatário global ativo. Cadastre e-mails globais para receber o relatório.");
+      } else if (data.ok) {
+        toast.success(`Relatório enviado! ${data.vencidos} vencido(s), ${data.aVencer} a vencer — para ${data.destinatarios} destinatário(s).`);
+      } else {
+        toast.error("Falha ao enviar o relatório. Verifique as credenciais de e-mail.");
+      }
+    },
+    onError: (e) => toast.error("Erro ao enviar relatório: " + e.message),
   });
 
   const testarMutation = trpc.alertas.testarEmail.useMutation({
@@ -103,16 +117,142 @@ export default function ConfiguracaoAlertas() {
     testarMutation.mutate({ destinatario: emailTeste.trim() });
   };
 
+  // Calcular próxima execução às 13h BRT
+  const proximaExecucao = (() => {
+    const agora = new Date();
+    const proxima = new Date();
+    proxima.setHours(13, 0, 0, 0);
+    if (agora.getHours() >= 13) proxima.setDate(proxima.getDate() + 1);
+    return proxima.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" }) + " às 13h00";
+  })();
+
+  const totalDestinatariosGlobais = (emailsGlobais ?? []).filter((e) => e.ativo).length;
+
   return (
     <div className="space-y-6 max-w-4xl animate-fade-in-up">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Alertas por E-mail</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure os destinatários e valide o envio automático de alertas de vencimento
+          Configure os destinatários e gerencie os envios automáticos de alertas de vencimento e relatórios diários
         </p>
       </div>
 
-      {/* Teste de e-mail */}
+      {/* ─── Relatório Diário às 13h ─────────────────────────────────────────── */}
+      <Card className="border-2 border-blue-200 shadow-sm bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-800">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900">
+              <CalendarClock className="h-4 w-4 text-blue-600" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold">Relatório Diário — Enviado às 13h</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Todo dia às 13h, um relatório completo é enviado automaticamente para os destinatários globais
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Informações do schedule */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-white dark:bg-background border border-blue-100 dark:border-blue-800">
+              <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900 shrink-0">
+                <Clock className="h-3.5 w-3.5 text-blue-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Próximo envio</p>
+                <p className="text-xs font-semibold text-foreground truncate">{proximaExecucao}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-white dark:bg-background border border-blue-100 dark:border-blue-800">
+              <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900 shrink-0">
+                <Users className="h-3.5 w-3.5 text-blue-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Destinatários ativos</p>
+                <p className="text-xs font-semibold text-foreground">
+                  {totalDestinatariosGlobais} e-mail{totalDestinatariosGlobais !== 1 ? "s" : ""} global{totalDestinatariosGlobais !== 1 ? "is" : ""}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-white dark:bg-background border border-blue-100 dark:border-blue-800">
+              <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900 shrink-0">
+                <FileText className="h-3.5 w-3.5 text-blue-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Conteúdo do relatório</p>
+                <p className="text-xs font-semibold text-foreground">Vencidos + A vencer (30d)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Descrição do conteúdo */}
+          <div className="p-3 rounded-lg bg-white dark:bg-background border border-blue-100 dark:border-blue-800 flex gap-2">
+            <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <p className="font-medium">O que é enviado no relatório diário?</p>
+              <p>
+                O e-mail contém <strong>duas seções separadas</strong>: (1) todos os alvarás com data de vencimento
+                ultrapassada que ainda não foram renovados ou cancelados, e (2) alvarás que vencem nos{" "}
+                <strong>próximos 30 dias</strong>, ordenados do mais urgente ao mais distante. Cada seção inclui
+                empresa, CNPJ, tipo, número, data de vencimento, prazo e status atual.
+              </p>
+            </div>
+          </div>
+
+          {/* Botão de envio imediato */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              className="gap-2 flex-1 sm:flex-none"
+              onClick={() => dispararRelatorioMutation.mutate()}
+              disabled={dispararRelatorioMutation.isPending}
+            >
+              {dispararRelatorioMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando relatório...</>
+                : <><RefreshCw className="h-4 w-4" /> Enviar relatório agora</>}
+            </Button>
+            {totalDestinatariosGlobais === 0 && (
+              <p className="text-xs text-amber-600 flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Cadastre destinatários globais para receber o relatório
+              </p>
+            )}
+          </div>
+
+          {/* Resultado do último envio manual */}
+          {dispararRelatorioMutation.data && (
+            <div className={`p-3 rounded-lg flex items-start gap-2 text-xs border ${
+              dispararRelatorioMutation.data.ok
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
+                : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400"
+            }`}>
+              {dispararRelatorioMutation.data.ok
+                ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
+              <div>
+                {dispararRelatorioMutation.data.ok ? (
+                  <>
+                    <p className="font-medium">Relatório enviado com sucesso!</p>
+                    <p className="mt-0.5">
+                      <strong>{dispararRelatorioMutation.data.vencidos}</strong> vencido(s) ·{" "}
+                      <strong>{dispararRelatorioMutation.data.aVencer}</strong> a vencer ·{" "}
+                      <strong>{dispararRelatorioMutation.data.destinatarios}</strong> destinatário(s)
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-medium">
+                    {(dispararRelatorioMutation.data as any).motivo === "sem-destinatarios"
+                      ? "Nenhum destinatário global ativo. Adicione e-mails na lista abaixo."
+                      : "Falha ao enviar o relatório."}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ─── Teste de e-mail ─────────────────────────────────────────────────── */}
       <Card className="border-2 border-primary/20 shadow-sm bg-primary/[0.02]">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -177,7 +317,7 @@ export default function ConfiguracaoAlertas() {
         </CardContent>
       </Card>
 
-      {/* E-mails Globais */}
+      {/* ─── E-mails Globais ─────────────────────────────────────────────────── */}
       <Card className="border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
@@ -187,18 +327,17 @@ export default function ConfiguracaoAlertas() {
             <div>
               <CardTitle className="text-sm font-semibold">Lista Global de Destinatários</CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                Estes e-mails recebem alertas de <strong>todos os clientes</strong>, independente da configuração individual.
-                Ideal para a equipe interna responsável pelo acompanhamento geral.
+                Estes e-mails recebem alertas de <strong>todos os clientes</strong> e o{" "}
+                <strong>relatório diário às 13h</strong>. Ideal para a equipe interna responsável pelo acompanhamento geral.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Lista de e-mails globais */}
           {!emailsGlobais || emailsGlobais.length === 0 ? (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/40 text-xs text-muted-foreground">
               <Globe className="h-3.5 w-3.5 shrink-0" />
-              Nenhum e-mail global cadastrado. Adicione abaixo para que a equipe receba todos os alertas.
+              Nenhum e-mail global cadastrado. Adicione abaixo para que a equipe receba todos os alertas e o relatório diário.
             </div>
           ) : (
             <div className="space-y-2">
@@ -231,7 +370,6 @@ export default function ConfiguracaoAlertas() {
 
           <Separator />
 
-          {/* Adicionar e-mail global */}
           <div className="space-y-2">
             <Label className="text-xs font-medium">Adicionar destinatário global</Label>
             <div className="flex gap-2">
@@ -263,7 +401,7 @@ export default function ConfiguracaoAlertas() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Destinatários por cliente */}
+        {/* ─── Destinatários por cliente ─────────────────────────────────────── */}
         <div className="space-y-4">
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
@@ -271,7 +409,7 @@ export default function ConfiguracaoAlertas() {
                 Destinatários por Cliente
               </CardTitle>
               <CardDescription className="text-xs">
-                E-mails específicos por cliente, em adição à lista global
+                E-mails específicos por cliente, em adição à lista global — recebem alertas de pré-vencimento
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -334,26 +472,26 @@ export default function ConfiguracaoAlertas() {
           </Card>
         </div>
 
-        {/* Disparo e marcos */}
+        {/* ─── Disparo e marcos ────────────────────────────────────────────────── */}
         <div className="space-y-4">
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-amber-500" />
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Disparo Manual de Alertas
+                  Alertas de Pré-Vencimento
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex gap-2">
-                <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                <div className="text-xs text-blue-700 space-y-1">
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 dark:bg-amber-950/20 dark:border-amber-800 flex gap-2">
+                <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
                   <p className="font-medium">Alertas automáticos diários às 8h</p>
                   <p>
                     O sistema verifica automaticamente nos marcos de{" "}
-                    <strong>30, 15, 7, 3, 2 e 1 dia</strong> antes do vencimento.
-                    Use o botão abaixo para disparar manualmente fora do horário programado.
+                    <strong>30, 15, 7, 3, 2 e 1 dia</strong> antes do vencimento e envia
+                    alertas individuais por alvará. Use o botão abaixo para disparar fora do horário.
                   </p>
                 </div>
               </div>
@@ -362,7 +500,7 @@ export default function ConfiguracaoAlertas() {
                 disabled={dispararMutation.isPending} variant="outline">
                 {dispararMutation.isPending
                   ? <><Loader2 className="h-4 w-4 animate-spin" /> Verificando alvarás...</>
-                  : <><Send className="h-4 w-4" /> Disparar alertas agora</>}
+                  : <><Send className="h-4 w-4" /> Disparar alertas de pré-vencimento agora</>}
               </Button>
 
               {dispararMutation.data && (
