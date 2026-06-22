@@ -107,3 +107,11 @@
 - [x] Remover status "Documentação Recebida" do fluxo (schema, backend, frontend)
 - [x] Adicionar campo "responsável" na atualização de status (modal + histórico + banco)
 - [x] Disparar e-mail para os envolvidos a cada atualização de status
+
+## Melhorias V1.6
+- [x] Criar handler do heartbeat diário às 13h (relatório de alvarás vencidos + a vencer)
+- [x] Criar template de e-mail HTML para o relatório diário com duas seções separadas
+- [x] Registrar o schedule diário às 13h via manus-heartbeat CLI
+- [x] Melhorar seção de histórico no detalhe do alvará (visual timeline aprimorado)
+- [x] Adicionar gráficos no dashboard: distribuição por status, por tipo e vencimentos por mês
+- [x] Adicionar procedures de dados agregados no router do dashboard para os gráficos

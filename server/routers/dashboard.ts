@@ -61,4 +61,67 @@ export const dashboardRouter = router({
         .slice(0, limite);
       return proximos;
     }),
+
+  /**
+   * Dados agregados para os gráficos do dashboard.
+   * Retorna contagens por status, por tipo e vencimentos por mês (próximos 12 meses).
+   */
+  graficos: publicProcedure.query(async () => {
+    const todos = await listAlvaras();
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // 1. Distribuição por status
+    const porStatus: Record<string, number> = {};
+    for (const { alvara } of todos) {
+      porStatus[alvara.status] = (porStatus[alvara.status] ?? 0) + 1;
+    }
+    const distribuicaoStatus = Object.entries(porStatus)
+      .map(([status, total]) => ({ status, total }))
+      .sort((a, b) => b.total - a.total);
+
+    // 2. Distribuição por tipo
+    const porTipo: Record<string, number> = {};
+    for (const { alvara } of todos) {
+      porTipo[alvara.tipo] = (porTipo[alvara.tipo] ?? 0) + 1;
+    }
+    const distribuicaoTipo = Object.entries(porTipo)
+      .map(([tipo, total]) => ({ tipo, total }))
+      .sort((a, b) => b.total - a.total);
+
+    // 3. Vencimentos por mês (próximos 12 meses)
+    const STATUS_EXCLUIDOS_GRAFICO = ["Renovado", "Cancelado"];
+    const vencimentosPorMes: Record<string, { mes: string; total: number; vencidos: number; aVencer: number }> = {};
+
+    // Inicializar os próximos 12 meses
+    for (let i = -1; i <= 11; i++) {
+      const d = new Date(hoje);
+      d.setDate(1);
+      d.setMonth(d.getMonth() + i);
+      const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const mesLabel = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+      vencimentosPorMes[chave] = { mes: mesLabel, total: 0, vencidos: 0, aVencer: 0 };
+    }
+
+    for (const { alvara } of todos) {
+      if (STATUS_EXCLUIDOS_GRAFICO.includes(alvara.status)) continue;
+      if (!alvara.dataVencimento) continue;
+      const venc = new Date(alvara.dataVencimento);
+      const chave = `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, "0")}`;
+      if (!vencimentosPorMes[chave]) continue;
+      vencimentosPorMes[chave].total++;
+      const diffDias = Math.round((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDias < 0) {
+        vencimentosPorMes[chave].vencidos++;
+      } else {
+        vencimentosPorMes[chave].aVencer++;
+      }
+    }
+
+    const vencimentosMensais = Object.entries(vencimentosPorMes)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => v);
+
+    return { distribuicaoStatus, distribuicaoTipo, vencimentosMensais };
+  }),
 });

@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { alertasHeartbeatHandler } from "../handlers/alertasHeartbeat";
+import { relatorioHeartbeatHandler } from "../handlers/relatorioHeartbeat";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,6 +40,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Scheduled heartbeat handlers
   app.post("/api/scheduled/alertas-vencimento", alertasHeartbeatHandler);
+  app.post("/api/scheduled/relatorio-diario", relatorioHeartbeatHandler);
 
   // tRPC API
   app.use(

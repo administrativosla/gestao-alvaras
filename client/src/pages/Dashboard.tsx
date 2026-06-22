@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardGraficos from "@/components/DashboardGraficos";
 import {
   AlertTriangle,
   Building2,
@@ -128,6 +129,9 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Gráficos analíticos */}
+      <DashboardGraficos />
 
       {/* Painel de Alertas */}
       <div className="space-y-4">
