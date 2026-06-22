@@ -222,7 +222,7 @@ export default function Dashboard() {
               Próximos Vencimentos
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Alvarás em vigência, ordenados pelo vencimento mais próximo — planejamento antecipado de renovações
+              Todos os alvarás ativos, ordenados pelo vencimento mais próximo
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">
@@ -243,37 +243,49 @@ export default function Dashboard() {
                 <ShieldCheck className="h-6 w-6 text-green-500" />
               </div>
               <p className="text-sm font-medium text-muted-foreground">
-                Nenhum alvará em vigência cadastrado
+                Nenhum alvará ativo cadastrado
               </p>
             </CardContent>
           </Card>
         ) : (
           <Card className="border shadow-sm overflow-hidden">
             <CardHeader className="pb-0 pt-4 px-5">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {proximos.length} alvará{proximos.length !== 1 ? "s" : ""} em vigência
-              </CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+              {proximos.length} alvará{proximos.length !== 1 ? "s" : ""} ativo{proximos.length !== 1 ? "s" : ""}
+            </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
                 {proximos.map((p, idx) => {
-                  const meses = Math.floor(p.diasParaVencimento / 30);
-                  const diasRestantes = p.diasParaVencimento % 30;
-                  const prazoLabel =
-                    meses > 0
+                  const prazoLabel = (() => {
+                    if (p.diasParaVencimento < 0) return `Vencido há ${Math.abs(p.diasParaVencimento)} dia${Math.abs(p.diasParaVencimento) !== 1 ? "s" : ""}`;
+                    if (p.diasParaVencimento === 0) return "Vence hoje";
+                    if (p.diasParaVencimento <= 30) return `${p.diasParaVencimento} dia${p.diasParaVencimento !== 1 ? "s" : ""}`;
+                    const meses = Math.floor(p.diasParaVencimento / 30);
+                    const diasRestantes = p.diasParaVencimento % 30;
+                    return meses > 0
                       ? `${meses} mês${meses > 1 ? "es" : ""}${diasRestantes > 0 ? ` e ${diasRestantes} dia${diasRestantes > 1 ? "s" : ""}` : ""}`
                       : `${p.diasParaVencimento} dias`;
+                  })();
 
                   // Gradiente de cor conforme proximidade: verde → amarelo conforme se aproxima dos 30 dias
                   const urgencyRatio = Math.max(0, Math.min(1, 1 - (p.diasParaVencimento - 31) / 335)); // 0=longe, 1=próximo
                   const dotColor =
-                    p.diasParaVencimento > 365
-                      ? "bg-green-400"
-                      : p.diasParaVencimento > 180
-                        ? "bg-emerald-400"
-                        : p.diasParaVencimento > 90
-                          ? "bg-teal-400"
-                          : "bg-yellow-400";
+                    p.diasParaVencimento < 0
+                      ? "bg-red-500"
+                      : p.diasParaVencimento <= 7
+                        ? "bg-red-400"
+                        : p.diasParaVencimento <= 15
+                          ? "bg-orange-400"
+                          : p.diasParaVencimento <= 30
+                            ? "bg-amber-400"
+                            : p.diasParaVencimento <= 90
+                              ? "bg-yellow-400"
+                              : p.diasParaVencimento <= 180
+                                ? "bg-teal-400"
+                                : p.diasParaVencimento <= 365
+                                  ? "bg-emerald-400"
+                                  : "bg-green-400";
 
                   return (
                     <button

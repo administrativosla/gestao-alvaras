@@ -43,19 +43,20 @@ export const dashboardRouter = router({
   proximosVencimentos: publicProcedure
     .input(z.object({ limite: z.number().min(1).max(100).optional() }).optional())
     .query(async ({ input }) => {
-      const limite = input?.limite ?? 20;
+      const limite = input?.limite ?? 50;
+      // Status que indicam processo encerrado ou cancelado — excluímos da lista
+      const STATUS_EXCLUIDOS = ["Renovado", "Cancelado"];
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       const todos = await listAlvaras();
       const proximos = todos
-        .filter((r) => r.alvara.status === "Em Vigência" && r.alvara.dataVencimento)
+        .filter((r) => !STATUS_EXCLUIDOS.includes(r.alvara.status) && r.alvara.dataVencimento)
         .map((r) => {
           const venc = new Date(r.alvara.dataVencimento!);
           venc.setHours(0, 0, 0, 0);
           const diasParaVencimento = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
           return { ...r, diasParaVencimento };
         })
-        .filter((r) => r.diasParaVencimento > 30)
         .sort((a, b) => a.diasParaVencimento - b.diasParaVencimento)
         .slice(0, limite);
       return proximos;

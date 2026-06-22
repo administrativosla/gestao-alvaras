@@ -83,3 +83,7 @@
 - [x] Validação do fluxo de status (8 etapas)
 - [x] Validação da lógica de alertas (marcos e cessação)
 - [x] Adicionar seção "Próximos Vencimentos" no dashboard (alvarás Em Vigência, ordem crescente por data)
+
+## Bugs V1.2
+- [x] Alvará importado via PDF fica com status "Pendente" mesmo com vencimento > 30 dias (status inicial não atualizado no banco)
+- [x] Seção "Próximos Vencimentos" deve exibir TODOS os alvarás ativos (não apenas "Em Vigência"), ordenados por data crescente
