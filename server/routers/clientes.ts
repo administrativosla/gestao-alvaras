@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
+import { parseDate } from "../utils/parseDate";
 import {
   createCliente,
   deleteCliente,
@@ -62,7 +63,7 @@ export const clientesRouter = router({
     const { emailsAlerta: emails, dataAbertura, ...rest } = input;
     const id = await createCliente({
       ...rest,
-      dataAbertura: dataAbertura ? new Date(dataAbertura) : null,
+      dataAbertura: parseDate(dataAbertura) ?? null,
     });
 
     if (emails && emails.length > 0) {
@@ -77,7 +78,7 @@ export const clientesRouter = router({
       const { emailsAlerta: emails, dataAbertura, ...rest } = input.data;
       await updateCliente(input.id, {
         ...rest,
-        dataAbertura: dataAbertura ? new Date(dataAbertura) : undefined,
+        dataAbertura: dataAbertura !== undefined ? (parseDate(dataAbertura) ?? undefined) : undefined,
       });
       if (emails !== undefined) {
         await setEmailsAlerta(input.id, emails);

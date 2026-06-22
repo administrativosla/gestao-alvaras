@@ -11,6 +11,7 @@ import {
 } from "../db";
 import * as XLSX from "xlsx";
 import { invokeLLM } from "../_core/llm";
+import { parseDate } from "../utils/parseDate";
 
 // Campos disponíveis para mapeamento
 export const CAMPOS_MAPEAMENTO = [
@@ -37,39 +38,6 @@ export const CAMPOS_MAPEAMENTO = [
   { key: "dataVencimento", label: "Data de Vencimento" },
 ] as const;
 
-function parseDate(val: unknown): Date | null {
-  if (!val) return null;
-  if (val instanceof Date) return val;
-  const str = String(val).trim();
-  if (!str) return null;
-
-  // Tenta formatos comuns
-  const formats = [
-    /^(\d{2})\/(\d{2})\/(\d{4})$/, // DD/MM/YYYY
-    /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
-    /^(\d{2})-(\d{2})-(\d{4})$/, // DD-MM-YYYY
-  ];
-
-  for (const fmt of formats) {
-    const m = str.match(fmt);
-    if (m) {
-      if (fmt === formats[0] || fmt === formats[2]) {
-        return new Date(`${m[3]}-${m[2]}-${m[1]}`);
-      }
-      return new Date(str);
-    }
-  }
-
-  // Tenta número serial do Excel
-  const num = Number(val);
-  if (!isNaN(num) && num > 40000) {
-    const date = new Date((num - 25569) * 86400 * 1000);
-    return date;
-  }
-
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? null : d;
-}
 
 function formatCnpj(val: unknown): string {
   if (!val) return "";

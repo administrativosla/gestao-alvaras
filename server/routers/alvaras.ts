@@ -11,6 +11,7 @@ import {
   updateAlvara,
 } from "../db";
 import { STATUS_RENOVACAO } from "../../drizzle/schema";
+import { parseDate } from "../utils/parseDate";
 
 const statusEnum = z.enum(STATUS_RENOVACAO);
 
@@ -55,8 +56,8 @@ export const alvarasRouter = router({
     const { dataEmissao, dataVencimento, ...rest } = input;
     const id = await createAlvara({
       ...rest,
-      dataEmissao: dataEmissao ? new Date(dataEmissao) : null,
-      dataVencimento: new Date(dataVencimento),
+      dataEmissao: parseDate(dataEmissao) ?? null,
+      dataVencimento: parseDate(dataVencimento) ?? new Date(dataVencimento),
       status: "Pendente",
     });
 
@@ -77,8 +78,8 @@ export const alvarasRouter = router({
       const { dataEmissao, dataVencimento, ...rest } = input.data;
       await updateAlvara(input.id, {
         ...rest,
-        dataEmissao: dataEmissao ? new Date(dataEmissao) : undefined,
-        dataVencimento: dataVencimento ? new Date(dataVencimento) : undefined,
+        dataEmissao: dataEmissao !== undefined ? (parseDate(dataEmissao) ?? undefined) : undefined,
+        dataVencimento: dataVencimento !== undefined ? (parseDate(dataVencimento) ?? undefined) : undefined,
       });
       return { success: true };
     }),
