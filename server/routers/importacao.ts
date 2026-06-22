@@ -238,14 +238,14 @@ export const importacaoRouter = router({
                 orgaoEmissor: rowData.orgaoEmissor ? String(rowData.orgaoEmissor) : null,
                 dataEmissao: parseDate(rowData.dataEmissao),
                 dataVencimento,
-                status: "Pendente",
+                status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })(),
               });
-
+              const _statusXlsx = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })();
               await addHistorico({
                 alvaraId,
                 statusAnterior: null,
-                statusNovo: "Pendente",
-                observacao: `Importado via arquivo ${input.fileName}`,
+                statusNovo: _statusXlsx,
+                observacao: `Importado via arquivo ${input.fileName}${_statusXlsx==="Em Vigência"?`. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.`:". Vencimento próximo."}`,
                 colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
               });
             }
@@ -449,14 +449,14 @@ Se não encontrar um campo, use null.`,
             dataVencimento,
             arquivoPdfKey: dados.arquivoPdfKey ?? null,
             arquivoPdfUrl: dados.arquivoPdfUrl ?? null,
-            status: "Pendente",
+            status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })(),
           });
-
+          const _statusPdf = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Pendente"; })();
           await addHistorico({
             alvaraId,
             statusAnterior: null,
-            statusNovo: "Pendente",
-            observacao: `Importado via PDF: ${input.fileName}`,
+            statusNovo: _statusPdf,
+            observacao: `Importado via PDF: ${input.fileName}${_statusPdf==="Em Vigência"?`. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.`:". Vencimento próximo."}`,
             colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
           });
         }

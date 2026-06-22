@@ -54,21 +54,29 @@ export const alvarasRouter = router({
 
   create: publicProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
     const { dataEmissao, dataVencimento, ...rest } = input;
+    const parsedVenc = parseDate(dataVencimento) ?? new Date(dataVencimento);
+    // Determina status inicial: "Em Vigência" se vencer em mais de 30 dias, "Pendente" caso contrário
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const venc = new Date(parsedVenc);
+    venc.setHours(0, 0, 0, 0);
+    const diasParaVencimento = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+    const statusInicial: string = diasParaVencimento > 30 ? "Em Vigência" : "Pendente";
     const id = await createAlvara({
       ...rest,
       dataEmissao: parseDate(dataEmissao) ?? null,
-      dataVencimento: parseDate(dataVencimento) ?? new Date(dataVencimento),
-      status: "Pendente",
+      dataVencimento: parsedVenc,
+      status: statusInicial,
     });
-
     await addHistorico({
       alvaraId: id,
       statusAnterior: null,
-      statusNovo: "Pendente",
-      observacao: "Alvará cadastrado no sistema.",
+      statusNovo: statusInicial,
+      observacao: statusInicial === "Em Vigência"
+        ? `Alvará cadastrado. Em vigência até ${parsedVenc.toLocaleDateString("pt-BR")}.`
+        : "Alvará cadastrado. Vencimento próximo — atenção necessária.",
       colaborador: (ctx as any).user?.name ?? "Sistema",
     });
-
     return { id };
   }),
 

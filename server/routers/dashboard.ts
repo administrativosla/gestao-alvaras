@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { getResumo, listAlvaras } from "../db";
 
@@ -7,7 +8,7 @@ export const dashboardRouter = router({
   }),
 
   alertas: publicProcedure.query(async () => {
-    const STATUS_SEM_ALERTA = ["Em Renovação", "Renovado", "Cancelado"];
+    const STATUS_SEM_ALERTA = ["Em Renovação", "Renovado", "Cancelado", "Em Vigência"];
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
@@ -33,4 +34,30 @@ export const dashboardRouter = router({
 
     return alertas;
   }),
+
+  /**
+   * Próximos vencimentos: alvarás com status "Em Vigência" (> 30 dias),
+   * ordenados crescentemente por data de vencimento.
+   * Parâmetro `limite` controla quantos registros retornar (padrão: 20).
+   */
+  proximosVencimentos: publicProcedure
+    .input(z.object({ limite: z.number().min(1).max(100).optional() }).optional())
+    .query(async ({ input }) => {
+      const limite = input?.limite ?? 20;
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const todos = await listAlvaras();
+      const proximos = todos
+        .filter((r) => r.alvara.status === "Em Vigência" && r.alvara.dataVencimento)
+        .map((r) => {
+          const venc = new Date(r.alvara.dataVencimento!);
+          venc.setHours(0, 0, 0, 0);
+          const diasParaVencimento = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+          return { ...r, diasParaVencimento };
+        })
+        .filter((r) => r.diasParaVencimento > 30)
+        .sort((a, b) => a.diasParaVencimento - b.diasParaVencimento)
+        .slice(0, limite);
+      return proximos;
+    }),
 });

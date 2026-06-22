@@ -1,4 +1,5 @@
 export const STATUS_RENOVACAO = [
+  "Em Vigência",
   "Pendente",
   "Contato Realizado",
   "Tratativa Comercial",
@@ -11,7 +12,9 @@ export const STATUS_RENOVACAO = [
 
 export type StatusRenovacao = (typeof STATUS_RENOVACAO)[number];
 
+/** Status que cessam os alertas de vencimento (não aparecem no painel de urgência) */
 export const STATUS_SEM_ALERTA: StatusRenovacao[] = [
+  "Em Vigência",
   "Em Renovação",
   "Renovado",
   "Cancelado",
@@ -115,6 +118,8 @@ export function getStatusColor(status: string): {
   border: string;
 } {
   switch (status) {
+    case "Em Vigência":
+      return { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" };
     case "Pendente":
       return { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" };
     case "Contato Realizado":
@@ -156,4 +161,16 @@ export function calcDiasParaVencimento(dataVencimento: Date | string | null | un
   hoje.setHours(0, 0, 0, 0);
   venc.setHours(0, 0, 0, 0);
   return Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Determina o status inicial de um alvará com base na data de vencimento.
+ * - Se vencer em mais de 30 dias → "Em Vigência"
+ * - Se vencer em 30 dias ou menos (mas ainda não venceu) → "Pendente"
+ * - Se já venceu → "Pendente" (para chamar atenção)
+ */
+export function getStatusInicial(dataVencimento: Date | string | null | undefined): StatusRenovacao {
+  const dias = calcDiasParaVencimento(dataVencimento);
+  if (dias === null) return "Pendente";
+  return dias > 30 ? "Em Vigência" : "Pendente";
 }

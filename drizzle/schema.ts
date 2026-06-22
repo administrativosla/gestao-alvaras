@@ -82,6 +82,7 @@ export type TipoAlvara = (typeof TIPOS_ALVARA)[number];
 
 // ─── Status de Renovação ──────────────────────────────────────────────────────
 export const STATUS_RENOVACAO = [
+  "Em Vigência",
   "Pendente",
   "Contato Realizado",
   "Tratativa Comercial",
@@ -92,14 +93,10 @@ export const STATUS_RENOVACAO = [
   "Cancelado",
 ] as const;
 
-export type StatusRenovacao = (typeof STATUS_RENOVACAO)[number];
+/** Status que cessam os alertas de vencimento */
+export const STATUS_SEM_ALERTA: readonly string[] = ["Em Renovação", "Renovado", "Cancelado", "Em Vigência"] as const;
 
-// Status que cessam os alertas
-export const STATUS_SEM_ALERTA: StatusRenovacao[] = [
-  "Em Renovação",
-  "Renovado",
-  "Cancelado",
-];
+export type StatusRenovacao = (typeof STATUS_RENOVACAO)[number];
 
 // ─── Alvarás ──────────────────────────────────────────────────────────────────
 export const alvaras = mysqlTable("alvaras", {

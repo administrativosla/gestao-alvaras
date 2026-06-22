@@ -72,7 +72,14 @@
 - [x] Disparo manual de alertas
 - [x] Informativo dos marcos configurados
 
+## Melhorias V1.1
+- [x] Adicionar status "Em Vigência" para alvarás com vencimento > 30 dias
+- [x] Atribuir automaticamente "Em Vigência" ao criar/importar alvará dentro do prazo
+- [x] Ajustar dashboard para não exibir "Em Vigência" no painel de alertas de urgência
+- [x] Confirmar que campos Nome Fantasia e IE são opcionais na extração PDF
+
 ## Testes
 - [x] Testes unitários dos routers principais (11 testes passando)
 - [x] Validação do fluxo de status (8 etapas)
 - [x] Validação da lógica de alertas (marcos e cessação)
+- [x] Adicionar seção "Próximos Vencimentos" no dashboard (alvarás Em Vigência, ordem crescente por data)

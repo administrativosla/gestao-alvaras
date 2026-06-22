@@ -1,5 +1,4 @@
 import { trpc } from "@/lib/trpc";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,11 +13,12 @@ import {
   Search,
   ArrowRight,
   RefreshCw,
+  CalendarClock,
+  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { calcDiasParaVencimento, formatDate, getAlertaInfo, getStatusColor, STATUS_SEM_ALERTA } from "@/lib/alvaras";
-import StatusBadge from "@/components/StatusBadge";
 import StatusUpdateDialog from "@/components/StatusUpdateDialog";
 
 export default function Dashboard() {
@@ -29,6 +29,7 @@ export default function Dashboard() {
 
   const { data: resumo, isLoading: loadingResumo } = trpc.dashboard.resumo.useQuery();
   const { data: alertas, isLoading: loadingAlertas, refetch } = trpc.dashboard.alertas.useQuery();
+  const { data: proximos, isLoading: loadingProximos, refetch: refetchProximos } = trpc.dashboard.proximosVencimentos.useQuery({ limite: 20 });
 
   const alertasFiltrados = (alertas ?? []).filter((a) => {
     const matchSearch =
@@ -76,6 +77,11 @@ export default function Dashboard() {
     },
   ];
 
+  const handleRefreshAll = () => {
+    refetch();
+    refetchProximos();
+  };
+
   return (
     <div className="space-y-8 animate-fade-in-up">
       {/* Header */}
@@ -86,7 +92,7 @@ export default function Dashboard() {
             Visão geral dos alvarás e alertas de vencimento
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+        <Button variant="outline" size="sm" onClick={handleRefreshAll} className="gap-2">
           <RefreshCw className="h-3.5 w-3.5" />
           Atualizar
         </Button>
@@ -123,7 +129,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Painel de Alertas</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Alvarás próximos ao vencimento que requerem atenção
+              Alvarás próximos ao vencimento que requerem atenção imediata
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">
@@ -206,6 +212,111 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Próximos Vencimentos */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+              <CalendarClock className="h-5 w-5 text-green-600" />
+              Próximos Vencimentos
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Alvarás em vigência, ordenados pelo vencimento mais próximo — planejamento antecipado de renovações
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">
+            Ver todos <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {loadingProximos ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : !proximos || proximos.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+              <div className="p-3 rounded-full bg-green-50">
+                <ShieldCheck className="h-6 w-6 text-green-500" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Nenhum alvará em vigência cadastrado
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border shadow-sm overflow-hidden">
+            <CardHeader className="pb-0 pt-4 px-5">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {proximos.length} alvará{proximos.length !== 1 ? "s" : ""} em vigência
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {proximos.map((p, idx) => {
+                  const meses = Math.floor(p.diasParaVencimento / 30);
+                  const diasRestantes = p.diasParaVencimento % 30;
+                  const prazoLabel =
+                    meses > 0
+                      ? `${meses} mês${meses > 1 ? "es" : ""}${diasRestantes > 0 ? ` e ${diasRestantes} dia${diasRestantes > 1 ? "s" : ""}` : ""}`
+                      : `${p.diasParaVencimento} dias`;
+
+                  // Gradiente de cor conforme proximidade: verde → amarelo conforme se aproxima dos 30 dias
+                  const urgencyRatio = Math.max(0, Math.min(1, 1 - (p.diasParaVencimento - 31) / 335)); // 0=longe, 1=próximo
+                  const dotColor =
+                    p.diasParaVencimento > 365
+                      ? "bg-green-400"
+                      : p.diasParaVencimento > 180
+                        ? "bg-emerald-400"
+                        : p.diasParaVencimento > 90
+                          ? "bg-teal-400"
+                          : "bg-yellow-400";
+
+                  return (
+                    <button
+                      key={p.alvara.id}
+                      onClick={() => setLocation(`/alvaras/${p.alvara.id}`)}
+                      className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+                    >
+                      {/* Posição */}
+                      <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-center">
+                        {idx + 1}
+                      </span>
+
+                      {/* Indicador de cor */}
+                      <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotColor}`} />
+
+                      {/* Dados principais */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                          {p.cliente.razaoSocial}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {p.cliente.cnpj} · {p.alvara.tipo}
+                          {p.alvara.numeroAlvara ? ` · Nº ${p.alvara.numeroAlvara}` : ""}
+                        </p>
+                      </div>
+
+                      {/* Data de vencimento */}
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold tabular-nums">
+                          {formatDate(p.alvara.dataVencimento)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{prazoLabel}</p>
+                      </div>
+
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
@@ -282,6 +393,7 @@ function AlertaCard({
 
 export function StatusProgressBar({ status, compact = false }: { status: string; compact?: boolean }) {
   const steps = [
+    "Em Vigência",
     "Pendente",
     "Contato Realizado",
     "Tratativa Comercial",
@@ -308,11 +420,13 @@ export function StatusProgressBar({ status, compact = false }: { status: string;
       ? "bg-emerald-500"
       : status === "Em Renovação"
         ? "bg-sky-500"
-        : currentIndex >= 3
-          ? "bg-violet-500"
-          : currentIndex >= 1
-            ? "bg-blue-500"
-            : "bg-slate-400";
+        : status === "Em Vigência"
+          ? "bg-green-500"
+          : currentIndex >= 4
+            ? "bg-violet-500"
+            : currentIndex >= 2
+              ? "bg-blue-500"
+              : "bg-slate-400";
 
   if (compact) {
     return (

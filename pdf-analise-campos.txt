@@ -1,0 +1,18 @@
+Análise inicial do PDF TRANSF.JUCESP_MJPCONTROLLER_CLI-VENC.14.04.2029.pdf
+
+Páginas visualizadas: 1 a 5 de 7.
+
+Campos confirmados visualmente no documento:
+- CNPJ: 96.603.709/0001-50
+- Nome empresarial / Razão Social: MJP CONTROLLER CONTABILISTAS E ASSOCIADOS LTDA
+- Inscrição Municipal: 50785524
+- Endereço do estabelecimento: RUA JOHN HARRISON, 299 SALA 1107, LAPA, São Paulo - SP, CEP 05074080
+- Data da solicitação: 19/06/2026
+- Data de validade: 14/04/2029
+- Há números/licenças adicionais em páginas posteriores (ex.: AVCB na página 5)
+
+Campos que não apareceram nas páginas 1 a 5 visualizadas:
+- Nome Fantasia
+- Inscrição Estadual
+
+Próximo passo sugerido: verificar páginas 6 e 7 e/ou extrair texto completo para confirmar se esses campos realmente não constam no PDF.

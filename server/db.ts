@@ -298,7 +298,7 @@ export async function getAlvarasParaAlerta(dias: 30 | 15 | 7) {
   const db = await getDb();
   if (!db) return [];
 
-  const STATUS_SEM_ALERTA = ["Em Renovação", "Renovado", "Cancelado"];
+  const STATUS_SEM_ALERTA = ["Em Renovação", "Renovado", "Cancelado", "Em Vigência"];
   const hoje = new Date();
   const alvo = new Date();
   alvo.setDate(alvo.getDate() + dias);
