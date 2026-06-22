@@ -15,6 +15,13 @@
       "when": 1781812512436,
       "tag": "0001_worthless_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1782154373762,
+      "tag": "0002_luxuriant_mauler",
+      "breakpoints": true
     }
   ]
 }

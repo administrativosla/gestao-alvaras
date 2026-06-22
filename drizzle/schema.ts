@@ -136,7 +136,19 @@ export const alvaraHistorico = mysqlTable("alvara_historico", {
 export type AlvaraHistorico = typeof alvaraHistorico.$inferSelect;
 export type InsertAlvaraHistorico = typeof alvaraHistorico.$inferInsert;
 
-// ─── Log de Importações ───────────────────────────────────────────────────────
+// ─── E-mails Globais (recebem alertas de todos os clientes) ─────────────────
+export const emailsGlobais = mysqlTable("emails_globais", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  descricao: varchar("descricao", { length: 255 }),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailGlobal = typeof emailsGlobais.$inferSelect;
+export type InsertEmailGlobal = typeof emailsGlobais.$inferInsert;
+
+// ─── Log de Importações ─────────────────────────────────────────────────────────
 export const importacoes = mysqlTable("importacoes", {
   id: int("id").autoincrement().primaryKey(),
   nomeArquivo: varchar("nomeArquivo", { length: 255 }).notNull(),
