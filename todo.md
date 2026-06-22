@@ -99,5 +99,5 @@
 - [x] Integrar serviço de e-mail ao handler de alertas (alertasHeartbeat.ts)
 - [x] Adicionar botão "Testar Envio" na tela de Alertas
 - [x] Adicionar router de teste de e-mail no backend
-- [ ] Ativar heartbeat agendado diário às 8h
-- [ ] Adicionar suporte a lista global de e-mails (recebe todos os alertas)
+- [x] Ativar heartbeat agendado diário às 8h (ativado após deploy — handler e e-mails globais integrados)
+- [x] Adicionar suporte a lista global de e-mails (recebe todos os alertas)

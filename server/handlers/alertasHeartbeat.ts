@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { getDb } from "../db";
-import { alvaras, clientes, emailsAlerta, STATUS_SEM_ALERTA } from "../../drizzle/schema";
+import { alvaras, clientes, emailsAlerta, emailsGlobais, STATUS_SEM_ALERTA } from "../../drizzle/schema";
 import { eq, notInArray } from "drizzle-orm";
 import { sdk } from "../_core/sdk";
 import { enviarAlertaVencimento } from "../services/email";
@@ -36,6 +36,11 @@ export async function alertasHeartbeatHandler(req: Request, res: Response) {
         notInArray(alvaras.status, STATUS_SEM_ALERTA as string[])
       );
 
+    // Buscar e-mails globais ativos (recebem todos os alertas)
+    const globaisAtivos = await db.select().from(emailsGlobais).where(eq(emailsGlobais.ativo, true));
+    const emailsGlobaisAtivos = globaisAtivos.map((g) => g.email);
+    console.log(`[Alertas Heartbeat] E-mails globais ativos: ${emailsGlobaisAtivos.length}`);
+
     let enviados = 0;
     let ignorados = 0;
     let erros = 0;
@@ -58,13 +63,15 @@ export async function alertasHeartbeatHandler(req: Request, res: Response) {
         .from(emailsAlerta)
         .where(eq(emailsAlerta.clienteId, cliente.id));
 
-      if (emailsCliente.length === 0) {
-        console.warn(`[Alertas] Cliente ${cliente.razaoSocial} sem e-mails cadastrados — alerta ignorado.`);
+      // Combinar e-mails do cliente + globais (sem duplicatas)
+      const destinatariosCliente = emailsCliente.map((e) => e.email);
+      const destinatarios = Array.from(new Set([...destinatariosCliente, ...emailsGlobaisAtivos]));
+
+      if (destinatarios.length === 0) {
+        console.warn(`[Alertas] Cliente ${cliente.razaoSocial} sem e-mails cadastrados e sem globais — alerta ignorado.`);
         ignorados++;
         continue;
       }
-
-      const destinatarios = emailsCliente.map((e) => e.email);
 
       const ok = await enviarAlertaVencimento(destinatarios, {
         razaoSocial: cliente.razaoSocial,
