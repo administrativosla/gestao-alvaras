@@ -28,7 +28,6 @@ import {
   FileText,
   Upload,
   Download,
-  ShieldCheck,
   Bell,
   UserCog,
   Crown,
@@ -87,10 +86,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-8 p-10 max-w-sm w-full">
           <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
-              <ShieldCheck className="h-7 w-7 text-primary" />
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-center">GestãoAlvarás</h1>
+            <img
+              src="/manus-storage/mjp-logo_12ad3d80.png"
+              alt="MJP Controller"
+              className="h-14 w-auto object-contain mb-1"
+            />
+            <h1 className="text-xl font-semibold tracking-tight text-center">Gestor de Alvarás</h1>
             <p className="text-sm text-muted-foreground text-center">
               Sistema de controle de alvarás de funcionamento. Faça login para continuar.
             </p>
@@ -192,8 +193,8 @@ function DashboardLayoutContent({
       <div className="relative" ref={sidebarRef}>
         <Sidebar collapsible="icon" className="border-r-0" disableTransition={isResizing}>
           {/* Header */}
-          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border/50">
-            <div className="flex items-center gap-3 px-3">
+          <SidebarHeader className="border-b border-sidebar-border/50">
+            <div className="flex items-center gap-3 px-3 py-2">
               <button
                 onClick={toggleSidebar}
                 className="h-8 w-8 flex items-center justify-center hover:bg-sidebar-accent rounded-lg transition-colors focus:outline-none shrink-0"
@@ -202,14 +203,23 @@ function DashboardLayoutContent({
                 <PanelLeft className="h-4 w-4 text-sidebar-foreground/60" />
               </button>
               {!isCollapsed && (
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex items-center justify-center w-6 h-6 rounded bg-sidebar-primary/20 shrink-0">
-                    <ShieldCheck className="h-3.5 w-3.5 text-sidebar-primary" />
-                  </div>
-                  <span className="font-semibold text-sm tracking-tight text-sidebar-foreground truncate">
-                    GestãoAlvarás
+                <div className="flex flex-col items-start min-w-0">
+                  <img
+                    src="/manus-storage/mjp-logo_12ad3d80.png"
+                    alt="MJP Controller"
+                    className="h-10 w-auto object-contain"
+                  />
+                  <span className="text-[10px] font-medium text-sidebar-foreground/60 tracking-wide uppercase mt-0.5 pl-0.5">
+                    Gestor de Alvarás
                   </span>
                 </div>
+              )}
+              {isCollapsed && (
+                <img
+                  src="/manus-storage/mjp-logo_12ad3d80.png"
+                  alt="MJP"
+                  className="h-6 w-auto object-contain"
+                />
               )}
             </div>
           </SidebarHeader>

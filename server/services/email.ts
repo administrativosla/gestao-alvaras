@@ -90,7 +90,8 @@ export async function enviarAlertaVencimento(
           <!-- Header -->
           <tr>
             <td style="background:#1e293b;padding:28px 32px;">
-              <p style="margin:0;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">GestãoAlvarás</p>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663456310534/iXSjSksZZTmFkzRk.png" alt="MJP Controller" style="height:34px;width:auto;display:block;margin-bottom:8px;">
+              <p style="margin:0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Gestor de Alvarás · MJP Controller</p>
               <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:600;">Alerta de Vencimento</h1>
             </td>
           </tr>
@@ -154,7 +155,7 @@ export async function enviarAlertaVencimento(
           <tr>
             <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
               <p style="margin:0;font-size:12px;color:#94a3b8;">
-                Este é um e-mail automático gerado pelo sistema GestãoAlvarás. Não responda a este e-mail.
+                Este é um e-mail automático gerado pelo sistema Gestor de Alvarás. Não responda a este e-mail.
               </p>
             </td>
           </tr>
@@ -168,7 +169,7 @@ export async function enviarAlertaVencimento(
 
   try {
     await transporter.sendMail({
-      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
       to: destinatarios.join(", "),
       subject: assunto,
       html,
@@ -259,7 +260,8 @@ export async function enviarNotificacaoStatusAtualizado(
           <!-- Header -->
           <tr>
             <td style="background:#1e293b;padding:28px 32px;">
-              <p style="margin:0;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">GestãoAlvarás</p>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663456310534/iXSjSksZZTmFkzRk.png" alt="MJP Controller" style="height:34px;width:auto;display:block;margin-bottom:8px;">
+              <p style="margin:0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Gestor de Alvarás · MJP Controller</p>
               <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:600;">Atualização de Status</h1>
               <p style="margin:6px 0 0;color:#94a3b8;font-size:13px;">${dataHoraAcao}</p>
             </td>
@@ -336,7 +338,7 @@ export async function enviarNotificacaoStatusAtualizado(
           <tr>
             <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
               <p style="margin:0;font-size:12px;color:#94a3b8;">
-                Este é um e-mail automático gerado pelo sistema GestãoAlvarás. Não responda a este e-mail.
+                Este é um e-mail automático gerado pelo sistema Gestor de Alvarás. Não responda a este e-mail.
               </p>
             </td>
           </tr>
@@ -350,7 +352,7 @@ export async function enviarNotificacaoStatusAtualizado(
 
   try {
     await transporter.sendMail({
-      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
       to: destinatarios.join(", "),
       subject: assunto,
       html,
@@ -373,14 +375,14 @@ export async function enviarEmailTeste(destinatario: string): Promise<{ success:
     await transporter.verify();
 
     await transporter.sendMail({
-      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
       to: destinatario,
-      subject: "✅ Teste de Configuração — GestãoAlvarás",
+      subject: "✅ Teste de Configuração — Gestor de Alvarás",
       html: `
         <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:480px;margin:32px auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;">
           <h2 style="color:#1e293b;margin:0 0 8px;">✅ Configuração de e-mail funcionando!</h2>
           <p style="color:#64748b;margin:0 0 16px;">
-            O sistema GestãoAlvarás está corretamente configurado para enviar alertas automáticos de vencimento de alvarás.
+            O sistema Gestor de Alvarás está corretamente configurado para enviar alertas automáticos de vencimento de alvarás.
           </p>
           <p style="color:#94a3b8;font-size:13px;margin:0;">
             Remetente: ${process.env.SMTP_USER}<br>
@@ -404,7 +406,7 @@ export interface ConviteEmailData {
 }
 
 /**
- * Envia e-mail de convite para um novo usuário acessar o GestãoAlvarás.
+ * Envia e-mail de convite para um novo usuário acessar o Gestor de Alvarás.
  */
 export async function enviarConviteUsuario(
   destinatario: string,
@@ -420,7 +422,7 @@ export async function enviarConviteUsuario(
       year: "numeric",
     });
 
-    const assunto = `🔑 Você foi convidado para o GestãoAlvarás`;
+    const assunto = `🔑 Você foi convidado para o Gestor de Alvarás`;
 
     const html = `
 <!DOCTYPE html>
@@ -428,7 +430,7 @@ export async function enviarConviteUsuario(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Convite — GestãoAlvarás</title>
+  <title>Convite — Gestor de Alvarás</title>
 </head>
 <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
@@ -439,8 +441,7 @@ export async function enviarConviteUsuario(
         <tr>
           <td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:32px 40px;text-align:center;">
             <div style="display:inline-flex;align-items:center;gap:10px;">
-              <span style="font-size:22px;">🛡️</span>
-              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.5px;">GestãoAlvarás</span>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663456310534/iXSjSksZZTmFkzRk.png" alt="MJP Controller" style="height:40px;width:auto;display:block;margin:0 auto 6px;">
             </div>
             <p style="color:#94a3b8;font-size:13px;margin:8px 0 0;">Sistema de Controle de Alvarás de Funcionamento</p>
           </td>
@@ -451,7 +452,7 @@ export async function enviarConviteUsuario(
           <td style="padding:40px 40px 32px;">
             <h2 style="color:#1e293b;font-size:20px;font-weight:700;margin:0 0 12px;">Você foi convidado!</h2>
             <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
-              <strong>${convidadoPorNome}</strong> convidou você para acessar o <strong>GestãoAlvarás</strong> como <strong>${roleLabel}</strong>.
+              <strong>${convidadoPorNome}</strong> convidou você para acessar o <strong>Gestor de Alvarás</strong> como <strong>${roleLabel}</strong>.
             </p>
 
             <!-- Nível de acesso -->
@@ -474,7 +475,7 @@ export async function enviarConviteUsuario(
             <!-- CTA Button -->
             <div style="text-align:center;margin:0 0 28px;">
               <a href="${linkAcesso}" style="display:inline-block;background:#1e293b;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;letter-spacing:0.3px;">
-                Acessar o GestãoAlvarás →
+                Acessar o Gestor de Alvarás →
               </a>
             </div>
 
@@ -490,7 +491,7 @@ export async function enviarConviteUsuario(
         <tr>
           <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
             <p style="color:#94a3b8;font-size:12px;margin:0;">
-              GestãoAlvarás — MJP Controller<br>
+              Gestor de Alvarás — MJP Controller<br>
               Se você não esperava este e-mail, pode ignorá-lo com segurança.
             </p>
           </td>
@@ -503,7 +504,7 @@ export async function enviarConviteUsuario(
 </html>`;
 
     await transporter.sendMail({
-      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
       to: destinatario,
       subject: assunto,
       html,

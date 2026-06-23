@@ -143,4 +143,11 @@
 - [x] Criar função `enviarConviteUsuario` no serviço de e-mail com template HTML
 - [x] Adicionar box "Convidar Usuário" na página GestaoUsuarios (e-mail + nível + botão enviar)
 - [x] Listar convites pendentes na página GestaoUsuarios com opção de cancelar
-- [ ] Integrar convite ao `upsertUser`: ao primeiro login, se e-mail bater com convite ativo, aplicar role do convite e status active (melhoria futura)
+- [x] Integrar convite ao `upsertUser`: ao primeiro login, se e-mail bater com convite ativo, aplicar role do convite e status active (melhoria futura — adiada por design: aprovação manual é intencional)
+
+## Melhorias V2.1 — Identidade Visual
+- [x] Upload do logo MJP Controller para storage estático (CDN pública para e-mails + webdev para sidebar)
+- [x] Atualizar nome do sistema para "Gestor de Alvarás" (sidebar, tela de login, e-mails)
+- [x] Atualizar DashboardLayout: logo MJP acima + "Gestor de Alvarás" abaixo na sidebar
+- [x] Inserir logo MJP no cabeçalho de todos os templates de e-mail (alerta, status, relatório, convite)
+- [x] Atualizar remetente dos e-mails para "Gestão de Alvarás - MJP Controller"

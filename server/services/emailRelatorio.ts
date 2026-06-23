@@ -159,7 +159,8 @@ export async function enviarRelatorioAlvaras(
           <!-- Header -->
           <tr>
             <td style="background:#1e293b;padding:28px 32px;">
-              <p style="margin:0;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">GestãoAlvarás · Relatório Automático</p>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663456310534/iXSjSksZZTmFkzRk.png" alt="MJP Controller" style="height:34px;width:auto;display:block;margin-bottom:8px;">
+              <p style="margin:0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Gestor de Alvarás · MJP Controller · Relatório Automático</p>
               <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:600;">Relatório Diário de Alvarás</h1>
               <p style="margin:6px 0 0;color:#94a3b8;font-size:13px;">${dataFormatada} · Gerado automaticamente às 13h</p>
             </td>
@@ -242,7 +243,7 @@ export async function enviarRelatorioAlvaras(
           <tr>
             <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
               <p style="margin:0;font-size:12px;color:#94a3b8;">
-                Este é um relatório automático gerado diariamente pelo sistema GestãoAlvarás. Acesse o sistema para atualizar os status e registrar as providências. Não responda a este e-mail.
+                Este é um relatório automático gerado diariamente pelo sistema Gestor de Alvarás. Acesse o sistema para atualizar os status e registrar as providências. Não responda a este e-mail.
               </p>
             </td>
           </tr>
@@ -256,7 +257,7 @@ export async function enviarRelatorioAlvaras(
 
   try {
     await transporter.sendMail({
-      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
       to: destinatarios.join(", "),
       subject: assunto,
       html,
