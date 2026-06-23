@@ -3,6 +3,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,14 +25,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Users, CheckCircle2, XCircle, ShieldCheck, Clock,
-  UserX, UserCheck, Crown, Shield, User, Loader2,
+  UserX, UserCheck, Crown, Shield, User, Loader2, Mail,
+  Send, Ban, RotateCcw, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Link } from "wouter";
 
 type UserRole = "operator" | "gestor" | "master";
 type UserStatus = "pending" | "active" | "blocked";
+type ConviteStatus = "pending" | "accepted" | "cancelled";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   operator: "Operador",
@@ -45,9 +48,9 @@ const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  operator: "border-slate-300 text-slate-700 bg-slate-50 dark:bg-slate-900/30 dark:text-slate-300",
-  gestor: "border-blue-300 text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300",
-  master: "border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300",
+  operator: "border-slate-300 text-slate-700 bg-slate-50",
+  gestor: "border-blue-300 text-blue-700 bg-blue-50",
+  master: "border-amber-300 text-amber-700 bg-amber-50",
 };
 
 const STATUS_COLORS: Record<UserStatus, string> = {
@@ -62,12 +65,58 @@ const STATUS_LABELS: Record<UserStatus, string> = {
   blocked: "Bloqueado",
 };
 
+const CONVITE_STATUS_LABELS: Record<ConviteStatus, string> = {
+  pending: "Aguardando",
+  accepted: "Aceito",
+  cancelled: "Cancelado",
+};
+
+const CONVITE_STATUS_COLORS: Record<ConviteStatus, string> = {
+  pending: "border-blue-300 text-blue-700 bg-blue-50",
+  accepted: "border-emerald-300 text-emerald-700 bg-emerald-50",
+  cancelled: "border-slate-300 text-slate-500 bg-slate-50",
+};
+
 export default function GestaoUsuarios() {
   const { user: me } = useAuth();
   const utils = trpc.useUtils();
+
+  // Queries
   const { data: usuarios, isLoading } = trpc.usuarios.listar.useQuery();
+  const { data: listaConvites, isLoading: loadingConvites } = trpc.usuarios.listarConvites.useQuery();
+
+  // Estados do formulário de convite
+  const [emailConvite, setEmailConvite] = useState("");
+  const [roleConvite, setRoleConvite] = useState<UserRole>("operator");
+  const [emailError, setEmailError] = useState("");
+  const [showConvites, setShowConvites] = useState(true);
+
+  // Estados de aprovação
   const [aprovandoId, setAprovandoId] = useState<number | null>(null);
   const [roleParaAprovar, setRoleParaAprovar] = useState<UserRole>("operator");
+
+  // Mutations
+  const convidarMutation = trpc.usuarios.convidar.useMutation({
+    onSuccess: (data) => {
+      if (data.ok) {
+        toast.success(`Convite enviado para ${data.email}!`);
+      } else {
+        toast.warning(`Convite registrado, mas houve um problema ao enviar o e-mail para ${data.email}. Verifique as configurações SMTP.`);
+      }
+      setEmailConvite("");
+      setRoleConvite("operator");
+      utils.usuarios.listarConvites.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const cancelarConviteMutation = trpc.usuarios.cancelarConvite.useMutation({
+    onSuccess: () => {
+      toast.success("Convite cancelado.");
+      utils.usuarios.listarConvites.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const aprovarMutation = trpc.usuarios.aprovar.useMutation({
     onSuccess: (data) => {
@@ -98,6 +147,26 @@ export default function GestaoUsuarios() {
   const pendentes = (usuarios ?? []).filter((u) => u.userStatus === "pending");
   const ativos = (usuarios ?? []).filter((u) => u.userStatus === "active");
   const bloqueados = (usuarios ?? []).filter((u) => u.userStatus === "blocked");
+  const convitesPendentes = (listaConvites ?? []).filter((c) => c.status === "pending");
+  const convitesHistorico = (listaConvites ?? []).filter((c) => c.status !== "pending");
+
+  function handleEnviarConvite() {
+    if (!emailConvite.trim()) {
+      setEmailError("Informe o e-mail do usuário.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailConvite.trim())) {
+      setEmailError("E-mail inválido.");
+      return;
+    }
+    setEmailError("");
+    convidarMutation.mutate({
+      email: emailConvite.trim().toLowerCase(),
+      role: roleConvite,
+      origin: window.location.origin,
+    });
+  }
 
   if (isLoading) {
     return (
@@ -109,10 +178,11 @@ export default function GestaoUsuarios() {
 
   return (
     <div className="space-y-8 max-w-4xl animate-fade-in-up">
+      {/* Cabeçalho */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Gestão de Usuários</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Aprove novos acessos e gerencie os níveis de permissão da equipe
+          Convide novos usuários, aprove acessos e gerencie os níveis de permissão da equipe
         </p>
       </div>
 
@@ -120,7 +190,18 @@ export default function GestaoUsuarios() {
       <div className="grid grid-cols-3 gap-4">
         <Card className="border shadow-sm">
           <CardContent className="pt-4 pb-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+            <div className="p-2 rounded-lg bg-blue-50">
+              <Mail className="h-4 w-4 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{convitesPendentes.length}</p>
+              <p className="text-xs text-muted-foreground">Convites enviados</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border shadow-sm">
+          <CardContent className="pt-4 pb-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-50">
               <Clock className="h-4 w-4 text-orange-500" />
             </div>
             <div>
@@ -131,7 +212,7 @@ export default function GestaoUsuarios() {
         </Card>
         <Card className="border shadow-sm">
           <CardContent className="pt-4 pb-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+            <div className="p-2 rounded-lg bg-emerald-50">
               <UserCheck className="h-4 w-4 text-emerald-500" />
             </div>
             <div>
@@ -140,20 +221,183 @@ export default function GestaoUsuarios() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border shadow-sm">
-          <CardContent className="pt-4 pb-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
-              <UserX className="h-4 w-4 text-red-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{bloqueados.length}</p>
-              <p className="text-xs text-muted-foreground">Bloqueados</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Pendentes */}
+      {/* ─── Box de Convite ─────────────────────────────────────────────────────── */}
+      <Card className="border-2 border-primary/20 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Send className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Convidar Novo Usuário</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                O usuário receberá um e-mail com o link de acesso e instruções para entrar no sistema
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex gap-3 items-end flex-wrap">
+            <div className="flex-1 min-w-[220px]">
+              <Label htmlFor="email-convite" className="text-xs font-medium mb-1.5 block">
+                E-mail do usuário
+              </Label>
+              <Input
+                id="email-convite"
+                type="email"
+                placeholder="usuario@empresa.com.br"
+                value={emailConvite}
+                onChange={(e) => { setEmailConvite(e.target.value); setEmailError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleEnviarConvite()}
+                className={emailError ? "border-red-400 focus-visible:ring-red-400" : ""}
+              />
+              {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+            </div>
+            <div className="w-36">
+              <Label className="text-xs font-medium mb-1.5 block">Nível de acesso</Label>
+              <Select value={roleConvite} onValueChange={(v) => setRoleConvite(v as UserRole)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="operator">
+                    <span className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-slate-500" /> Operador
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="gestor">
+                    <span className="flex items-center gap-1.5">
+                      <Shield className="h-3.5 w-3.5 text-blue-500" /> Gestor
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="master">
+                    <span className="flex items-center gap-1.5">
+                      <Crown className="h-3.5 w-3.5 text-amber-500" /> Master
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleEnviarConvite}
+              disabled={convidarMutation.isPending}
+              className="gap-2 h-9"
+            >
+              {convidarMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Enviar Convite
+            </Button>
+          </div>
+
+          {/* Descrição do fluxo */}
+          <div className="mt-4 flex gap-6 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px]">1</span>
+              Convite enviado por e-mail
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px]">2</span>
+              Usuário faz login via Manus
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px]">3</span>
+              Master aprova o acesso
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Convites Pendentes ──────────────────────────────────────────────────── */}
+      {(convitesPendentes.length > 0 || convitesHistorico.length > 0) && (
+        <div className="space-y-3">
+          <button
+            className="flex items-center gap-2 w-full text-left group"
+            onClick={() => setShowConvites((v) => !v)}
+          >
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-base font-semibold flex-1">Convites Enviados</h2>
+            {convitesPendentes.length > 0 && (
+              <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs">{convitesPendentes.length} pendente{convitesPendentes.length > 1 ? "s" : ""}</Badge>
+            )}
+            {showConvites ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+
+          {showConvites && (
+            <Card className="border shadow-sm">
+              <CardContent className="pt-0 pb-0">
+                {loadingConvites ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {[...convitesPendentes, ...convitesHistorico].map((c) => {
+                      const isExpired = c.status === "pending" && new Date(c.expiresAt) < new Date();
+                      const statusDisplay = isExpired ? "cancelled" : (c.status as ConviteStatus);
+                      return (
+                        <div key={c.id} className="flex items-center gap-4 py-3 flex-wrap">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{c.email}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Enviado em {new Date(c.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                              {c.status === "pending" && !isExpired && (
+                                <> · Válido até {new Date(c.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</>
+                              )}
+                              {isExpired && <> · <span className="text-red-500">Expirado</span></>}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className={`text-xs gap-1 ${ROLE_COLORS[c.role as UserRole]}`}>
+                              {ROLE_ICONS[c.role as UserRole]}
+                              {ROLE_LABELS[c.role as UserRole]}
+                            </Badge>
+                            <Badge variant="outline" className={`text-xs ${CONVITE_STATUS_COLORS[statusDisplay]}`}>
+                              {isExpired ? "Expirado" : CONVITE_STATUS_LABELS[statusDisplay]}
+                            </Badge>
+                            {c.status === "pending" && !isExpired && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600">
+                                    <Ban className="h-3.5 w-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar convite?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      O convite para <strong>{c.email}</strong> será cancelado. Você poderá enviar um novo convite depois.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Manter</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-red-600 hover:bg-red-700"
+                                      onClick={() => cancelarConviteMutation.mutate({ conviteId: c.id })}
+                                    >
+                                      Cancelar convite
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ─── Pendentes de Aprovação ──────────────────────────────────────────────── */}
       {pendentes.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -163,7 +407,7 @@ export default function GestaoUsuarios() {
           </div>
           <div className="space-y-2">
             {pendentes.map((u) => (
-              <Card key={u.id} className="border-2 border-orange-200 bg-orange-50/30 dark:bg-orange-950/10 dark:border-orange-800">
+              <Card key={u.id} className="border-2 border-orange-200 bg-orange-50/30">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
@@ -240,7 +484,7 @@ export default function GestaoUsuarios() {
         </div>
       )}
 
-      {/* Usuários ativos */}
+      {/* ─── Usuários Ativos ─────────────────────────────────────────────────────── */}
       <div className="space-y-3">
         <h2 className="text-base font-semibold">Usuários Ativos</h2>
         {ativos.length === 0 ? (
@@ -317,27 +561,31 @@ export default function GestaoUsuarios() {
         )}
       </div>
 
-      {/* Usuários bloqueados */}
+      {/* ─── Usuários Bloqueados ─────────────────────────────────────────────────── */}
       {bloqueados.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-base font-semibold text-muted-foreground">Bloqueados</h2>
-          <Card className="border shadow-sm opacity-75">
+          <h2 className="text-base font-semibold text-muted-foreground">Usuários Bloqueados</h2>
+          <Card className="border shadow-sm">
             <CardContent className="pt-0 pb-0">
               <div className="divide-y">
                 {bloqueados.map((u) => (
-                  <div key={u.id} className="flex items-center gap-4 py-3 flex-wrap">
+                  <div key={u.id} className="flex items-center gap-4 py-3 flex-wrap opacity-60">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-muted-foreground">{u.name || "Sem nome"}</p>
+                      <p className="font-medium text-sm line-through">{u.name || "Sem nome"}</p>
                       <p className="text-xs text-muted-foreground">{u.email || "Sem e-mail"}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className={`text-xs ${STATUS_COLORS["blocked"]}`}>
-                        Bloqueado
+                      <Badge variant="outline" className="text-xs border-red-300 text-red-600 bg-red-50">
+                        <UserX className="h-3 w-3 mr-1" /> Bloqueado
                       </Badge>
-                      <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-xs"
                         onClick={() => alterarStatusMutation.mutate({ userId: u.id, userStatus: "active" })}
-                        disabled={alterarStatusMutation.isPending}>
-                        <UserCheck className="h-3 w-3" />
+                        disabled={alterarStatusMutation.isPending}
+                      >
+                        <RotateCcw className="h-3 w-3" />
                         Reativar
                       </Button>
                     </div>
@@ -348,40 +596,6 @@ export default function GestaoUsuarios() {
           </Card>
         </div>
       )}
-
-      {/* Legenda de níveis */}
-      <Card className="border bg-muted/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Níveis de Acesso
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="flex items-start gap-2">
-              <User className="h-3.5 w-3.5 text-slate-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-slate-700 dark:text-slate-300">Operador (Nível 1)</p>
-                <p className="text-muted-foreground">Cadastra clientes, alvarás e atualiza status</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Shield className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-blue-700 dark:text-blue-300">Gestor (Nível 2)</p>
-                <p className="text-muted-foreground">Tudo do Operador + exporta relatórios</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Crown className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-amber-700 dark:text-amber-300">Master (Nível 3)</p>
-                <p className="text-muted-foreground">Acesso total + configura alertas + gerencia usuários</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

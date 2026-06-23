@@ -40,6 +40,21 @@ export const ROLE_LEVEL: Record<UserRole, number> = {
   master: 3,
 };
 
+// ─── Convites de Usuário ─────────────────────────────────────────────────────
+export const convites = mysqlTable("convites", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  role: mysqlEnum("role", ["operator", "gestor", "master"]).default("operator").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  status: mysqlEnum("status", ["pending", "accepted", "cancelled"]).default("pending").notNull(),
+  convidadoPorId: int("convidadoPorId").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Convite = typeof convites.$inferSelect;
+export type InsertConvite = typeof convites.$inferInsert;
+
 // ─── Clientes ─────────────────────────────────────────────────────────────────
 export const clientes = mysqlTable("clientes", {
   id: int("id").autoincrement().primaryKey(),

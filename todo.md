@@ -135,3 +135,12 @@
 - [x] Criar tela de "Aguardando Aprovação" para usuários pending
 - [x] Restringir Exportar (nível 2+) e Configurar Alertas (nível 3) no menu e nas procedures
 - [x] Promover andre.vasconcelos@mjpcontroller.com.br a master (feito via SQL na primeira sessão)
+
+## Melhorias V2.0 — Convite de Usuários
+- [x] Criar tabela `convites` no schema (email, role, token, status, expiresAt, convidadoPor)
+- [x] Aplicar migration SQL da tabela de convites
+- [x] Criar procedure `usuarios.convidar` (masterProcedure): salva convite + envia e-mail
+- [x] Criar função `enviarConviteUsuario` no serviço de e-mail com template HTML
+- [x] Adicionar box "Convidar Usuário" na página GestaoUsuarios (e-mail + nível + botão enviar)
+- [x] Listar convites pendentes na página GestaoUsuarios com opção de cancelar
+- [ ] Integrar convite ao `upsertUser`: ao primeiro login, se e-mail bater com convite ativo, aplicar role do convite e status active (melhoria futura)

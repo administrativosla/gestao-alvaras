@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { masterProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { users, ROLE_LABELS } from "../../drizzle/schema";
-import { eq, desc, ne } from "drizzle-orm";
+import { users, convites, ROLE_LABELS } from "../../drizzle/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "../_core/notification";
+import { enviarConviteUsuario } from "../services/email";
+import crypto from "crypto";
 
 export const usuariosRouter = router({
   /** Lista todos os usuários (somente master) */
@@ -123,4 +125,72 @@ export const usuariosRouter = router({
       .where(eq(users.userStatus, "pending"));
     return rows.length;
   }),
+
+  /** Envia convite por e-mail para um novo usuário (somente master) */
+  convidar: masterProcedure
+    .input(
+      z.object({
+        email: z.string().email("E-mail inválido"),
+        role: z.enum(["operator", "gestor", "master"]),
+        origin: z.string().url(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+      // Cancelar convites anteriores pendentes para o mesmo e-mail
+      await db
+        .update(convites)
+        .set({ status: "cancelled" })
+        .where(and(eq(convites.email, input.email), eq(convites.status, "pending")));
+
+      // Gerar token único (não é usado na URL, apenas como referência interna)
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+
+      await db.insert(convites).values({
+        email: input.email,
+        role: input.role,
+        token,
+        status: "pending",
+        convidadoPorId: ctx.user.id,
+        expiresAt,
+      });
+
+      const convidadoPorNome = ctx.user.name ?? "Administrador";
+
+      const ok = await enviarConviteUsuario(input.email, {
+        roleLabel: ROLE_LABELS[input.role],
+        linkAcesso: input.origin,
+        convidadoPorNome,
+        expiresAt,
+      });
+
+      return { ok, email: input.email };
+    }),
+
+  /** Lista convites enviados (somente master) */
+  listarConvites: masterProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select()
+      .from(convites)
+      .orderBy(desc(convites.createdAt));
+    return rows;
+  }),
+
+  /** Cancela um convite pendente (somente master) */
+  cancelarConvite: masterProcedure
+    .input(z.object({ conviteId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+      await db
+        .update(convites)
+        .set({ status: "cancelled" })
+        .where(and(eq(convites.id, input.conviteId), eq(convites.status, "pending")));
+      return { ok: true };
+    }),
 });

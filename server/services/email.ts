@@ -395,3 +395,123 @@ export async function enviarEmailTeste(destinatario: string): Promise<{ success:
     return { success: false, error: err?.message ?? "Erro desconhecido" };
   }
 }
+
+export interface ConviteEmailData {
+  roleLabel: string;
+  linkAcesso: string;
+  convidadoPorNome: string;
+  expiresAt: Date;
+}
+
+/**
+ * Envia e-mail de convite para um novo usuário acessar o GestãoAlvarás.
+ */
+export async function enviarConviteUsuario(
+  destinatario: string,
+  dados: ConviteEmailData
+): Promise<boolean> {
+  try {
+    const transporter = createTransporter();
+    const { roleLabel, linkAcesso, convidadoPorNome, expiresAt } = dados;
+
+    const expiresFormatada = expiresAt.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+    const assunto = `🔑 Você foi convidado para o GestãoAlvarás`;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convite — GestãoAlvarás</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:32px 40px;text-align:center;">
+            <div style="display:inline-flex;align-items:center;gap:10px;">
+              <span style="font-size:22px;">🛡️</span>
+              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.5px;">GestãoAlvarás</span>
+            </div>
+            <p style="color:#94a3b8;font-size:13px;margin:8px 0 0;">Sistema de Controle de Alvarás de Funcionamento</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px 40px 32px;">
+            <h2 style="color:#1e293b;font-size:20px;font-weight:700;margin:0 0 12px;">Você foi convidado!</h2>
+            <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
+              <strong>${convidadoPorNome}</strong> convidou você para acessar o <strong>GestãoAlvarás</strong> como <strong>${roleLabel}</strong>.
+            </p>
+
+            <!-- Nível de acesso -->
+            <div style="background:#f1f5f9;border-radius:8px;padding:16px 20px;margin:0 0 28px;">
+              <p style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;">Seu nível de acesso</p>
+              <p style="color:#1e293b;font-size:16px;font-weight:700;margin:0;">🏷️ ${roleLabel}</p>
+            </div>
+
+            <!-- Instruções -->
+            <div style="border-left:3px solid #3b82f6;padding:12px 16px;background:#eff6ff;border-radius:0 8px 8px 0;margin:0 0 28px;">
+              <p style="color:#1e40af;font-size:14px;font-weight:600;margin:0 0 8px;">Como acessar:</p>
+              <ol style="color:#1e40af;font-size:14px;margin:0;padding-left:20px;line-height:1.8;">
+                <li>Clique no botão abaixo para abrir o sistema</li>
+                <li>Faça login com sua conta Manus</li>
+                <li>Aguarde a aprovação do administrador</li>
+                <li>Após aprovado, você terá acesso completo como <strong>${roleLabel}</strong></li>
+              </ol>
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align:center;margin:0 0 28px;">
+              <a href="${linkAcesso}" style="display:inline-block;background:#1e293b;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;letter-spacing:0.3px;">
+                Acessar o GestãoAlvarás →
+              </a>
+            </div>
+
+            <!-- Validade -->
+            <p style="color:#94a3b8;font-size:13px;text-align:center;margin:0;">
+              Este convite é válido até <strong>${expiresFormatada}</strong>.<br>
+              Após essa data, solicite um novo convite ao administrador.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
+            <p style="color:#94a3b8;font-size:12px;margin:0;">
+              GestãoAlvarás — MJP Controller<br>
+              Se você não esperava este e-mail, pode ignorá-lo com segurança.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    await transporter.sendMail({
+      from: `"GestãoAlvarás" <${process.env.SMTP_USER}>`,
+      to: destinatario,
+      subject: assunto,
+      html,
+    });
+
+    return true;
+  } catch (err: any) {
+    console.error("[email] Erro ao enviar convite:", err?.message);
+    return false;
+  }
+}
