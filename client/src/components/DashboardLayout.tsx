@@ -207,9 +207,9 @@ function DashboardLayoutContent({
                   <img
                     src="/manus-storage/mjp-logo_12ad3d80.png"
                     alt="MJP Controller"
-                    className="h-10 w-auto object-contain"
+                    style={{ height: '55px', width: 'auto', objectFit: 'contain' }}
                   />
-                  <span className="text-[10px] font-medium text-sidebar-foreground/60 tracking-wide uppercase mt-0.5 pl-0.5">
+                  <span className="text-[10px] font-medium tracking-wide uppercase mt-0.5" style={{ color: '#ffffff', textAlign: 'center', width: '110px', display: 'block' }}>
                     Gestor de Alvarás
                   </span>
                 </div>
