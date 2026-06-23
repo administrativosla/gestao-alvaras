@@ -16,7 +16,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["operator", "gestor", "master"]).default("operator").notNull(),
+  userStatus: mysqlEnum("userStatus", ["pending", "active", "blocked"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -24,6 +25,20 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+// Helpers de tipo para uso no frontend/backend
+export type UserRole = "operator" | "gestor" | "master";
+export type UserStatus = "pending" | "active" | "blocked";
+export const ROLE_LABELS: Record<UserRole, string> = {
+  operator: "Operador",
+  gestor: "Gestor",
+  master: "Master",
+};
+export const ROLE_LEVEL: Record<UserRole, number> = {
+  operator: 1,
+  gestor: 2,
+  master: 3,
+};
 
 // ─── Clientes ─────────────────────────────────────────────────────────────────
 export const clientes = mysqlTable("clientes", {

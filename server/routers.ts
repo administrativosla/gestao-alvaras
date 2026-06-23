@@ -8,6 +8,7 @@ import { dashboardRouter } from "./routers/dashboard";
 import { importacaoRouter } from "./routers/importacao";
 import { exportacaoRouter } from "./routers/exportacao";
 import { alertasRouter } from "./routers/alertas";
+import { usuariosRouter } from "./routers/usuarios";
 
 export const appRouter = router({
   system: systemRouter,
@@ -25,6 +26,7 @@ export const appRouter = router({
   importacao: importacaoRouter,
   exportacao: exportacaoRouter,
   alertas: alertasRouter,
+  usuarios: usuariosRouter,
 });
 
 export type AppRouter = typeof appRouter;

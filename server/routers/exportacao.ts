@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { gestorProcedure, router } from "../_core/trpc";
 import { getHistoricoByAlvara, listAlvaras } from "../db";
 import * as XLSX from "xlsx";
 
@@ -11,7 +11,7 @@ function formatDate(d: Date | string | null | undefined): string {
 }
 
 export const exportacaoRouter = router({
-  alvaras: publicProcedure
+  alvaras: gestorProcedure
     .input(
       z
         .object({
@@ -59,7 +59,7 @@ export const exportacaoRouter = router({
       return { base64: buffer, fileName: `alvaras_${new Date().toISOString().split("T")[0]}.xlsx` };
     }),
 
-  historico: publicProcedure
+  historico: gestorProcedure
     .input(z.object({ alvaraId: z.number() }))
     .mutation(async ({ input }) => {
       const historico = await getHistoricoByAlvara(input.alvaraId);

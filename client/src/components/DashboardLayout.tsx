@@ -30,21 +30,39 @@ import {
   Download,
   ShieldCheck,
   Bell,
+  UserCog,
+  Crown,
+  Shield,
+  User as UserIcon,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import AcessoPendente from "@/pages/AcessoPendente";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: FileText, label: "Alvarás", path: "/alvaras" },
-  { icon: Upload, label: "Importar", path: "/importar" },
-  { icon: Download, label: "Exportar", path: "/exportar" },
-  { icon: Bell, label: "Alertas", path: "/alertas" },
-];
+type UserRole = "operator" | "gestor" | "master";
+
+const ROLE_LEVEL: Record<UserRole, number> = {
+  operator: 1,
+  gestor: 2,
+  master: 3,
+};
+
+const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
+  operator: <UserIcon className="h-3 w-3" />,
+  gestor: <Shield className="h-3 w-3" />,
+  master: <Crown className="h-3 w-3" />,
+};
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  operator: "Operador",
+  gestor: "Gestor",
+  master: "Master",
+};
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 260;
@@ -89,6 +107,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // Interceptar usuários pending ou blocked antes de mostrar o layout
+  const userStatus = (user as any).userStatus as string | undefined;
+  if (userStatus === "pending" || userStatus === "blocked") {
+    return <AcessoPendente status={userStatus as "pending" | "blocked"} userName={user.name} />;
+  }
+
   return (
     <SidebarProvider style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}>
       <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
@@ -112,6 +136,26 @@ function DashboardLayoutContent({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  const userRole = ((user as any)?.role ?? "operator") as UserRole;
+  const userLevel = ROLE_LEVEL[userRole] ?? 1;
+
+  // Badge de usuários pendentes (somente master)
+  const { data: pendentes } = trpc.usuarios.contarPendentes.useQuery(undefined, {
+    enabled: userLevel >= 3,
+    refetchInterval: 60_000,
+  });
+
+  // Menu dinâmico por nível
+  const menuItems = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/", minLevel: 1 },
+    { icon: Users, label: "Clientes", path: "/clientes", minLevel: 1 },
+    { icon: FileText, label: "Alvarás", path: "/alvaras", minLevel: 1 },
+    { icon: Upload, label: "Importar", path: "/importar", minLevel: 1 },
+    { icon: Download, label: "Exportar", path: "/exportar", minLevel: 2 },
+    { icon: Bell, label: "Alertas", path: "/alertas", minLevel: 3 },
+    { icon: UserCog, label: "Usuários", path: "/usuarios", minLevel: 3, badge: pendentes ?? 0 },
+  ].filter((item) => userLevel >= item.minLevel);
 
   const activeMenuItem = menuItems.find(
     (item) => item.path === location || (item.path !== "/" && location.startsWith(item.path))
@@ -186,8 +230,13 @@ function DashboardLayoutContent({
                       tooltip={item.label}
                       className="h-10 transition-all font-normal text-sidebar-foreground/80 hover:text-sidebar-foreground"
                     >
-                      <item.icon className={`h-4 w-4 ${isActive ? "text-sidebar-primary" : ""}`} />
-                      <span>{item.label}</span>
+                      <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
+                      <span className="flex-1">{item.label}</span>
+                      {(item as any).badge > 0 && (
+                        <Badge className="h-4 min-w-4 px-1 text-[10px] bg-orange-500 text-white border-0 rounded-full">
+                          {(item as any).badge}
+                        </Badge>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -206,9 +255,21 @@ function DashboardLayoutContent({
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-xs font-medium text-sidebar-foreground truncate leading-none">
-                      {user?.name ?? "Usuário"}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-sidebar-foreground truncate leading-none">
+                        {user?.name ?? "Usuário"}
+                      </p>
+                      <span className={`inline-flex items-center gap-0.5 text-[9px] font-semibold px-1 py-0.5 rounded ${
+                        userRole === "master"
+                          ? "bg-amber-100 text-amber-700"
+                          : userRole === "gestor"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {ROLE_ICONS[userRole]}
+                        {ROLE_LABELS[userRole]}
+                      </span>
+                    </div>
                     <p className="text-xs text-sidebar-foreground/50 truncate mt-1">
                       {user?.email ?? ""}
                     </p>

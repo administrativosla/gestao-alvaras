@@ -121,3 +121,17 @@
 - [x] Página de Alertas: adicionar botão "Enviar Relatório Agora" para disparo manual do relatório
 - [x] Criar procedure tRPC para disparar o relatório manualmente
 - [x] Dashboard: inverter posição dos cards "Alvarás Vencidos" e "A Vencer em 30 dias"
+
+## Melhorias V1.8
+- [x] Reorganizar tela de Alertas: seção 1 = alertas pré-vencimento, seção 2 = relatório pós-vencimento (13h), seção 3 = teste de envio
+- [x] Remover seção "Destinatários por Cliente" da tela de Alertas
+- [x] Apresentar proposta de gestão de usuários (Gestor Master x Operador) antes de implementar
+
+## Melhorias V1.9 — Gestão de Usuários
+- [x] Migrar schema: role enum para 3 níveis (operator/gestor/master) + campo userStatus (pending/active/blocked)
+- [x] Criar router de usuários com procedures: listar, aprovar, mudar role, bloquear
+- [x] Atualizar middleware: bloquear acesso pending, restringir alertas/exportar por nível
+- [x] Criar tela de Gestão de Usuários (somente master) com aprovação e gestão de perfis
+- [x] Criar tela de "Aguardando Aprovação" para usuários pending
+- [x] Restringir Exportar (nível 2+) e Configurar Alertas (nível 3) no menu e nas procedures
+- [x] Promover andre.vasconcelos@mjpcontroller.com.br a master (feito via SQL na primeira sessão)

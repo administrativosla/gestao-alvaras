@@ -17,6 +17,7 @@ import AlvaraDetail from "./pages/AlvaraDetail";
 import ImportarPage from "./pages/ImportarPage";
 import ExportarPage from "./pages/ExportarPage";
 import ConfiguracaoAlertas from "./pages/ConfiguracaoAlertas";
+import GestaoUsuarios from "./pages/GestaoUsuarios";
 
 function AppRoutes() {
   return (
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/importar" component={ImportarPage} />
         <Route path="/exportar" component={ExportarPage} />
         <Route path="/alertas" component={ConfiguracaoAlertas} />
+        <Route path="/usuarios" component={GestaoUsuarios} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

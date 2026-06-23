@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { masterProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { alvaras, clientes, emailsAlerta, emailsGlobais, STATUS_SEM_ALERTA } from "../../drizzle/schema";
 import { eq, notInArray } from "drizzle-orm";
@@ -17,7 +17,7 @@ export const alertasRouter = router({
       return db.select().from(emailsAlerta).where(eq(emailsAlerta.clienteId, input.clienteId));
     }),
 
-  adicionarEmail: publicProcedure
+  adicionarEmail: masterProcedure
     .input(z.object({ clienteId: z.number(), email: z.string().email() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -26,7 +26,7 @@ export const alertasRouter = router({
       return { success: true };
     }),
 
-  removerEmail: publicProcedure
+  removerEmail: masterProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -43,7 +43,7 @@ export const alertasRouter = router({
     return db.select().from(emailsGlobais).orderBy(emailsGlobais.createdAt);
   }),
 
-  adicionarEmailGlobal: publicProcedure
+  adicionarEmailGlobal: masterProcedure
     .input(z.object({
       email: z.string().email("E-mail inválido"),
       descricao: z.string().optional(),
@@ -59,7 +59,7 @@ export const alertasRouter = router({
       return { success: true };
     }),
 
-  removerEmailGlobal: publicProcedure
+  removerEmailGlobal: masterProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -68,7 +68,7 @@ export const alertasRouter = router({
       return { success: true };
     }),
 
-  toggleEmailGlobal: publicProcedure
+  toggleEmailGlobal: masterProcedure
     .input(z.object({ id: z.number(), ativo: z.boolean() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -79,7 +79,7 @@ export const alertasRouter = router({
 
   // ─── Teste de E-mail ───────────────────────────────────────────────────────
 
-  testarEmail: publicProcedure
+  testarEmail: masterProcedure
     .input(z.object({ destinatario: z.string().email() }))
     .mutation(async ({ input }) => {
       return enviarEmailTeste(input.destinatario);
@@ -87,7 +87,7 @@ export const alertasRouter = router({
 
   // ─── Disparar Alertas ─────────────────────────────────────────────────────
 
-  dispararAlertas: publicProcedure.mutation(async () => {
+  dispararAlertas: masterProcedure.mutation(async () => {
     const db = await getDb();
     if (!db) throw new Error("Banco de dados indisponível");
 
@@ -151,7 +151,7 @@ export const alertasRouter = router({
 
   // ─── Disparar Relatório Diário Manualmente ────────────────────────────────
 
-  dispararRelatorio: publicProcedure.mutation(async () => {
+  dispararRelatorio: masterProcedure.mutation(async () => {
     const db = await getDb();
     if (!db) throw new Error("Banco de dados indisponível");
 
