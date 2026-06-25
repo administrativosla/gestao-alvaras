@@ -87,13 +87,18 @@ export const alertasRouter = router({
 
   // ─── Disparar Alertas ─────────────────────────────────────────────────────
 
+  /**
+   * Disparo manual de alertas:
+   * - Envia para TODOS os alvarás com até 30 dias para vencer (não apenas nos marcos exatos)
+   * - Inclui alvarás já vencidos (diasRestantes < 0)
+   * - O disparo automático (heartbeat) usa os marcos exatos; o manual usa a janela completa
+   */
   dispararAlertas: masterProcedure.mutation(async () => {
     const db = await getDb();
     if (!db) throw new Error("Banco de dados indisponível");
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const marcos = [30, 15, 7, 3, 2, 1];
     let enviados = 0;
     let erros = 0;
     let semEmail = 0;
@@ -102,7 +107,7 @@ export const alertasRouter = router({
     const globais = await db.select().from(emailsGlobais).where(eq(emailsGlobais.ativo, true));
     const emailsGlobaisAtivos = globais.map((g) => g.email);
 
-    // Buscar todos os alvarás ativos que precisam de alerta
+    // Buscar todos os alvarás que precisam de alerta (excluindo status encerrados)
     const todosAlvaras = await db
       .select({ alvara: alvaras, cliente: clientes })
       .from(alvaras)
@@ -110,12 +115,14 @@ export const alertasRouter = router({
       .where(notInArray(alvaras.status, STATUS_SEM_ALERTA as string[]));
 
     for (const { alvara, cliente } of todosAlvaras) {
+      if (!alvara.dataVencimento) continue;
       const vencimento = new Date(alvara.dataVencimento);
       vencimento.setHours(0, 0, 0, 0);
       const diffMs = vencimento.getTime() - hoje.getTime();
       const diasRestantes = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-      if (!marcos.includes(diasRestantes)) continue;
+      // Disparo manual: envia para todos dentro de 30 dias (inclusive vencidos)
+      if (diasRestantes > 30) continue;
 
       // Combinar e-mails do cliente + e-mails globais (sem duplicatas)
       const emailsCliente = await db
