@@ -416,6 +416,24 @@ export default function ImportacaoLotePage() {
             )}
           </div>
 
+          {/* Barra de ações — fixada no topo da revisão */}
+          <div className="flex gap-3 justify-between items-center p-3 bg-background border rounded-lg shadow-sm">
+            <Button variant="outline" onClick={resetar}>
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmar}
+              disabled={registrosValidos.length === 0 || confirmarLoteMutation.isPending}
+            >
+              {confirmarLoteMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importando...</>
+              ) : (
+                <><CheckCircle2 className="h-4 w-4 mr-2" />Importar {registrosValidos.length} registro(s)</>
+              )}
+            </Button>
+          </div>
+
           {registrosSemVencimento.length > 0 && (
             <div className="flex gap-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
               <TriangleAlert className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
@@ -555,22 +573,7 @@ export default function ImportacaoLotePage() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-3 justify-between">
-            <Button variant="outline" onClick={resetar}>
-              <X className="h-4 w-4 mr-2" />
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmar}
-              disabled={registrosValidos.length === 0 || confirmarLoteMutation.isPending}
-            >
-              {confirmarLoteMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importando...</>
-              ) : (
-                <><CheckCircle2 className="h-4 w-4 mr-2" />Importar {registrosValidos.length} registro(s)</>
-              )}
-            </Button>
-          </div>
+          {/* Botão duplicado removido — a barra de ações foi movida para o topo da seção de revisão */}
         </div>
       )}
 
