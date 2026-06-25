@@ -137,9 +137,12 @@ export default function Dashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Painel de Alertas</h2>
+            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Atenção Imediata
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Alvarás próximos ao vencimento que requerem atenção imediata
+              Alvarás vencidos e a vencer em até 30 dias — requerem ação urgente
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">
@@ -231,7 +234,7 @@ export default function Dashboard() {
               Próximos Vencimentos
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Todos os alvarás ativos, ordenados pelo vencimento mais próximo
+              Alvarás com mais de 30 dias para vencer, ordenados pelo mais próximo
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">

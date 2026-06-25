@@ -24,7 +24,8 @@ export const dashboardRouter = router({
       })
       .filter(Boolean) as Array<(typeof todos)[0] & { diasParaVencimento: number }>;
 
-    // Alertas ativos: apenas alvarás sem status que cessa alerta e dentro dos marcos
+    // Alertas urgentes: vencidos (dias < 0) + a vencer em até 30 dias
+    // Inclui "Iniciar Renovação" pois são os mais críticos
     const alertas = comDias.filter((r) => {
       if (STATUS_SEM_ALERTA.includes(r.alvara.status)) return false;
       return r.diasParaVencimento <= 30;
@@ -36,16 +37,16 @@ export const dashboardRouter = router({
   }),
 
   /**
-   * Próximos vencimentos: alvarás com status "Em Vigência" (> 30 dias),
+   * Próximos vencimentos: alvarás com mais de 30 dias para vencer (não aparecem nos alertas urgentes),
    * ordenados crescentemente por data de vencimento.
-   * Parâmetro `limite` controla quantos registros retornar (padrão: 20).
+   * Parâmetro `limite` controla quantos registros retornar (padrão: 50).
    */
   proximosVencimentos: publicProcedure
     .input(z.object({ limite: z.number().min(1).max(100).optional() }).optional())
     .query(async ({ input }) => {
       const limite = input?.limite ?? 50;
       // Status que indicam processo encerrado ou cancelado — excluímos da lista
-      const STATUS_EXCLUIDOS = ["Renovado", "Cancelado"];
+      const STATUS_EXCLUIDOS = ["Renovado", "Cancelado", "Vencido"];
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       const todos = await listAlvaras();
@@ -57,6 +58,8 @@ export const dashboardRouter = router({
           const diasParaVencimento = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
           return { ...r, diasParaVencimento };
         })
+        // Apenas alvarás com MAIS de 30 dias para vencer (os urgentes já aparecem no Painel de Alertas)
+        .filter((r) => r.diasParaVencimento > 30)
         .sort((a, b) => a.diasParaVencimento - b.diasParaVencimento)
         .slice(0, limite);
       return proximos;
