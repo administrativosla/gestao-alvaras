@@ -161,3 +161,13 @@
 - [x] Frontend: indicador de status por arquivo durante extração LLM (aguardando/extraindo/ok/erro)
 - [x] Frontend: tela de revisão em lote — lista editável com todos os registros extraídos, indicando campos faltantes
 - [x] Frontend: confirmação final com resumo (total, erros, clientes existentes)
+
+## Melhorias V2.3 — Status Automático por Prazo de Vencimento
+- [x] Criar função `getStatusEfetivo(status, dataVencimento)` em client/src/lib/alvaras.ts
+- [x] Regra: status "Em Vigência" com cor amarela quando ≤60 dias para vencer
+- [x] Regra: status "Iniciar Renovação" automático quando ≤30 dias para vencer (visual + heartbeat)
+- [x] Regra: status "Vencido" automático no D+1 após a data de vencimento (heartbeat grava no banco)
+- [x] Atualizar StatusBadge com dataVencimento em AlvarasList, AlvaraDetail, ClienteDetail
+- [x] Atualizar heartbeat diário: transições automáticas D+1 → Vencido e ≤30 dias → Iniciar Renovação
+- [x] Adicionar "Iniciar Renovação" ao STATUS_RENOVACAO e STATUS_SEM_ALERTA no schema
+- [x] Corrigir testes: 9 status de renovação (39 testes passando)

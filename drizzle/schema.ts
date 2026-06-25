@@ -113,6 +113,7 @@ export type TipoAlvara = (typeof TIPOS_ALVARA)[number];
 // ─── Status de Renovação ──────────────────────────────────────────────────────
 export const STATUS_RENOVACAO = [
   "Em Vigência",
+  "Iniciar Renovação",
   "Vencido",
   "Contato Realizado",
   "Tratativa Comercial",

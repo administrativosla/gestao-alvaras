@@ -235,7 +235,7 @@ export default function ClienteDetail({ id }: Props) {
                           )}
                         </p>
                       </div>
-                      <StatusBadge status={a.alvara.status} />
+                      <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
                     </div>
                   </CardContent>
                 </Card>

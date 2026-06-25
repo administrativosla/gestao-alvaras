@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { calcDiasParaVencimento, formatDate, getAlertaInfo, getStatusColor, STATUS_SEM_ALERTA } from "@/lib/alvaras";
+import { calcDiasParaVencimento, formatDate, getAlertaInfo, getStatusColor, getStatusEfetivo, STATUS_SEM_ALERTA } from "@/lib/alvaras";
 import StatusUpdateDialog from "@/components/StatusUpdateDialog";
 
 export default function Dashboard() {
@@ -434,9 +434,20 @@ function AlertaCard({
   );
 }
 
-export function StatusProgressBar({ status, compact = false }: { status: string; compact?: boolean }) {
+export function StatusProgressBar({
+  status,
+  dataVencimento,
+  compact = false,
+}: {
+  status: string;
+  dataVencimento?: Date | string | null;
+  compact?: boolean;
+}) {
+  const { label: statusEfetivo } = getStatusEfetivo(status, dataVencimento);
+
   const steps = [
     "Em Vigência",
+    "Iniciar Renovação",
     "Vencido",
     "Contato Realizado",
     "Tratativa Comercial",
@@ -445,7 +456,7 @@ export function StatusProgressBar({ status, compact = false }: { status: string;
     "Renovado",
   ];
 
-  if (status === "Cancelado") {
+  if (statusEfetivo === "Cancelado") {
     return (
       <div className={`flex items-center gap-1.5 ${compact ? "" : "py-1"}`}>
         <div className="h-1.5 flex-1 rounded-full bg-rose-200" />
@@ -454,21 +465,23 @@ export function StatusProgressBar({ status, compact = false }: { status: string;
     );
   }
 
-  const currentIndex = steps.indexOf(status);
+  const currentIndex = steps.indexOf(statusEfetivo);
   const progress = currentIndex === -1 ? 0 : ((currentIndex + 1) / steps.length) * 100;
 
   const progressColor =
-    status === "Renovado"
+    statusEfetivo === "Renovado"
       ? "bg-emerald-500"
-      : status === "Em Renovação"
+      : statusEfetivo === "Em Renovação"
         ? "bg-sky-500"
-        : status === "Em Vigência"
+        : statusEfetivo === "Em Vigência"
           ? "bg-green-500"
-          : currentIndex >= 4
-            ? "bg-violet-500"
-            : currentIndex >= 2
-              ? "bg-blue-500"
-              : "bg-slate-400";
+          : statusEfetivo === "Iniciar Renovação"
+            ? "bg-orange-500"
+            : currentIndex >= 5
+              ? "bg-violet-500"
+              : currentIndex >= 3
+                ? "bg-blue-500"
+                : "bg-slate-400";
 
   if (compact) {
     return (

@@ -322,8 +322,8 @@ export default function AlvaraDetail({ id }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <StatusBadge status={alvara.status} />
-              <StatusProgressBar status={alvara.status} />
+              <StatusBadge status={alvara.status} dataVencimento={alvara.dataVencimento} />
+              <StatusProgressBar status={alvara.status} dataVencimento={alvara.dataVencimento} />
               <StatusUpdateDialog
                 alvaraId={id}
                 statusAtual={alvara.status}

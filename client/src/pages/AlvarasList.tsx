@@ -149,7 +149,7 @@ export default function AlvarasList() {
                         ) : "—"}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={a.alvara.status} />
+                        <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>

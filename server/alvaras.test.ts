@@ -108,15 +108,16 @@ describe("Sistema de Gestão de Alvarás — Testes de Integração", () => {
   });
 
   describe("Lógica de status — fluxo de 8 etapas", () => {
-    it("deve ter exatamente 8 status de renovação", async () => {
+    it("deve ter exatamente 9 status de renovação (incluindo Iniciar Renovação)", async () => {
       const { STATUS_RENOVACAO } = await import("../drizzle/schema");
-      expect(STATUS_RENOVACAO).toHaveLength(8);
+      expect(STATUS_RENOVACAO).toHaveLength(9);
     });
 
     it("deve ter os status na ordem correta", async () => {
       const { STATUS_RENOVACAO } = await import("../drizzle/schema");
       const statusEsperados = [
         "Em Vigência",
+        "Iniciar Renovação",
         "Vencido",
         "Contato Realizado",
         "Tratativa Comercial",
