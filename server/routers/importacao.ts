@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
+import JSZip from "jszip";
 import {
   addHistorico,
   createAlvara,
@@ -463,5 +464,243 @@ Se não encontrar um campo, use null.`,
       }
 
       return { clienteId, alvaraId, success: true };
+    }),
+
+  // ── Extrai dados de múltiplos PDFs via LLM (processamento paralelo) ─────────
+  parsePdfLote: publicProcedure
+    .input(
+      z.object({
+        arquivos: z.array(
+          z.object({
+            fileName: z.string(),
+            fileBase64: z.string(),
+          })
+        ).min(1).max(50),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const resultados = await Promise.allSettled(
+        input.arquivos.map(async (arq) => {
+          const fileUrl = `data:application/pdf;base64,${arq.fileBase64}`;
+          const response = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `Você é um assistente especializado em extrair dados de alvarás de funcionamento brasileiros.
+Extraia os seguintes campos do documento PDF fornecido e retorne APENAS um JSON válido, sem markdown, sem explicações.
+Campos a extrair:
+- cnpj: string (formato XX.XXX.XXX/XXXX-XX)
+- razaoSocial: string
+- nomeFantasia: string ou null
+- inscricaoEstadual: string ou null
+- inscricaoMunicipal: string ou null
+- logradouro: string ou null
+- numero: string ou null
+- bairro: string ou null
+- cidade: string ou null
+- uf: string (2 letras) ou null
+- cep: string ou null
+- numeroAlvara: string ou null
+- tipo: string (ex: "Funcionamento", "Sanitário", "Bombeiros") ou null
+- orgaoEmissor: string ou null
+- dataEmissao: string (formato YYYY-MM-DD) ou null
+- dataVencimento: string (formato YYYY-MM-DD) ou null
+Se não encontrar um campo, use null.`,
+              },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "file_url" as const,
+                    file_url: { url: fileUrl, mime_type: "application/pdf" as const },
+                  },
+                  { type: "text" as const, text: "Extraia os dados deste alvará e retorne apenas o JSON." },
+                ] as any,
+              },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "alvara_data",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    cnpj: { type: "string" },
+                    razaoSocial: { type: "string" },
+                    nomeFantasia: { type: ["string", "null"] },
+                    inscricaoEstadual: { type: ["string", "null"] },
+                    inscricaoMunicipal: { type: ["string", "null"] },
+                    logradouro: { type: ["string", "null"] },
+                    numero: { type: ["string", "null"] },
+                    bairro: { type: ["string", "null"] },
+                    cidade: { type: ["string", "null"] },
+                    uf: { type: ["string", "null"] },
+                    cep: { type: ["string", "null"] },
+                    numeroAlvara: { type: ["string", "null"] },
+                    tipo: { type: ["string", "null"] },
+                    orgaoEmissor: { type: ["string", "null"] },
+                    dataEmissao: { type: ["string", "null"] },
+                    dataVencimento: { type: ["string", "null"] },
+                  },
+                  required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+          const content = response.choices[0]?.message?.content;
+          if (!content) throw new Error("Sem resposta do extrator");
+          const dados = typeof content === "string" ? JSON.parse(content) : content;
+          return { fileName: arq.fileName, dados, erro: null };
+        })
+      );
+
+      return resultados.map((r, i) => {
+        if (r.status === "fulfilled") return r.value;
+        return {
+          fileName: input.arquivos[i].fileName,
+          dados: null,
+          erro: r.reason?.message ?? "Erro desconhecido",
+        };
+      });
+    }),
+
+  // ── Descompacta ZIP e extrai PDFs internos ───────────────────────────────────
+  parseZip: publicProcedure
+    .input(
+      z.object({
+        fileBase64: z.string(),
+        fileName: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const zip = await JSZip.loadAsync(buffer);
+
+      const pdfFiles: { fileName: string; fileBase64: string }[] = [];
+      const erros: string[] = [];
+
+      await Promise.all(
+        Object.entries(zip.files).map(async ([name, file]) => {
+          if (file.dir) return;
+          const ext = name.split(".").pop()?.toLowerCase();
+          if (ext !== "pdf") {
+            erros.push(`${name}: formato não suportado (apenas PDFs são processados dentro do ZIP)`);
+            return;
+          }
+          if (name.includes("/") && name.split("/")[0] === "__MACOSX") return; // ignorar metadados macOS
+          const data = await file.async("base64");
+          pdfFiles.push({ fileName: name.split("/").pop() ?? name, fileBase64: data });
+        })
+      );
+
+      if (pdfFiles.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Nenhum PDF encontrado dentro do arquivo ZIP." });
+      }
+
+      return { arquivos: pdfFiles, totalEncontrados: pdfFiles.length, erros };
+    }),
+
+  // ── Confirma importação em lote após revisão ─────────────────────────────────
+  confirmarLote: publicProcedure
+    .input(
+      z.object({
+        registros: z.array(
+          z.object({
+            fileName: z.string(),
+            cnpj: z.string(),
+            razaoSocial: z.string(),
+            nomeFantasia: z.string().optional().nullable(),
+            inscricaoEstadual: z.string().optional().nullable(),
+            inscricaoMunicipal: z.string().optional().nullable(),
+            logradouro: z.string().optional().nullable(),
+            numero: z.string().optional().nullable(),
+            bairro: z.string().optional().nullable(),
+            cidade: z.string().optional().nullable(),
+            uf: z.string().optional().nullable(),
+            cep: z.string().optional().nullable(),
+            numeroAlvara: z.string().optional().nullable(),
+            tipo: z.string().optional().nullable(),
+            orgaoEmissor: z.string().optional().nullable(),
+            dataEmissao: z.string().optional().nullable(),
+            dataVencimento: z.string().optional().nullable(),
+          })
+        ).min(1),
+        colaborador: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      let importados = 0;
+      let atualizados = 0;
+      const errosList: string[] = [];
+
+      for (const reg of input.registros) {
+        try {
+          const cnpj = formatCnpj(reg.cnpj) || reg.cnpj;
+          if (!cnpj || !reg.razaoSocial) {
+            errosList.push(`${reg.fileName}: CNPJ ou Razão Social ausente.`);
+            continue;
+          }
+
+          let clienteId: number;
+          const existing = await getClienteByCnpj(cnpj);
+
+          if (existing) {
+            clienteId = existing.id;
+            atualizados++;
+          } else {
+            clienteId = await createCliente({
+              cnpj,
+              razaoSocial: reg.razaoSocial,
+              nomeFantasia: reg.nomeFantasia ?? null,
+              inscricaoEstadual: reg.inscricaoEstadual ?? null,
+              inscricaoMunicipal: reg.inscricaoMunicipal ?? null,
+              logradouro: reg.logradouro ?? null,
+              numero: reg.numero ?? null,
+              bairro: reg.bairro ?? null,
+              cidade: reg.cidade ?? null,
+              uf: reg.uf ?? null,
+              cep: reg.cep ?? null,
+            });
+          }
+
+          if (reg.dataVencimento) {
+            const dataVencimento = parseDate(reg.dataVencimento);
+            if (dataVencimento) {
+              const hoje = new Date();
+              hoje.setHours(0, 0, 0, 0);
+              const venc = new Date(dataVencimento);
+              venc.setHours(0, 0, 0, 0);
+              const diasRestantes = Math.ceil((venc.getTime() - hoje.getTime()) / 86400000);
+              const status = diasRestantes > 30 ? "Em Vigência" : "Vencido";
+
+              const alvaraId = await createAlvara({
+                clienteId,
+                numeroAlvara: reg.numeroAlvara ?? null,
+                tipo: reg.tipo ?? "Funcionamento",
+                orgaoEmissor: reg.orgaoEmissor ?? null,
+                dataEmissao: parseDate(reg.dataEmissao),
+                dataVencimento,
+                status,
+              });
+
+              await addHistorico({
+                alvaraId,
+                statusAnterior: null,
+                statusNovo: status,
+                observacao: `Importado em lote via PDF: ${reg.fileName}${status === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
+                colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+              });
+            }
+          }
+
+          importados++;
+        } catch (e: any) {
+          errosList.push(`${reg.fileName}: ${e.message ?? "Erro desconhecido"}`);
+        }
+      }
+
+      return { importados, atualizados, erros: errosList.length, errosList };
     }),
 });

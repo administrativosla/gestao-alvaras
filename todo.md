@@ -151,3 +151,13 @@
 - [x] Atualizar DashboardLayout: logo MJP acima + "Gestor de Alvarás" abaixo na sidebar
 - [x] Inserir logo MJP no cabeçalho de todos os templates de e-mail (alerta, status, relatório, convite)
 - [x] Atualizar remetente dos e-mails para "Gestão de Alvarás - MJP Controller"
+
+## Melhorias V2.2 — Importação em Lote (PDF / ZIP)
+- [x] Backend: procedure `importacao.parsePdfLote` — aceita array de {fileName, fileBase64} e processa cada PDF via LLM em paralelo
+- [x] Backend: procedure `importacao.parseZip` — descompacta ZIP no servidor, extrai PDFs internos e chama o mesmo fluxo LLM
+- [x] Backend: procedure `importacao.confirmarLote` — salva todos os registros revisados de uma vez, retornando contadores
+- [x] Frontend: página dedicada "Importar em Lote" acessível pelo menu lateral
+- [x] Frontend: dropzone multi-arquivo (aceita múltiplos .pdf + .zip), lista de arquivos com status individual
+- [x] Frontend: indicador de status por arquivo durante extração LLM (aguardando/extraindo/ok/erro)
+- [x] Frontend: tela de revisão em lote — lista editável com todos os registros extraídos, indicando campos faltantes
+- [x] Frontend: confirmação final com resumo (total, erros, clientes existentes)
