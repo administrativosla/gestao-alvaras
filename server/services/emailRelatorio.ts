@@ -268,3 +268,139 @@ export async function enviarRelatorioAlvaras(
     return false;
   }
 }
+
+/**
+ * Envia um e-mail consolidado com todos os alvarás a vencer nos próximos 30 dias.
+ * Funcionalidade manual — acionada pelo usuário na tela de Alertas.
+ */
+export async function enviarEmailConsolidadoAVencer(
+  destinatarios: string[],
+  itens: ItemRelatorio[]
+): Promise<boolean> {
+  if (!destinatarios || destinatarios.length === 0) return false;
+
+  let transporter: ReturnType<typeof createTransporter>;
+  try {
+    transporter = createTransporter();
+  } catch (err) {
+    console.error("[Email Consolidado] Credenciais SMTP não configuradas:", err);
+    return false;
+  }
+
+  const dataFormatada = formatarData(new Date());
+  const total = itens.length;
+  const urgentes = itens.filter((i) => i.diasParaVencimento <= 7).length;
+  const atencao = itens.filter((i) => i.diasParaVencimento > 7 && i.diasParaVencimento <= 15).length;
+  const proximos = itens.filter((i) => i.diasParaVencimento > 15).length;
+
+  const assunto = `📋 Relatório de Alvarás a Vencer — ${total} alvará${total !== 1 ? "s" : ""} nos próximos 30 dias (${dataFormatada})`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Alvarás a Vencer</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="700" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1e293b;padding:28px 32px;">
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663456310534/iXSjSksZZTmFkzRk.png" alt="MJP Controller" style="height:34px;width:auto;display:block;margin-bottom:8px;">
+              <p style="margin:0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Gestor de Alvarás · MJP Controller · Relatório Manual</p>
+              <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:600;">Alvarás a Vencer — Próximos 30 Dias</h1>
+              <p style="margin:6px 0 0;color:#94a3b8;font-size:13px;">${dataFormatada} · Gerado manualmente</p>
+            </td>
+          </tr>
+
+          <!-- Resumo por urgência -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="33%" style="padding-right:6px;">
+                    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;text-align:center;">
+                      <p style="margin:0;font-size:26px;font-weight:700;color:#dc2626;">${urgentes}</p>
+                      <p style="margin:4px 0 0;font-size:11px;color:#b91c1c;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🔴 Urgente (≤7 dias)</p>
+                    </div>
+                  </td>
+                  <td width="33%" style="padding:0 3px;">
+                    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px;text-align:center;">
+                      <p style="margin:0;font-size:26px;font-weight:700;color:#ea580c;">${atencao}</p>
+                      <p style="margin:4px 0 0;font-size:11px;color:#c2410c;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🟠 Atenção (8–15 dias)</p>
+                    </div>
+                  </td>
+                  <td width="33%" style="padding-left:6px;">
+                    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;text-align:center;">
+                      <p style="margin:0;font-size:26px;font-weight:700;color:#d97706;">${proximos}</p>
+                      <p style="margin:4px 0 0;font-size:11px;color:#b45309;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🟡 Próximos (16–30 dias)</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Tabela de alvarás a vencer -->
+          <tr>
+            <td style="padding:28px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <div>
+                      <div style="width:4px;height:20px;background:#d97706;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div>
+                      <span style="font-size:15px;font-weight:700;color:#1e293b;vertical-align:middle;">📋 Lista Completa — ${total} Alvará${total !== 1 ? "s" : ""}</span>
+                    </div>
+                    <p style="margin:6px 0 0;font-size:12px;color:#64748b;">Alvarás ordenados por urgência de vencimento. Inicie o processo de renovação o quanto antes.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    ${total === 0
+                      ? `<p style="font-size:13px;color:#16a34a;padding:16px 0;margin:0;">✅ Nenhum alvará a vencer nos próximos 30 dias.</p>`
+                      : tabelaAVencer(itens)
+                    }
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Espaço -->
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                Este relatório foi gerado manualmente pelo sistema Gestor de Alvarás — MJP Controller. Acesse o sistema para atualizar os status e registrar as providências. Não responda a este e-mail.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    await transporter.sendMail({
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
+      to: destinatarios.join(", "),
+      subject: assunto,
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error("[Email Consolidado] Falha ao enviar:", err);
+    return false;
+  }
+}

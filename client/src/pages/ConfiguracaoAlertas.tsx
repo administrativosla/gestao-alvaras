@@ -10,6 +10,7 @@ import {
   Bell, Plus, Trash2, Loader2, Send, CheckCircle2,
   AlertCircle, Info, FlaskConical, Zap, Globe,
   CalendarClock, Clock, FileText, Users, RefreshCw,
+  Download, Mail,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -49,6 +50,31 @@ export default function ConfiguracaoAlertas() {
       else toast.info("Nenhum alerta nos marcos de hoje.");
     },
     onError: (e) => toast.error("Erro ao disparar alertas: " + e.message),
+  });
+
+  const exportarPlanilhaMutation = trpc.alertas.exportarRelatorioAVencer.useMutation({
+    onSuccess: (data) => {
+      // Fazer download do XLSX no browser
+      const link = document.createElement("a");
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${data.base64}`;
+      link.download = data.fileName;
+      link.click();
+      toast.success(`Planilha exportada! ${data.total} alvará(s) a vencer nos próximos 30 dias.`);
+    },
+    onError: (e) => toast.error("Erro ao exportar planilha: " + e.message),
+  });
+
+  const enviarEmailConsolidadoMutation = trpc.alertas.enviarEmailConsolidadoAVencer.useMutation({
+    onSuccess: (data) => {
+      if (!data.ok && (data as any).motivo === "sem-destinatarios") {
+        toast.warning("Nenhum destinatário ativo. Cadastre destinatários para receber o e-mail.");
+      } else if (data.ok) {
+        toast.success(`E-mail consolidado enviado! ${data.total} alvará(s) para ${data.destinatarios} destinatário(s).`);
+      } else {
+        toast.error("Falha ao enviar e-mail consolidado. Verifique as credenciais de e-mail.");
+      }
+    },
+    onError: (e) => toast.error("Erro ao enviar e-mail: " + e.message),
   });
 
   const dispararRelatorioMutation = trpc.alertas.dispararRelatorio.useMutation({
@@ -200,6 +226,71 @@ export default function ConfiguracaoAlertas() {
                 </Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Relatório consolidado manual — exportar planilha e e-mail */}
+        <Card className="border-2 border-amber-200 shadow-sm bg-amber-50/40 dark:bg-amber-950/20 dark:border-amber-800">
+          <CardContent className="pt-5 space-y-4">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                <p className="font-medium">Relatório Consolidado — Alvarás a Vencer (1–30 dias)</p>
+                <p>
+                  Gere uma planilha XLSX ou envie um e-mail com a lista completa de todos os alvarás
+                  que vencem nos próximos 30 dias, ordenados por urgência.
+                  Funcionalidade independente dos alertas automáticos por marco.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300"
+                onClick={() => exportarPlanilhaMutation.mutate()}
+                disabled={exportarPlanilhaMutation.isPending}
+                size="sm"
+              >
+                {exportarPlanilhaMutation.isPending
+                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando...</>
+                  : <><Download className="h-3.5 w-3.5" /> Exportar Planilha</>}
+              </Button>
+              <Button
+                className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => enviarEmailConsolidadoMutation.mutate()}
+                disabled={enviarEmailConsolidadoMutation.isPending}
+                size="sm"
+              >
+                {enviarEmailConsolidadoMutation.isPending
+                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Enviando...</>
+                  : <><Mail className="h-3.5 w-3.5" /> Enviar E-mail Consolidado</>}
+              </Button>
+            </div>
+            {enviarEmailConsolidadoMutation.data && (
+              <div className={`p-2.5 rounded-lg flex items-start gap-2 text-xs border ${
+                enviarEmailConsolidadoMutation.data.ok
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-amber-50 border-amber-200 text-amber-700"
+              }`}>
+                {enviarEmailConsolidadoMutation.data.ok
+                  ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  : <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
+                <div>
+                  {enviarEmailConsolidadoMutation.data.ok ? (
+                    <p className="font-medium">
+                      E-mail enviado para <strong>{enviarEmailConsolidadoMutation.data.destinatarios}</strong> destinatário(s)
+                      com <strong>{enviarEmailConsolidadoMutation.data.total}</strong> alvará(s) a vencer.
+                    </p>
+                  ) : (
+                    <p className="font-medium">
+                      {(enviarEmailConsolidadoMutation.data as any).motivo === "sem-destinatarios"
+                        ? "Nenhum destinatário ativo. Adicione e-mails na lista de destinatários."
+                        : "Falha ao enviar o e-mail consolidado."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

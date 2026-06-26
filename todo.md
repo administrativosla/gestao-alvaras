@@ -171,3 +171,17 @@
 - [x] Atualizar heartbeat diário: transições automáticas D+1 → Vencido e ≤30 dias → Iniciar Renovação
 - [x] Adicionar "Iniciar Renovação" ao STATUS_RENOVACAO e STATUS_SEM_ALERTA no schema
 - [x] Corrigir testes: 9 status de renovação (39 testes passando)
+
+## Melhorias V2.4 — E-mails Consolidados
+- [ ] Handler 8h: coletar todos os alvarás a vencer (≤30 dias) e enviar UM único e-mail com lista consolidada (não um por alvará)
+- [ ] Handler 13h: coletar todos os vencidos (D+1) e enviar UM único e-mail com lista consolidada
+- [ ] Disparo manual de alertas: enviar UM único e-mail com duas seções (vencidos + a vencer ≤30 dias)
+- [ ] Template HTML consolidado para alertas a vencer (tabela com todos os alvarás)
+- [ ] Template HTML consolidado para vencidos (tabela com todos os alvarás)
+
+## Melhorias V2.4 — Relatório Consolidado Manual
+- [x] Reverter handler das 8h para manter marcos automáticos (30/15/7/3/2/1 dias por alvará individual)
+- [x] Criar procedure `alertas.exportarRelatorioAVencer`: retorna XLSX com todos os alvarás a vencer (1-30 dias)
+- [x] Criar procedure `alertas.enviarEmailConsolidadoAVencer`: envia UM e-mail HTML com lista consolidada de alvarás a vencer
+- [x] Adicionar botão "Exportar Planilha" na seção de alertas pré-vencimento
+- [x] Adicionar botão "Enviar E-mail Consolidado" na seção de alertas pré-vencimento

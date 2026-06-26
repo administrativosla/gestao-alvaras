@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
 import { getDb } from "../db";
-import { alvaras, clientes, emailsAlerta, emailsGlobais, STATUS_SEM_ALERTA } from "../../drizzle/schema";
-import { eq, notInArray, and, lt, lte, inArray } from "drizzle-orm";
+import { alvaras, clientes, emailsAlerta, emailsGlobais } from "../../drizzle/schema";
+import { eq, and, lt, inArray, notInArray } from "drizzle-orm";
 import { sdk } from "../_core/sdk";
 import { enviarAlertaVencimento } from "../services/email";
+import { STATUS_SEM_ALERTA } from "../../drizzle/schema";
 
-// Marcos de alerta em dias
+// Marcos de alerta em dias (enviados individualmente por alvará)
 const MARCOS_ALERTA = [30, 15, 7, 3, 2, 1];
 
 export async function alertasHeartbeatHandler(req: Request, res: Response) {
@@ -26,8 +27,7 @@ export async function alertasHeartbeatHandler(req: Request, res: Response) {
 
     // ─── 1. Transições automáticas de status ────────────────────────────────
     // D+1: alvarás com status "Em Vigência" ou "Iniciar Renovação" que venceram ANTES de hoje → "Vencido"
-    // Usa lt (strictly less than) para garantir que o dia do vencimento ainda é válido (D0)
-    const hojeStr = hoje.toISOString().split("T")[0]; // YYYY-MM-DD
+    const hojeStr = hoje.toISOString().split("T")[0];
     const vencidosParaAtualizar = await db
       .select({ id: alvaras.id })
       .from(alvaras)
@@ -43,89 +43,70 @@ export async function alertasHeartbeatHandler(req: Request, res: Response) {
       for (const id of ids) {
         await db.update(alvaras).set({ status: "Vencido" }).where(eq(alvaras.id, id));
       }
-      console.log(`[Alertas Heartbeat] ✅ ${vencidosParaAtualizar.length} alvará(s) marcados como Vencido (D+1)`);
+      console.log(`[Alertas 8h] ✅ ${vencidosParaAtualizar.length} alvará(s) marcados como Vencido (D+1)`);
     }
 
     // "Em Vigência" com ≤30 dias para vencer → "Iniciar Renovação"
-    const trintaDias = new Date(hoje);
-    trintaDias.setDate(trintaDias.getDate() + 30);
-    const trintaDiasStr = trintaDias.toISOString().split("T")[0];
-    const amanha = new Date(hoje);
-    amanha.setDate(amanha.getDate() + 1);
-    const amanhaStr = amanha.toISOString().split("T")[0];
-
-    // Buscar alvarás Em Vigência que vencem entre amanhã e 30 dias
     const paraIniciarRenovacao = await db
-      .select({ id: alvaras.id })
+      .select({ id: alvaras.id, dataVencimento: alvaras.dataVencimento })
       .from(alvaras)
       .where(eq(alvaras.status, "Em Vigência"));
 
     let transicionados = 0;
-    for (const { id: alvaraId } of paraIniciarRenovacao) {
-      const [row] = await db.select({ dataVencimento: alvaras.dataVencimento }).from(alvaras).where(eq(alvaras.id, alvaraId));
-      if (!row) continue;
+    for (const row of paraIniciarRenovacao) {
+      if (!row.dataVencimento) continue;
       const venc = new Date(row.dataVencimento);
       venc.setHours(0, 0, 0, 0);
-      const diffMs = venc.getTime() - hoje.getTime();
-      const dias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      const dias = Math.round((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
       if (dias > 0 && dias <= 30) {
-        await db.update(alvaras).set({ status: "Iniciar Renovação" }).where(eq(alvaras.id, alvaraId));
+        await db.update(alvaras).set({ status: "Iniciar Renovação" }).where(eq(alvaras.id, row.id));
         transicionados++;
       }
     }
     if (transicionados > 0) {
-      console.log(`[Alertas Heartbeat] ✅ ${transicionados} alvará(s) transicionados para "Iniciar Renovação"`);
+      console.log(`[Alertas 8h] ✅ ${transicionados} alvará(s) transicionados para "Iniciar Renovação"`);
     }
 
-    // ─── 2. Alertas de e-mail por marcos ─────────────────────────────────────
-    // Buscar todos os alvarás que ainda precisam de alerta (excluindo os que cessaram)
+    // ─── 2. Alertas individuais por marco ────────────────────────────────────
+    // Envia e-mail individual para cada alvará que está exatamente em um marco (30/15/7/3/2/1 dias)
+    const globaisAtivos = await db.select().from(emailsGlobais).where(eq(emailsGlobais.ativo, true));
+    const emailsGlobaisAtivos = globaisAtivos.map((g) => g.email);
+
+    // Buscar todos os alvarás ativos que precisam de alerta (excluindo status sem alerta)
     const todosAlvaras = await db
-      .select({
-        alvara: alvaras,
-        cliente: clientes,
-      })
+      .select({ alvara: alvaras, cliente: clientes })
       .from(alvaras)
       .innerJoin(clientes, eq(alvaras.clienteId, clientes.id))
       .where(
-        notInArray(alvaras.status, STATUS_SEM_ALERTA as string[])
+        and(
+          eq(alvaras.ativo, true),
+          notInArray(alvaras.status, STATUS_SEM_ALERTA as string[])
+        )
       );
 
-    // Buscar e-mails globais ativos (recebem todos os alertas)
-    const globaisAtivos = await db.select().from(emailsGlobais).where(eq(emailsGlobais.ativo, true));
-    const emailsGlobaisAtivos = globaisAtivos.map((g) => g.email);
-    console.log(`[Alertas Heartbeat] E-mails globais ativos: ${emailsGlobaisAtivos.length}`);
-
-    let enviados = 0;
-    let ignorados = 0;
-    let erros = 0;
+    let alertasEnviados = 0;
+    let alertasErros = 0;
 
     for (const { alvara, cliente } of todosAlvaras) {
+      if (!alvara.dataVencimento) continue;
+
       const vencimento = new Date(alvara.dataVencimento);
       vencimento.setHours(0, 0, 0, 0);
-      const diffMs = vencimento.getTime() - hoje.getTime();
-      const diasRestantes = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      const dias = Math.round((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Só envia nos marcos definidos
-      if (!MARCOS_ALERTA.includes(diasRestantes)) {
-        ignorados++;
-        continue;
-      }
+      // Verificar se hoje é exatamente um dos marcos de alerta
+      if (!MARCOS_ALERTA.includes(dias)) continue;
 
-      // Buscar e-mails cadastrados para este cliente
+      // Combinar e-mails do cliente + e-mails globais (sem duplicatas)
       const emailsCliente = await db
         .select()
         .from(emailsAlerta)
         .where(eq(emailsAlerta.clienteId, cliente.id));
 
-      // Combinar e-mails do cliente + globais (sem duplicatas)
       const destinatariosCliente = emailsCliente.map((e) => e.email);
       const destinatarios = Array.from(new Set([...destinatariosCliente, ...emailsGlobaisAtivos]));
 
-      if (destinatarios.length === 0) {
-        console.warn(`[Alertas] Cliente ${cliente.razaoSocial} sem e-mails cadastrados e sem globais — alerta ignorado.`);
-        ignorados++;
-        continue;
-      }
+      if (destinatarios.length === 0) continue;
 
       const ok = await enviarAlertaVencimento(destinatarios, {
         razaoSocial: cliente.razaoSocial,
@@ -133,24 +114,32 @@ export async function alertasHeartbeatHandler(req: Request, res: Response) {
         tipoAlvara: alvara.tipo,
         numeroAlvara: alvara.numeroAlvara ?? null,
         dataVencimento: vencimento,
-        diasParaVencimento: diasRestantes,
+        diasParaVencimento: dias,
         statusAtual: alvara.status,
         alvaraId: alvara.id,
       });
 
       if (ok) {
-        enviados++;
-        console.log(`[Alertas] ✅ Alerta enviado: ${cliente.razaoSocial} — ${diasRestantes} dias`);
+        alertasEnviados++;
+        console.log(`[Alertas 8h] ✅ Marco ${dias}d — ${cliente.razaoSocial} (${alvara.tipo}) → ${destinatarios.length} destinatário(s)`);
       } else {
-        erros++;
-        console.error(`[Alertas] ❌ Falha ao enviar: ${cliente.razaoSocial}`);
+        alertasErros++;
+        console.error(`[Alertas 8h] ❌ Falha ao enviar marco ${dias}d para ${cliente.razaoSocial}`);
       }
     }
 
-    console.log(`[Alertas Heartbeat] Concluído: ${enviados} enviados, ${ignorados} ignorados, ${erros} erros`);
-    return res.json({ ok: true, enviados, ignorados, erros, timestamp: new Date().toISOString() });
+    console.log(`[Alertas 8h] Concluído: ${alertasEnviados} alerta(s) enviado(s), ${alertasErros} erro(s), ${transicionados} transição(ões), ${vencidosParaAtualizar.length} vencimento(s) D+1`);
+
+    return res.json({
+      ok: true,
+      alertasEnviados,
+      alertasErros,
+      transicionados,
+      vencidosAtualizados: vencidosParaAtualizar.length,
+      timestamp: new Date().toISOString(),
+    });
   } catch (err: any) {
-    console.error("[Alertas Heartbeat] Erro fatal:", err);
+    console.error("[Alertas 8h] Erro fatal:", err);
     return res.status(500).json({
       error: err.message,
       stack: err.stack,
