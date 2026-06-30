@@ -69,19 +69,54 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // ─── Clientes ─────────────────────────────────────────────────────────────────
-export async function listClientes(search?: string) {
+export async function listClientes(filters?: { search?: string; estado?: string; municipio?: string }) {
   const db = await getDb();
   if (!db) return [];
-  const query = db.select().from(clientes).where(eq(clientes.ativo, true));
-  const rows = await query.orderBy(clientes.razaoSocial);
-  if (!search) return rows;
-  const s = search.toLowerCase();
-  return rows.filter(
-    (c) =>
-      c.razaoSocial.toLowerCase().includes(s) ||
-      c.cnpj.includes(s) ||
-      (c.nomeFantasia ?? "").toLowerCase().includes(s)
-  );
+  const rows = await db.select().from(clientes).where(eq(clientes.ativo, true)).orderBy(clientes.razaoSocial);
+  let result = rows;
+  if (filters?.estado) {
+    result = result.filter((c) => c.estado === filters.estado);
+  }
+  if (filters?.municipio) {
+    const m = filters.municipio.toLowerCase();
+    result = result.filter((c) => (c.municipio ?? "").toLowerCase() === m);
+  }
+  if (filters?.search) {
+    const s = filters.search.toLowerCase();
+    result = result.filter(
+      (c) =>
+        c.razaoSocial.toLowerCase().includes(s) ||
+        c.cnpj.includes(s) ||
+        (c.nomeFantasia ?? "").toLowerCase().includes(s)
+    );
+  }
+  return result;
+}
+
+export async function listarEstadosClientes() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ estado: clientes.estado })
+    .from(clientes)
+    .where(and(eq(clientes.ativo, true)));
+  return rows
+    .map((r) => r.estado)
+    .filter((e): e is string => !!e)
+    .sort();
+}
+
+export async function listarMunicipiosClientes(estado?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ municipio: clientes.municipio, estado: clientes.estado })
+    .from(clientes)
+    .where(eq(clientes.ativo, true));
+  return rows
+    .filter((r) => !!r.municipio && (!estado || r.estado === estado))
+    .map((r) => r.municipio as string)
+    .sort();
 }
 
 export async function getClienteById(id: number) {

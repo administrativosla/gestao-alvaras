@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { publicProcedure, router, gestorProcedure } from "../_core/trpc";
 import { parseDate } from "../utils/parseDate";
 import {
   createCliente,
@@ -9,9 +9,19 @@ import {
   getClienteById,
   getEmailsAlerta,
   listClientes,
+  listarEstadosClientes,
+  listarMunicipiosClientes,
   setEmailsAlerta,
   updateCliente,
 } from "../db";
+import * as XLSX from "xlsx";
+
+// Normaliza CNPJ para o formato XX.XXX.XXX/XXXX-XX
+function formatCnpj(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length !== 14) return raw.trim();
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
 
 const clienteSchema = z.object({
   cnpj: z.string().min(14).max(18),
@@ -26,6 +36,8 @@ const clienteSchema = z.object({
   cidade: z.string().max(100).optional().nullable(),
   uf: z.string().max(2).optional().nullable(),
   cep: z.string().max(9).optional().nullable(),
+  municipio: z.string().max(100).optional().nullable(),
+  estado: z.string().max(2).optional().nullable(),
   nomeContato: z.string().max(255).optional().nullable(),
   telefone: z.string().max(20).optional().nullable(),
   email: z.string().email().max(320).optional().nullable(),
@@ -36,9 +48,115 @@ const clienteSchema = z.object({
 
 export const clientesRouter = router({
   list: publicProcedure
-    .input(z.object({ search: z.string().optional() }).optional())
+    .input(
+      z
+        .object({
+          search: z.string().optional(),
+          estado: z.string().optional(),
+          municipio: z.string().optional(),
+        })
+        .optional()
+    )
     .query(async ({ input }) => {
-      return listClientes(input?.search);
+      return listClientes(input ?? undefined);
+    }),
+
+  listarEstados: publicProcedure.query(async () => {
+    return listarEstadosClientes();
+  }),
+
+  listarMunicipios: publicProcedure
+    .input(z.object({ estado: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return listarMunicipiosClientes(input?.estado);
+    }),
+
+  importarPlanilha: gestorProcedure
+    .input(z.object({ fileBase64: z.string(), fileName: z.string() }))
+    .mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: Record<string, string>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (rows.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Planilha vazia ou sem dados." });
+
+      // Mapeamento flexível de colunas (case-insensitive)
+      const getCol = (row: Record<string, string>, ...keys: string[]): string => {
+        for (const key of keys) {
+          const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const found = Object.keys(row).find((k) => norm(k) === norm(key));
+          if (found && row[found]) return String(row[found]).trim();
+        }
+        return "";
+      };
+
+      let criados = 0;
+      let atualizados = 0;
+      let erros = 0;
+      const detalhes: string[] = [];
+
+      for (const row of rows) {
+        const cnpjRaw = getCol(row, "cnpj", "CNPJ");
+        const razaoSocial = getCol(row, "razaosocial", "razao social", "empresa", "nome", "razão social");
+        if (!cnpjRaw || !razaoSocial) {
+          erros++;
+          detalhes.push(`Linha ignorada: CNPJ ou Razão Social ausente`);
+          continue;
+        }
+
+        const cnpj = formatCnpj(cnpjRaw);
+        const municipio = getCol(row, "municipio", "município", "cidade", "city") || null;
+        const estado =
+          (getCol(row, "estado", "uf", "state", "UF") || "").slice(0, 2).toUpperCase() || null;
+        const nomeFantasia = getCol(row, "nomefantasia", "nome fantasia", "fantasia") || null;
+        const email = getCol(row, "email", "e-mail") || null;
+        const telefone = getCol(row, "telefone", "fone", "celular", "tel") || null;
+        const nomeContato =
+          getCol(row, "nomecontato", "nome contato", "contato", "responsavel", "responsável") || null;
+        const inscricaoEstadual = getCol(row, "inscricaoestadual", "ie", "inscrição estadual") || null;
+        const inscricaoMunicipal =
+          getCol(row, "inscricaomunicipal", "im", "inscrição municipal") || null;
+
+        try {
+          const existing = await getClienteByCnpj(cnpj);
+          if (existing) {
+            await updateCliente(existing.id, {
+              razaoSocial,
+              municipio,
+              estado,
+              nomeFantasia,
+              email,
+              telefone,
+              nomeContato,
+              inscricaoEstadual,
+              inscricaoMunicipal,
+            });
+            atualizados++;
+          } else {
+            await createCliente({
+              cnpj,
+              razaoSocial,
+              municipio,
+              estado,
+              nomeFantasia,
+              email,
+              telefone,
+              nomeContato,
+              inscricaoEstadual,
+              inscricaoMunicipal,
+              ativo: true,
+            });
+            criados++;
+          }
+        } catch (err) {
+          erros++;
+          detalhes.push(`Erro ao processar CNPJ ${cnpj}: ${err instanceof Error ? err.message : "desconhecido"}`);
+        }
+      }
+
+      return { criados, atualizados, erros, total: rows.length, detalhes };
     }),
 
   get: publicProcedure
@@ -56,7 +174,7 @@ export const clientesRouter = router({
       return getClienteByCnpj(input.cnpj);
     }),
 
-  create: publicProcedure.input(clienteSchema).mutation(async ({ input, ctx }) => {
+  create: publicProcedure.input(clienteSchema).mutation(async ({ input }) => {
     const existing = await getClienteByCnpj(input.cnpj);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "CNPJ já cadastrado." });
 

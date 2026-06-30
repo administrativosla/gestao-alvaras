@@ -172,12 +172,12 @@
 - [x] Adicionar "Iniciar Renovação" ao STATUS_RENOVACAO e STATUS_SEM_ALERTA no schema
 - [x] Corrigir testes: 9 status de renovação (39 testes passando)
 
-## Melhorias V2.4 — E-mails Consolidados
-- [ ] Handler 8h: coletar todos os alvarás a vencer (≤30 dias) e enviar UM único e-mail com lista consolidada (não um por alvará)
-- [ ] Handler 13h: coletar todos os vencidos (D+1) e enviar UM único e-mail com lista consolidada
-- [ ] Disparo manual de alertas: enviar UM único e-mail com duas seções (vencidos + a vencer ≤30 dias)
-- [ ] Template HTML consolidado para alertas a vencer (tabela com todos os alvarás)
-- [ ] Template HTML consolidado para vencidos (tabela com todos os alvarás)
+## Melhorias V2.4 — E-mails Consolidados (abordagem descartada pelo usuário)
+- [x] Handler 8h: manter marcos automáticos individuais (abordagem consolidada descartada)
+- [x] Handler 13h: já envia consolidado corretamente (não alterar)
+- [x] Disparo manual: já envia por alvará individual (não alterar)
+- [x] Template HTML consolidado: criado para uso manual (botão Enviar E-mail Consolidado)
+- [x] Template XLSX: criado para uso manual (botão Exportar Planilha)
 
 ## Melhorias V2.4 — Relatório Consolidado Manual
 - [x] Reverter handler das 8h para manter marcos automáticos (30/15/7/3/2/1 dias por alvará individual)
@@ -185,3 +185,16 @@
 - [x] Criar procedure `alertas.enviarEmailConsolidadoAVencer`: envia UM e-mail HTML com lista consolidada de alvarás a vencer
 - [x] Adicionar botão "Exportar Planilha" na seção de alertas pré-vencimento
 - [x] Adicionar botão "Enviar E-mail Consolidado" na seção de alertas pré-vencimento
+
+## Melhorias V2.5 — Importação de Clientes + Filtros por Localidade
+
+- [x] Excluir todos os alvarás e histórico do banco (DELETE)
+- [x] Adicionar colunas `municipio` e `estado` na tabela `clientes` (migration)
+- [x] Atualizar schema Drizzle com os novos campos
+- [x] Criar procedure `clientes.importarPlanilha`: lê XLSX/CSV com colunas CNPJ, razão social, município, estado (e campos opcionais) e faz upsert
+- [x] Criar procedure `clientes.listarEstados`: retorna lista distinta de estados cadastrados
+- [x] Criar procedure `clientes.listarMunicipios`: retorna lista distinta de municípios (opcionalmente filtrado por estado)
+- [x] Atualizar procedure `clientes.list` para aceitar filtros `estado` e `municipio`
+- [x] Adicionar botão "Importar Clientes" na tela de Clientes (abre modal com dropzone XLSX/CSV)
+- [x] Adicionar filtros de Estado e Município na listagem de Clientes
+- [x] Exibir município e estado no card/linha de cada cliente

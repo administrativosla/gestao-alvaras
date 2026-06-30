@@ -36,6 +36,13 @@
       "when": 1782206629584,
       "tag": "0004_lyrical_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1782846541217,
+      "tag": "0005_careless_swordsman",
+      "breakpoints": true
     }
   ]
 }

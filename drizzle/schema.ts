@@ -71,6 +71,9 @@ export const clientes = mysqlTable("clientes", {
   cidade: varchar("cidade", { length: 100 }),
   uf: varchar("uf", { length: 2 }),
   cep: varchar("cep", { length: 9 }),
+  // Localidade (campos dedicados para filtros — independentes do endereço completo)
+  municipio: varchar("municipio", { length: 100 }),
+  estado: varchar("estado", { length: 2 }),
   // Contato
   nomeContato: varchar("nomeContato", { length: 255 }),
   telefone: varchar("telefone", { length: 20 }),
