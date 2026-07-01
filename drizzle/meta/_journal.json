@@ -43,6 +43,13 @@
       "when": 1782846541217,
       "tag": "0005_careless_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1782929687203,
+      "tag": "0006_broad_pretty_boy",
+      "breakpoints": true
     }
   ]
 }

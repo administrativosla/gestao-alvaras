@@ -207,3 +207,15 @@
 - [x] Exibir badge de cobertura na listagem de clientes (cor: cinza=Sem Alvará, amarelo=Parcial, verde=Coberto)
 - [x] Exibir status de cobertura no detalhe do cliente
 - [x] Filtro por status de cobertura na listagem de clientes (cards clícaveis no topo)
+
+## Melhorias V2.7 — Suporte Nativo ao CLI (SP)
+
+- [x] Adicionar tipo "CLI" à lista de tipos de alvará (schema + frontend lib/alvaras.ts)
+- [x] Adicionar colunas CLI na tabela alvaras: cliProtocolo, cliNumeroSolicitacao, cliDataSolicitacao, cliInscricaoMunicipal, cliNaturezaJuridica, cliFormaAtuacao, cliAreaEstabelecimento, cliCnaesLicenciados, cliComponentes (JSON)
+- [x] Aplicar migration no banco (ADD COLUMN)
+- [x] Atualizar alvaraSchema Zod no backend para aceitar campos CLI
+- [x] Corrigir parse de cliDataSolicitacao no create/update mutation
+- [x] Formulário de alvará: seções CLI dinâmicas quando tipo = "CLI" (Dados da Solicitação, Dados da Empresa, Componentes por Órgão)
+- [x] Componentes por órgão: adicionar/remover com tipo de manifestação (AVCB, CLCB, Isento, Baixo Risco, Protocolo, Licença, Indeterminado)
+- [x] Detalhe do alvará: badge "VRE/REDESIM SP" e exibição estruturada dos componentes CLI
+- [x] Formulário pré-preenche tipo=CLI e órgão emissor correto por padrão

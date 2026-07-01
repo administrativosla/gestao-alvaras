@@ -102,6 +102,7 @@ export type InsertEmailAlerta = typeof emailsAlerta.$inferInsert;
 
 // ─── Tipos de Alvará ──────────────────────────────────────────────────────────
 export const TIPOS_ALVARA = [
+  "CLI",
   "Funcionamento",
   "Sanitário",
   "Bombeiros",
@@ -110,6 +111,9 @@ export const TIPOS_ALVARA = [
   "Obras",
   "Outros",
 ] as const;
+
+/** Tipos que são documentos compostos (multi-órgão) */
+export const TIPOS_COMPOSTOS = ["CLI"] as const;
 
 export type TipoAlvara = (typeof TIPOS_ALVARA)[number];
 
@@ -144,6 +148,19 @@ export const alvaras = mysqlTable("alvaras", {
   arquivoPdfKey: varchar("arquivoPdfKey", { length: 500 }),
   arquivoPdfUrl: varchar("arquivoPdfUrl", { length: 500 }),
   ativo: boolean("ativo").default(true).notNull(),
+  // ── Campos específicos do CLI (SP) ──────────────────────────────────────────
+  // Bloco "Dados da Solicitação" da capa do CLI
+  cliProtocolo: varchar("cliProtocolo", { length: 50 }),         // ex.: SPM2430532320
+  cliNumeroSolicitacao: varchar("cliNumeroSolicitacao", { length: 50 }), // ex.: 3728974
+  cliDataSolicitacao: date("cliDataSolicitacao"),
+  // Bloco "Dados da Empresa" do CLI
+  cliInscricaoMunicipal: varchar("cliInscricaoMunicipal", { length: 50 }),
+  cliNaturezaJuridica: varchar("cliNaturezaJuridica", { length: 100 }),
+  cliFormaAtuacao: varchar("cliFormaAtuacao", { length: 255 }),
+  cliAreaEstabelecimento: varchar("cliAreaEstabelecimento", { length: 30 }),
+  cliCnaesLicenciados: text("cliCnaesLicenciados"),              // JSON: string[]
+  // Componentes por órgão (JSON): [{orgao, tipoManifestacao, numeroDocumento, dataEmissao, dataValidade, cnaes, restricoes}]
+  cliComponentes: text("cliComponentes"),
   // Controle de alertas enviados
   alertaEnviado30: boolean("alertaEnviado30").default(false).notNull(),
   alertaEnviado15: boolean("alertaEnviado15").default(false).notNull(),

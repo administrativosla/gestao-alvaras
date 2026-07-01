@@ -109,6 +109,11 @@ export default function AlvaraDetail({ id }: Props) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold tracking-tight">{alvara.tipo}</h1>
+              {alvara.tipo === "CLI" && (
+                <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs font-semibold">
+                  VRE/REDESIM SP
+                </Badge>
+              )}
               {alvara.numeroAlvara && (
                 <span className="text-sm text-muted-foreground font-mono">Nº {alvara.numeroAlvara}</span>
               )}
@@ -194,6 +199,56 @@ export default function AlvaraDetail({ id }: Props) {
                     Visualizar PDF do alvará <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
+              )}
+
+              {/* Campos específicos do CLI */}
+              {alvara.tipo === "CLI" && (
+                <>
+                  {(alvara.cliProtocolo || alvara.cliNumeroSolicitacao || alvara.cliDataSolicitacao) && (
+                    <div className="mt-4 pt-3 border-t space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Solicitação CLI</p>
+                      {alvara.cliProtocolo && <InfoRow icon={FileText} label="Protocolo SPM" value={alvara.cliProtocolo} />}
+                      {alvara.cliNumeroSolicitacao && <InfoRow icon={FileText} label="Nº Solicitação" value={alvara.cliNumeroSolicitacao} />}
+                      {alvara.cliDataSolicitacao && <InfoRow icon={Calendar} label="Data Solicitação" value={formatDate(alvara.cliDataSolicitacao)} />}
+                    </div>
+                  )}
+                  {(alvara.cliInscricaoMunicipal || alvara.cliNaturezaJuridica || alvara.cliFormaAtuacao || alvara.cliAreaEstabelecimento) && (
+                    <div className="mt-2 pt-3 border-t space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Dados da Empresa</p>
+                      {alvara.cliInscricaoMunicipal && <InfoRow icon={Building2} label="Inscrição Municipal" value={alvara.cliInscricaoMunicipal} />}
+                      {alvara.cliNaturezaJuridica && <InfoRow icon={Building2} label="Natureza Jurídica" value={alvara.cliNaturezaJuridica} />}
+                      {alvara.cliFormaAtuacao && <InfoRow icon={Building2} label="Forma de Atuação" value={alvara.cliFormaAtuacao} />}
+                      {alvara.cliAreaEstabelecimento && <InfoRow icon={Building2} label="Área" value={alvara.cliAreaEstabelecimento} />}
+                      {alvara.cliCnaesLicenciados && <InfoRow icon={FileText} label="CNAEs Licenciados" value={alvara.cliCnaesLicenciados} />}
+                    </div>
+                  )}
+                  {alvara.cliComponentes && (() => {
+                    try {
+                      const comps = JSON.parse(alvara.cliComponentes) as Array<{
+                        orgao: string; tipoManifestacao: string; numeroDocumento: string;
+                        dataEmissao: string; dataValidade: string; cnaes: string; restricoes: string;
+                      }>;
+                      if (comps.length === 0) return null;
+                      return (
+                        <div className="mt-2 pt-3 border-t space-y-3">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Componentes por Órgão</p>
+                          {comps.map((c, i) => (
+                            <div key={i} className="p-3 rounded-lg bg-blue-50/50 border border-blue-100 space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-blue-800">{c.orgao}</span>
+                                <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">{c.tipoManifestacao}</Badge>
+                              </div>
+                              {c.numeroDocumento && <p className="text-xs text-muted-foreground">Nº: <span className="font-mono">{c.numeroDocumento}</span></p>}
+                              {c.dataValidade && <p className="text-xs text-muted-foreground">Validade: <span className="font-medium">{formatDate(c.dataValidade)}</span></p>}
+                              {c.cnaes && <p className="text-xs text-muted-foreground">CNAEs: {c.cnaes}</p>}
+                              {c.restricoes && <p className="text-xs text-muted-foreground">Restrições: {c.restricoes}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    } catch { return null; }
+                  })()}
+                </>
               )}
             </CardContent>
           </Card>

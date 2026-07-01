@@ -59,6 +59,7 @@ export function getStatusEfetivo(
 }
 
 export const TIPOS_ALVARA = [
+  "CLI",
   "Funcionamento",
   "Sanitário",
   "Bombeiros",

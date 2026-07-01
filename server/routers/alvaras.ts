@@ -27,6 +27,16 @@ const alvaraSchema = z.object({
   dataVencimento: z.string().min(1),
   arquivoPdfKey: z.string().max(500).optional().nullable(),
   arquivoPdfUrl: z.string().max(500).optional().nullable(),
+  // Campos específicos do CLI (SP) — opcionais para outros tipos
+  cliProtocolo: z.string().max(50).optional().nullable(),
+  cliNumeroSolicitacao: z.string().max(50).optional().nullable(),
+  cliDataSolicitacao: z.string().optional().nullable(),
+  cliInscricaoMunicipal: z.string().max(50).optional().nullable(),
+  cliNaturezaJuridica: z.string().max(100).optional().nullable(),
+  cliFormaAtuacao: z.string().max(255).optional().nullable(),
+  cliAreaEstabelecimento: z.string().max(30).optional().nullable(),
+  cliCnaesLicenciados: z.string().optional().nullable(), // JSON string
+  cliComponentes: z.string().optional().nullable(),      // JSON string
 });
 
 export const alvarasRouter = router({
@@ -56,7 +66,7 @@ export const alvarasRouter = router({
     }),
 
   create: publicProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
-    const { dataEmissao, dataVencimento, ...rest } = input;
+    const { dataEmissao, dataVencimento, cliDataSolicitacao, ...rest } = input;
     const parsedVenc = parseDate(dataVencimento) ?? new Date(dataVencimento);
     // Determina status inicial: "Em Vigência" se vencer em mais de 30 dias, "Vencido" caso contrário
     const hoje = new Date();
@@ -69,6 +79,7 @@ export const alvarasRouter = router({
       ...rest,
       dataEmissao: parseDate(dataEmissao) ?? null,
       dataVencimento: parsedVenc,
+      cliDataSolicitacao: parseDate(cliDataSolicitacao) ?? null,
       status: statusInicial,
     });
     await addHistorico({
@@ -86,11 +97,12 @@ export const alvarasRouter = router({
   update: publicProcedure
     .input(z.object({ id: z.number(), data: alvaraSchema.partial() }))
     .mutation(async ({ input }) => {
-      const { dataEmissao, dataVencimento, ...rest } = input.data;
+      const { dataEmissao, dataVencimento, cliDataSolicitacao, ...rest } = input.data;
       await updateAlvara(input.id, {
         ...rest,
         dataEmissao: dataEmissao !== undefined ? (parseDate(dataEmissao) ?? undefined) : undefined,
         dataVencimento: dataVencimento !== undefined ? (parseDate(dataVencimento) ?? undefined) : undefined,
+        cliDataSolicitacao: cliDataSolicitacao !== undefined ? (parseDate(cliDataSolicitacao) ?? undefined) : undefined,
       });
       return { success: true };
     }),
