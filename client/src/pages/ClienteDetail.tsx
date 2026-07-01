@@ -15,6 +15,9 @@ import {
   Calendar,
   FileText,
   AlertCircle,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldOff,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatCnpj, formatDate, calcDiasParaVencimento, getAlertaInfo, getStatusColor } from "@/lib/alvaras";
@@ -29,6 +32,16 @@ export default function ClienteDetail({ id }: Props) {
 
   const { data, isLoading } = trpc.clientes.get.useQuery({ id });
   const { data: alvaras } = trpc.alvaras.list.useQuery({ clienteId: id });
+
+  // Calcular cobertura localmente a partir dos alvarás já carregados
+  const cobertura = (() => {
+    if (!alvaras || alvaras.length === 0) return "Sem Alvará" as const;
+    const STATUS_COBERTOS = ["Em Vigência", "Em Renovação", "Renovado"];
+    const ativos = alvaras.filter((a) => a.alvara.ativo);
+    if (ativos.length === 0) return "Sem Alvará" as const;
+    if (ativos.every((a) => STATUS_COBERTOS.includes(a.alvara.status))) return "Coberto" as const;
+    return "Parcial" as const;
+  })();
 
   if (isLoading) {
     return (
@@ -59,7 +72,24 @@ export default function ClienteDetail({ id }: Props) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{data.razaoSocial}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-semibold tracking-tight">{data.razaoSocial}</h1>
+              {cobertura === "Sem Alvará" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-900/30">
+                  <ShieldOff className="h-3 w-3" /> Sem Alvará
+                </span>
+              )}
+              {cobertura === "Parcial" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30">
+                  <ShieldAlert className="h-3 w-3" /> Cobertura Parcial
+                </span>
+              )}
+              {cobertura === "Coberto" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30">
+                  <ShieldCheck className="h-3 w-3" /> Coberto
+                </span>
+              )}
+            </div>
             {data.nomeFantasia && (
               <p className="text-sm text-muted-foreground mt-0.5">{data.nomeFantasia}</p>
             )}

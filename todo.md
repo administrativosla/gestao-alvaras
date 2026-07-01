@@ -198,3 +198,12 @@
 - [x] Adicionar botão "Importar Clientes" na tela de Clientes (abre modal com dropzone XLSX/CSV)
 - [x] Adicionar filtros de Estado e Município na listagem de Clientes
 - [x] Exibir município e estado no card/linha de cada cliente
+
+## Melhorias V2.6 — Importação de Clientes + Status de Cobertura de Alvarás
+
+- [x] Importar 447 clientes da planilha clientes_ativos_consolidado.xlsx via script direto no banco
+- [x] Criar campo calculado/view de cobertura de alvarás por cliente: Sem Alvará / Parcial / Coberto
+- [x] Adicionar procedure `clientes.listComCobertura` retornando status de cobertura junto com cada cliente
+- [x] Exibir badge de cobertura na listagem de clientes (cor: cinza=Sem Alvará, amarelo=Parcial, verde=Coberto)
+- [x] Exibir status de cobertura no detalhe do cliente
+- [x] Filtro por status de cobertura na listagem de clientes (cards clícaveis no topo)

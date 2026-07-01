@@ -49,17 +49,48 @@ import {
   X,
   MapPin,
   Filter,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldOff,
 } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { formatCnpj } from "@/lib/alvaras";
 import { toast } from "sonner";
 
+type CoberturaStatus = "Sem Alvará" | "Parcial" | "Coberto";
+
+function CoberturaBadge({ cobertura, total }: { cobertura: CoberturaStatus; total: number }) {
+  if (cobertura === "Sem Alvará") {
+    return (
+      <Badge variant="outline" className="gap-1 text-xs border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-900/30">
+        <ShieldOff className="h-3 w-3" />
+        Sem Alvará
+      </Badge>
+    );
+  }
+  if (cobertura === "Parcial") {
+    return (
+      <Badge variant="outline" className="gap-1 text-xs border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30">
+        <ShieldAlert className="h-3 w-3" />
+        Parcial ({total})
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="gap-1 text-xs border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30">
+      <ShieldCheck className="h-3 w-3" />
+      Coberto ({total})
+    </Badge>
+  );
+}
+
 export default function ClientesList() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState<string>("");
   const [municipioFiltro, setMunicipioFiltro] = useState<string>("");
+  const [coberturaFiltro, setCoberturaFiltro] = useState<string>("");
 
   // Modal de importação
   const [importOpen, setImportOpen] = useState(false);
@@ -67,10 +98,11 @@ export default function ClientesList() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: clientes, isLoading, refetch } = trpc.clientes.list.useQuery({
+  const { data: clientes, isLoading, refetch } = trpc.clientes.listComCobertura.useQuery({
     search: search || undefined,
     estado: estadoFiltro || undefined,
     municipio: municipioFiltro || undefined,
+    cobertura: (coberturaFiltro as CoberturaStatus) || undefined,
   });
 
   const { data: estados } = trpc.clientes.listarEstados.useQuery();
@@ -130,7 +162,12 @@ export default function ClientesList() {
     reader.readAsDataURL(importFile);
   };
 
-  const temFiltros = !!estadoFiltro || !!municipioFiltro || !!search;
+  const temFiltros = !!estadoFiltro || !!municipioFiltro || !!search || !!coberturaFiltro;
+
+  // Contadores de cobertura para exibição no topo
+  const semAlvara = clientes?.filter((c) => c.cobertura === "Sem Alvará").length ?? 0;
+  const parcial = clientes?.filter((c) => c.cobertura === "Parcial").length ?? 0;
+  const coberto = clientes?.filter((c) => c.cobertura === "Coberto").length ?? 0;
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -139,15 +176,11 @@ export default function ClientesList() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie os clientes cadastrados no sistema
+            Gerencie os clientes e acompanhe a cobertura de alvarás
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => setImportOpen(true)}
-          >
+          <Button variant="outline" className="gap-2" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4" />
             Importar Planilha
           </Button>
@@ -158,9 +191,56 @@ export default function ClientesList() {
         </div>
       </div>
 
+      {/* Cards de resumo de cobertura */}
+      {!isLoading && clientes && clientes.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            onClick={() => setCoberturaFiltro(coberturaFiltro === "Sem Alvará" ? "" : "Sem Alvará")}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              coberturaFiltro === "Sem Alvará"
+                ? "border-slate-400 bg-slate-100 dark:bg-slate-800"
+                : "border-border hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/20"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldOff className="h-4 w-4 text-slate-500" />
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Sem Alvará</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">{semAlvara}</p>
+          </button>
+          <button
+            onClick={() => setCoberturaFiltro(coberturaFiltro === "Parcial" ? "" : "Parcial")}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              coberturaFiltro === "Parcial"
+                ? "border-amber-400 bg-amber-100 dark:bg-amber-950/40"
+                : "border-border hover:border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Cobertura Parcial</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{parcial}</p>
+          </button>
+          <button
+            onClick={() => setCoberturaFiltro(coberturaFiltro === "Coberto" ? "" : "Coberto")}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              coberturaFiltro === "Coberto"
+                ? "border-emerald-400 bg-emerald-100 dark:bg-emerald-950/40"
+                : "border-border hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Coberto</span>
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{coberto}</p>
+          </button>
+        </div>
+      )}
+
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
-        {/* Busca */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -171,7 +251,6 @@ export default function ClientesList() {
           />
         </div>
 
-        {/* Filtro Estado */}
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3 w-3" /> Estado
@@ -180,7 +259,7 @@ export default function ClientesList() {
             value={estadoFiltro || "all"}
             onValueChange={(v) => {
               setEstadoFiltro(v === "all" ? "" : v);
-              setMunicipioFiltro(""); // reset município ao trocar estado
+              setMunicipioFiltro("");
             }}
           >
             <SelectTrigger className="h-9 text-sm w-[140px]">
@@ -189,15 +268,12 @@ export default function ClientesList() {
             <SelectContent>
               <SelectItem value="all">Todos os estados</SelectItem>
               {(estados ?? []).map((e) => (
-                <SelectItem key={e} value={e}>
-                  {e}
-                </SelectItem>
+                <SelectItem key={e} value={e}>{e}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Filtro Município */}
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3 w-3" /> Município
@@ -212,15 +288,12 @@ export default function ClientesList() {
             <SelectContent>
               <SelectItem value="all">Todos os municípios</SelectItem>
               {(municipios ?? []).map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
+                <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Limpar filtros */}
         {temFiltros && (
           <Button
             variant="ghost"
@@ -230,6 +303,7 @@ export default function ClientesList() {
               setSearch("");
               setEstadoFiltro("");
               setMunicipioFiltro("");
+              setCoberturaFiltro("");
             }}
           >
             <X className="h-3.5 w-3.5" />
@@ -238,7 +312,7 @@ export default function ClientesList() {
         )}
       </div>
 
-      {/* Contador de resultados */}
+      {/* Contador */}
       {!isLoading && clientes && (
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">
@@ -258,9 +332,7 @@ export default function ClientesList() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+              {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : !clientes || clientes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -289,18 +361,17 @@ export default function ClientesList() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">
                     Município / Estado
                   </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">
-                    Contato
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cobertura
                   </TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">
-                    E-mail
+                    Contato
                   </TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clientes.map((c) => {
-                  // Prioriza municipio/estado dedicados, cai para cidade/uf do endereço
                   const mun = c.municipio || c.cidade;
                   const est = c.estado || c.uf;
                   const localidade = mun && est ? `${mun} / ${est}` : mun ?? est ?? "—";
@@ -328,11 +399,11 @@ export default function ClientesList() {
                           {localidade}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
-                        {c.nomeContato ?? "—"}
+                      <TableCell>
+                        <CoberturaBadge cobertura={c.cobertura} total={c.totalAlvaras} />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
-                        {c.email ?? "—"}
+                        {c.nomeContato ?? "—"}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
@@ -375,13 +446,13 @@ export default function ClientesList() {
               Importar Clientes via Planilha
             </DialogTitle>
             <DialogDescription>
-              Suba um arquivo <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong> com os clientes.
-              Colunas reconhecidas: <code>CNPJ</code>, <code>Razão Social</code>, <code>Município</code>, <code>Estado</code> (e campos opcionais como Nome Fantasia, E-mail, Telefone, etc.).
+              Suba um arquivo <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong>.
+              Colunas obrigatórias: <code>CNPJ</code> e <code>Razão Social</code>.
+              Para filtros de localidade: <code>Município</code> e <code>Estado</code>.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
-            {/* Dropzone */}
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 isDragging
@@ -405,12 +476,8 @@ export default function ClientesList() {
               {importFile ? (
                 <div className="flex flex-col items-center gap-2">
                   <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                    {importFile.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {(importFile.size / 1024).toFixed(1)} KB — clique para trocar
-                  </p>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{importFile.name}</p>
+                  <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(1)} KB — clique para trocar</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
@@ -421,30 +488,6 @@ export default function ClientesList() {
               )}
             </div>
 
-            {/* Dica de colunas */}
-            <div className="p-3 rounded-lg bg-muted/40 text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">Colunas obrigatórias:</p>
-              <p><code className="bg-muted px-1 rounded">CNPJ</code> e <code className="bg-muted px-1 rounded">Razão Social</code></p>
-              <p className="font-medium text-foreground mt-1">Colunas para filtros:</p>
-              <p><code className="bg-muted px-1 rounded">Município</code> e <code className="bg-muted px-1 rounded">Estado</code> (sigla de 2 letras, ex: SP)</p>
-              <p className="font-medium text-foreground mt-1">Colunas opcionais:</p>
-              <p>Nome Fantasia, E-mail, Telefone, Contato, IE, IM</p>
-            </div>
-
-            {/* Resultado da importação anterior */}
-            {importarMutation.data && (
-              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Importação concluída!</p>
-                  <p>
-                    {importarMutation.data.criados} criado(s) · {importarMutation.data.atualizados} atualizado(s)
-                    {importarMutation.data.erros > 0 && ` · ${importarMutation.data.erros} erro(s)`}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {importarMutation.isError && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -452,7 +495,6 @@ export default function ClientesList() {
               </div>
             )}
 
-            {/* Botões */}
             <div className="flex gap-2 justify-end">
               <Button
                 variant="outline"

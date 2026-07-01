@@ -3,12 +3,14 @@ import { z } from "zod";
 import { publicProcedure, router, gestorProcedure } from "../_core/trpc";
 import { parseDate } from "../utils/parseDate";
 import {
+  CoberturaStatus,
   createCliente,
   deleteCliente,
   getClienteByCnpj,
   getClienteById,
   getEmailsAlerta,
   listClientes,
+  listClientesComCobertura,
   listarEstadosClientes,
   listarMunicipiosClientes,
   setEmailsAlerta,
@@ -59,6 +61,21 @@ export const clientesRouter = router({
     )
     .query(async ({ input }) => {
       return listClientes(input ?? undefined);
+    }),
+
+  listComCobertura: publicProcedure
+    .input(
+      z
+        .object({
+          search: z.string().optional(),
+          estado: z.string().optional(),
+          municipio: z.string().optional(),
+          cobertura: z.enum(["Sem Alvar\u00e1", "Parcial", "Coberto"]).optional(),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      return listClientesComCobertura(input ?? undefined);
     }),
 
   listarEstados: publicProcedure.query(async () => {

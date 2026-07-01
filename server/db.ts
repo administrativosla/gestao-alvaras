@@ -93,6 +93,71 @@ export async function listClientes(filters?: { search?: string; estado?: string;
   return result;
 }
 
+// Cobertura de alvarás por cliente
+// "Sem Alvará" = nenhum alvará cadastrado
+// "Parcial"    = tem alvará(s) mas algum está Vencido ou sem cobertura total
+// "Coberto"    = todos os alvarás ativos estão Em Vigência ou Em Renovação
+export type CoberturaStatus = "Sem Alvará" | "Parcial" | "Coberto";
+
+export async function listClientesComCobertura(
+  filters?: { search?: string; estado?: string; municipio?: string; cobertura?: CoberturaStatus }
+) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Buscar todos os clientes ativos
+  const rows = await db.select().from(clientes).where(eq(clientes.ativo, true)).orderBy(clientes.razaoSocial);
+
+  // Buscar contagem de alvarás ativos por cliente
+  const alvarasRows = await db
+    .select({ clienteId: alvaras.clienteId, status: alvaras.status })
+    .from(alvaras)
+    .where(eq(alvaras.ativo, true));
+
+  // Agrupar por clienteId
+  const alvarasPorCliente = new Map<number, string[]>();
+  for (const a of alvarasRows) {
+    const list = alvarasPorCliente.get(a.clienteId) ?? [];
+    list.push(a.status);
+    alvarasPorCliente.set(a.clienteId, list);
+  }
+
+  // Calcular cobertura
+  const STATUS_COBERTOS = ["Em Vigência", "Em Renovação", "Renovado"];
+
+  let result = rows.map((c) => {
+    const statusList = alvarasPorCliente.get(c.id) ?? [];
+    let cobertura: CoberturaStatus;
+    if (statusList.length === 0) {
+      cobertura = "Sem Alvará";
+    } else if (statusList.every((s) => STATUS_COBERTOS.includes(s))) {
+      cobertura = "Coberto";
+    } else {
+      cobertura = "Parcial";
+    }
+    return { ...c, cobertura, totalAlvaras: statusList.length };
+  });
+
+  // Aplicar filtros
+  if (filters?.estado) result = result.filter((c) => c.estado === filters!.estado);
+  if (filters?.municipio) {
+    const m = filters.municipio.toLowerCase();
+    result = result.filter((c) => (c.municipio ?? "").toLowerCase() === m);
+  }
+  if (filters?.search) {
+    const s = filters.search.toLowerCase();
+    result = result.filter(
+      (c) =>
+        c.razaoSocial.toLowerCase().includes(s) ||
+        c.cnpj.includes(s) ||
+        (c.nomeFantasia ?? "").toLowerCase().includes(s)
+    );
+  }
+  if (filters?.cobertura) result = result.filter((c) => c.cobertura === filters!.cobertura);
+
+  return result;
+}
+
 export async function listarEstadosClientes() {
   const db = await getDb();
   if (!db) return [];
