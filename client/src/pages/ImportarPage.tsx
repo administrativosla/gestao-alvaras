@@ -402,7 +402,13 @@ export default function ImportarPage() {
           <div className="flex gap-3 justify-between">
             <Button variant="outline" onClick={resetar}>Voltar</Button>
             <Button
-              onClick={() => confirmarPdfMutation.mutate({ fileName: file?.name ?? "alvara.pdf", dados: pdfRevisao })}
+              onClick={() => {
+                if (!pdfRevisao.dataVencimento) {
+                  toast.error("Preencha a Data de Vencimento antes de salvar — o alvará não pode ser criado sem ela.");
+                  return;
+                }
+                confirmarPdfMutation.mutate({ fileName: file?.name ?? "alvara.pdf", dados: pdfRevisao });
+              }}
               disabled={confirmarPdfMutation.isPending}
               className="gap-2"
             >

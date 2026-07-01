@@ -284,25 +284,31 @@ export const importacaoRouter = router({
         messages: [
           {
             role: "system",
-            content: `Você é um assistente especializado em extrair dados de alvarás de funcionamento brasileiros.
-Extraia os seguintes campos do documento PDF fornecido e retorne APENAS um JSON válido, sem markdown, sem explicações.
+            content: `Você é um assistente especializado em extrair dados de documentos de licenciamento empresarial brasileiros, incluindo alvarás de funcionamento municipais e o CLI (Certificado de Licenciamento Integrado) do Estado de São Paulo.
+
+REGRAS FUNDAMENTAIS:
+1. Para identificar se é um CLI de SP: procure a seção "DADOS DA SOLICITAÇÃO" na primeira página, que contém os campos "PROTOCOLO/NÚMERO" (começa com SPM), "DATA DA SOLICITAÇÃO" e "DATA DE VALIDADE".
+2. Para o CLI de SP: o campo dataVencimento DEVE ser preenchido com a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO" na primeira página. Esta é a data mais importante do documento. Nunca deixe dataVencimento como null se essa data estiver visível.
+3. Para alvarás comuns: dataVencimento é a data de validade/vencimento do documento.
+4. Todas as datas devem ser retornadas no formato YYYY-MM-DD.
+
 Campos a extrair:
 - cnpj: string (formato XX.XXX.XXX/XXXX-XX)
 - razaoSocial: string
 - nomeFantasia: string ou null
 - inscricaoEstadual: string ou null
-- inscricaoMunicipal: string ou null
+- inscricaoMunicipal: string ou null (no CLI aparece como "INSCRIÇÃO MUNICIPAL")
 - logradouro: string ou null
 - numero: string ou null
 - bairro: string ou null
 - cidade: string ou null
 - uf: string (2 letras) ou null
 - cep: string ou null
-- numeroAlvara: string ou null
-- tipo: string (ex: "Funcionamento", "Sanitário", "Bombeiros") ou null
-- orgaoEmissor: string ou null
-- dataEmissao: string (formato YYYY-MM-DD) ou null
-- dataVencimento: string (formato YYYY-MM-DD) ou null
+- numeroAlvara: string ou null (no CLI use o valor do campo "PROTOCOLO/NÚMERO", ex: SPM2430532320)
+- tipo: para CLI retorne exatamente "CLI", para outros retorne o tipo (ex: "Funcionamento", "Sanitário", "Bombeiros")
+- orgaoEmissor: string ou null (no CLI retorne "Prefeitura de [cidade] / VRE-SP")
+- dataEmissao: string (formato YYYY-MM-DD) ou null (no CLI use "DATA DA SOLICITAÇÃO")
+- dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 Se não encontrar um campo, use null.`,
           },
           {
@@ -317,7 +323,7 @@ Se não encontrar um campo, use null.`,
               },
               {
                 type: "text" as const,
-                text: "Extraia os dados deste alvará e retorne apenas o JSON.",
+                text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento.",
               },
             ] as any,
           },
@@ -486,25 +492,31 @@ Se não encontrar um campo, use null.`,
             messages: [
               {
                 role: "system",
-                content: `Você é um assistente especializado em extrair dados de alvarás de funcionamento brasileiros.
-Extraia os seguintes campos do documento PDF fornecido e retorne APENAS um JSON válido, sem markdown, sem explicações.
+                content: `Você é um assistente especializado em extrair dados de documentos de licenciamento empresarial brasileiros, incluindo alvarás de funcionamento municipais e o CLI (Certificado de Licenciamento Integrado) do Estado de São Paulo.
+
+REGRAS FUNDAMENTAIS:
+1. Para identificar se é um CLI de SP: procure a seção "DADOS DA SOLICITAÇÃO" na primeira página, que contém os campos "PROTOCOLO/NÚMERO" (começa com SPM), "DATA DA SOLICITAÇÃO" e "DATA DE VALIDADE".
+2. Para o CLI de SP: o campo dataVencimento DEVE ser preenchido com a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO" na primeira página. Esta é a data mais importante do documento. Nunca deixe dataVencimento como null se essa data estiver visível.
+3. Para alvarás comuns: dataVencimento é a data de validade/vencimento do documento.
+4. Todas as datas devem ser retornadas no formato YYYY-MM-DD.
+
 Campos a extrair:
 - cnpj: string (formato XX.XXX.XXX/XXXX-XX)
 - razaoSocial: string
 - nomeFantasia: string ou null
 - inscricaoEstadual: string ou null
-- inscricaoMunicipal: string ou null
+- inscricaoMunicipal: string ou null (no CLI aparece como "INSCRIÇÃO MUNICIPAL")
 - logradouro: string ou null
 - numero: string ou null
 - bairro: string ou null
 - cidade: string ou null
 - uf: string (2 letras) ou null
 - cep: string ou null
-- numeroAlvara: string ou null
-- tipo: string (ex: "Funcionamento", "Sanitário", "Bombeiros") ou null
-- orgaoEmissor: string ou null
-- dataEmissao: string (formato YYYY-MM-DD) ou null
-- dataVencimento: string (formato YYYY-MM-DD) ou null
+- numeroAlvara: string ou null (no CLI use o valor do campo "PROTOCOLO/NÚMERO", ex: SPM2430532320)
+- tipo: para CLI retorne exatamente "CLI", para outros retorne o tipo (ex: "Funcionamento", "Sanitário", "Bombeiros")
+- orgaoEmissor: string ou null (no CLI retorne "Prefeitura de [cidade] / VRE-SP")
+- dataEmissao: string (formato YYYY-MM-DD) ou null (no CLI use "DATA DA SOLICITAÇÃO")
+- dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 Se não encontrar um campo, use null.`,
               },
               {
@@ -514,7 +526,7 @@ Se não encontrar um campo, use null.`,
                     type: "file_url" as const,
                     file_url: { url: fileUrl, mime_type: "application/pdf" as const },
                   },
-                  { type: "text" as const, text: "Extraia os dados deste alvará e retorne apenas o JSON." },
+                  { type: "text" as const, text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento." },
                 ] as any,
               },
             ],

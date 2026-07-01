@@ -438,7 +438,7 @@ export default function ImportacaoLotePage() {
             <div className="flex gap-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
               <TriangleAlert className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-700">
-                {registrosSemVencimento.length} registro(s) sem data de vencimento. Esses alvarás serão importados sem data — edite-os abaixo ou eles não terão alertas de vencimento.
+                <strong>{registrosSemVencimento.length} registro(s) sem data de vencimento.</strong> O alvará não será criado para esses registros — apenas o cliente será salvo. Clique no ícone de edição (lápis) em cada registro para preencher a data antes de importar.
               </p>
             </div>
           )}
