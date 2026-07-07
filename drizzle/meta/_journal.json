@@ -50,6 +50,13 @@
       "when": 1782929687203,
       "tag": "0006_broad_pretty_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1783432178431,
+      "tag": "0007_flowery_maginty",
+      "breakpoints": true
     }
   ]
 }

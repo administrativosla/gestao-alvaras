@@ -516,3 +516,144 @@ export async function enviarConviteUsuario(
     return false;
   }
 }
+
+export interface AlertaCliParcialData {
+  razaoSocial: string;
+  cnpj: string;
+  numeroAlvara: string | null;
+  dataVencimento: Date;
+  motivoPendencia: string | null;
+  alvaraId: number;
+}
+
+/**
+ * Envia e-mail de alerta recorrente para CLI Parcial pendente de regularização.
+ */
+export async function enviarAlertaCliParcial(
+  destinatarios: string[],
+  dados: AlertaCliParcialData
+): Promise<boolean> {
+  try {
+    const transporter = createTransporter();
+    const { razaoSocial, cnpj, numeroAlvara, dataVencimento, motivoPendencia } = dados;
+
+    const dataVencFormatada = dataVencimento.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+    const assunto = `⚠️ CLI Parcial Pendente — ${razaoSocial}`;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Parcial Pendente de Regularização</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- Header âmbar -->
+          <tr>
+            <td style="background:#1e293b;padding:28px 32px;">
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663456310534/iXSjSksZZTmFkzRk.png" alt="MJP Controller" style="height:34px;width:auto;display:block;margin-bottom:8px;">
+              <p style="margin:0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Gestor de Alvarás · MJP Controller</p>
+              <h1 style="margin:6px 0 0;color:#fbbf24;font-size:22px;font-weight:600;">⚠️ CLI Parcial — Pendente de Regularização</h1>
+            </td>
+          </tr>
+
+          <!-- Aviso principal -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px 20px;">
+                <p style="margin:0;font-size:14px;font-weight:600;color:#92400e;">
+                  Este Certificado de Licenciamento Integrado (CLI) ainda não produz os efeitos legais completos.
+                </p>
+                <p style="margin:8px 0 0;font-size:13px;color:#78350f;">
+                  É necessário finalizar as licenças dos órgãos integrados para obter o CLI definitivo e regularizar a situação do estabelecimento.
+                </p>
+                ${motivoPendencia ? `<p style="margin:8px 0 0;font-size:12px;color:#92400e;font-style:italic;">${motivoPendencia}</p>` : ""}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Dados do alvará -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                <tr style="background:#f8fafc;">
+                  <td colspan="2" style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Cliente</p>
+                    <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#1e293b;">${razaoSocial}</p>
+                    <p style="margin:2px 0 0;font-size:13px;color:#64748b;">CNPJ: ${cnpj}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;border-right:1px solid #e2e8f0;width:50%;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Tipo</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">CLI — Certificado de Licenciamento Integrado</p>
+                  </td>
+                  <td style="padding:12px 16px;width:50%;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Protocolo</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${numeroAlvara ?? "—"}</p>
+                  </td>
+                </tr>
+                <tr style="background:#f8fafc;">
+                  <td colspan="2" style="padding:12px 16px;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Data de Validade do CLI Parcial</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${dataVencFormatada}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Ação recomendada -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px;">
+                <p style="margin:0;font-size:13px;font-weight:600;color:#166534;">Ação recomendada</p>
+                <p style="margin:6px 0 0;font-size:13px;color:#15803d;">
+                  Acesse o VRE/REDESIM SP e verifique quais órgãos ainda precisam emitir suas manifestações para que o CLI seja finalizado.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Espaço -->
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                Este é um e-mail automático gerado pelo sistema Gestor de Alvarás. Não responda a este e-mail.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    await transporter.sendMail({
+      from: `"Gestão de Alvarás - MJP Controller" <${process.env.SMTP_USER}>`,
+      to: destinatarios.join(", "),
+      subject: assunto,
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error("[Email] Falha ao enviar alerta CLI Parcial:", err);
+    return false;
+  }
+}

@@ -3,7 +3,7 @@ import { getDb } from "../db";
 import { alvaras, clientes, emailsAlerta, emailsGlobais } from "../../drizzle/schema";
 import { eq, and, lt, inArray, notInArray } from "drizzle-orm";
 import { sdk } from "../_core/sdk";
-import { enviarAlertaVencimento } from "../services/email";
+import { enviarAlertaVencimento, enviarAlertaCliParcial } from "../services/email";
 import { STATUS_SEM_ALERTA } from "../../drizzle/schema";
 
 // Marcos de alerta em dias (enviados individualmente por alvará)
@@ -128,7 +128,49 @@ export async function alertasHeartbeatHandler(req: Request, res: Response) {
       }
     }
 
-    console.log(`[Alertas 8h] Concluído: ${alertasEnviados} alerta(s) enviado(s), ${alertasErros} erro(s), ${transicionados} transição(ões), ${vencidosParaAtualizar.length} vencimento(s) D+1`);
+    // ─── 3. Alertas recorrentes de CLI Parcial ──────────────────────────────
+    // Toda segunda-feira (dia 1 da semana) envia lembrete para todos os CLIs parciais ativos
+    const diaSemana = hoje.getDay(); // 0=Dom, 1=Seg, ...
+    let alertasCliParcial = 0;
+    if (diaSemana === 1) {
+      const clisParciais = await db
+        .select({ alvara: alvaras, cliente: clientes })
+        .from(alvaras)
+        .innerJoin(clientes, eq(alvaras.clienteId, clientes.id))
+        .where(
+          and(
+            eq(alvaras.ativo, true),
+            eq(alvaras.situacaoCli as any, "parcial")
+          )
+        );
+
+      for (const { alvara, cliente } of clisParciais) {
+        const emailsCliente = await db
+          .select()
+          .from(emailsAlerta)
+          .where(eq(emailsAlerta.clienteId, cliente.id));
+
+        const destinatariosCliente = emailsCliente.map((e) => e.email);
+        const destinatarios = Array.from(new Set([...destinatariosCliente, ...emailsGlobaisAtivos]));
+        if (destinatarios.length === 0) continue;
+
+        const ok = await enviarAlertaCliParcial(destinatarios, {
+          razaoSocial: cliente.razaoSocial,
+          cnpj: cliente.cnpj,
+          numeroAlvara: alvara.numeroAlvara ?? null,
+          dataVencimento: new Date(alvara.dataVencimento!),
+          motivoPendencia: (alvara as any).motivoPendenciaCli ?? null,
+          alvaraId: alvara.id,
+        });
+
+        if (ok) {
+          alertasCliParcial++;
+          console.log(`[Alertas 8h] ⚠️ CLI Parcial — ${cliente.razaoSocial} → ${destinatarios.length} destinatário(s)`);
+        }
+      }
+    }
+
+    console.log(`[Alertas 8h] Concluído: ${alertasEnviados} alerta(s) enviado(s), ${alertasErros} erro(s), ${transicionados} transição(ões), ${vencidosParaAtualizar.length} vencimento(s) D+1, ${alertasCliParcial} CLI Parcial(is)`);
 
     return res.json({
       ok: true,

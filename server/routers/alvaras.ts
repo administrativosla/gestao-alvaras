@@ -37,6 +37,10 @@ const alvaraSchema = z.object({
   cliAreaEstabelecimento: z.string().max(30).optional().nullable(),
   cliCnaesLicenciados: z.string().optional().nullable(), // JSON string
   cliComponentes: z.string().optional().nullable(),      // JSON string
+  // Situação do CLI ("completo" | "parcial" | "nao_avaliado" | null)
+  situacaoCli: z.string().max(20).optional().nullable(),
+  pendenciaRegularizacao: z.boolean().optional(),
+  motivoPendenciaCli: z.string().optional().nullable(),
 });
 
 export const alvarasRouter = router({

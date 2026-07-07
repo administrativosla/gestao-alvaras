@@ -161,6 +161,11 @@ export const alvaras = mysqlTable("alvaras", {
   cliCnaesLicenciados: text("cliCnaesLicenciados"),              // JSON: string[]
   // Componentes por órgão (JSON): [{orgao, tipoManifestacao, numeroDocumento, dataEmissao, dataValidade, cnaes, restricoes}]
   cliComponentes: text("cliComponentes"),
+  // ── Situação do CLI (Completo / Parcial / Não Avaliado) ──────────────────────
+  // null = não é CLI; "completo" = CLI finalizado; "parcial" = pendente de regularização; "nao_avaliado" = importado sem classificação
+  situacaoCli: varchar("situacaoCli", { length: 20 }),
+  pendenciaRegularizacao: boolean("pendenciaRegularizacao").default(false).notNull(),
+  motivoPendenciaCli: text("motivoPendenciaCli"),
   // Controle de alertas enviados
   alertaEnviado30: boolean("alertaEnviado30").default(false).notNull(),
   alertaEnviado15: boolean("alertaEnviado15").default(false).notNull(),

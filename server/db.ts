@@ -108,34 +108,38 @@ export async function listClientesComCobertura(
   // Buscar todos os clientes ativos
   const rows = await db.select().from(clientes).where(eq(clientes.ativo, true)).orderBy(clientes.razaoSocial);
 
-  // Buscar contagem de alvarás ativos por cliente
+  // Buscar alvarás ativos por cliente (incluindo situacaoCli para detectar CLI Parcial)
   const alvarasRows = await db
-    .select({ clienteId: alvaras.clienteId, status: alvaras.status })
+    .select({ clienteId: alvaras.clienteId, status: alvaras.status, situacaoCli: alvaras.situacaoCli })
     .from(alvaras)
     .where(eq(alvaras.ativo, true));
 
   // Agrupar por clienteId
-  const alvarasPorCliente = new Map<number, string[]>();
+  const alvarasPorCliente = new Map<number, { status: string; situacaoCli: string | null }[]>();
   for (const a of alvarasRows) {
     const list = alvarasPorCliente.get(a.clienteId) ?? [];
-    list.push(a.status);
+    list.push({ status: a.status, situacaoCli: a.situacaoCli });
     alvarasPorCliente.set(a.clienteId, list);
   }
 
   // Calcular cobertura
+  // Regra: CLI Parcial conta como Cobertura Parcial (não como Coberto)
   const STATUS_COBERTOS = ["Em Vigência", "Em Renovação", "Renovado"];
 
   let result = rows.map((c) => {
-    const statusList = alvarasPorCliente.get(c.id) ?? [];
+    const alvarasList = alvarasPorCliente.get(c.id) ?? [];
     let cobertura: CoberturaStatus;
-    if (statusList.length === 0) {
+    if (alvarasList.length === 0) {
       cobertura = "Sem Alvará";
-    } else if (statusList.every((s) => STATUS_COBERTOS.includes(s))) {
+    } else if (
+      alvarasList.every((a) => STATUS_COBERTOS.includes(a.status)) &&
+      !alvarasList.some((a) => a.situacaoCli === "parcial")
+    ) {
       cobertura = "Coberto";
     } else {
       cobertura = "Parcial";
     }
-    return { ...c, cobertura, totalAlvaras: statusList.length };
+    return { ...c, cobertura, totalAlvaras: alvarasList.length };
   });
 
   // Aplicar filtros

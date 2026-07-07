@@ -10,7 +10,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { FileText, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { calcDiasParaVencimento, formatDate, formatCnpj, getAlertaInfo, TIPOS_ALVARA, STATUS_RENOVACAO } from "@/lib/alvaras";
@@ -22,11 +22,19 @@ export default function AlvarasList() {
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroCli, setFiltroCli] = useState<"todos" | "parcial" | "completo">("todos");
 
-  const { data: alvaras, isLoading, refetch } = trpc.alvaras.list.useQuery({
+  const { data: alvarasRaw, isLoading, refetch } = trpc.alvaras.list.useQuery({
     status: filtroStatus !== "todos" ? filtroStatus : undefined,
     tipo: filtroTipo !== "todos" ? filtroTipo : undefined,
     search: search || undefined,
+  });
+
+  // Filtro local de CLI Parcial (campo situacaoCli)
+  const alvaras = alvarasRaw?.filter((a) => {
+    if (filtroCli === "parcial") return (a.alvara as any).situacaoCli === "parcial";
+    if (filtroCli === "completo") return (a.alvara as any).situacaoCli === "completo" || (a.alvara as any).situacaoCli == null;
+    return true;
   });
 
   const deleteMutation = trpc.alvaras.delete.useMutation({
@@ -85,6 +93,16 @@ export default function AlvarasList() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filtroCli} onValueChange={(v) => setFiltroCli(v as any)}>
+          <SelectTrigger className="h-9 w-48 text-sm">
+            <SelectValue placeholder="Situação CLI" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os CLIs</SelectItem>
+            <SelectItem value="parcial">⚠️ CLI Parcial</SelectItem>
+            <SelectItem value="completo">✅ CLI Completo</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card className="border shadow-sm">
@@ -133,7 +151,15 @@ export default function AlvarasList() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
-                        {a.alvara.tipo}
+                        <div className="flex flex-col gap-1">
+                          <span>{a.alvara.tipo}</span>
+                          {(a.alvara as any).situacaoCli === "parcial" && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 w-fit">
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              CLI Parcial
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                         {a.alvara.numeroAlvara ?? "—"}

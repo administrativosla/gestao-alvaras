@@ -10,6 +10,7 @@ import {
   Calendar,
   Building2,
   AlertCircle,
+  AlertTriangle,
   ExternalLink,
   Clock,
   Download,
@@ -114,6 +115,12 @@ export default function AlvaraDetail({ id }: Props) {
                   VRE/REDESIM SP
                 </Badge>
               )}
+              {(alvara as any).situacaoCli === "parcial" && (
+                <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs font-semibold flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  CLI Parcial
+                </Badge>
+              )}
               {alvara.numeroAlvara && (
                 <span className="text-sm text-muted-foreground font-mono">Nº {alvara.numeroAlvara}</span>
               )}
@@ -141,6 +148,25 @@ export default function AlvaraDetail({ id }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna principal */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Alerta de CLI Parcial */}
+          {(alvara as any).situacaoCli === "parcial" && (
+            <Card className="border border-amber-300 bg-amber-50">
+              <CardContent className="p-4 flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500 shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">CLI Parcial — Pendente de Finalização</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Este certificado ainda não produz os efeitos legais completos. É necessário finalizar as licenças dos órgãos integrados para obter o CLI definitivo.
+                  </p>
+                  {(alvara as any).motivoPendenciaCli && (
+                    <p className="text-xs text-amber-600 mt-1 italic">{(alvara as any).motivoPendenciaCli}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Alerta de vencimento */}
           {alertaAtivo && info && dias !== null && (
             <Card className={`border ${info.borderColor} ${info.bgColor}`}>

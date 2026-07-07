@@ -309,6 +309,7 @@ Campos a extrair:
 - orgaoEmissor: string ou null (no CLI retorne "Prefeitura de [cidade] / VRE-SP")
 - dataEmissao: string (formato YYYY-MM-DD) ou null (no CLI use "DATA DA SOLICITAÇÃO")
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
+- situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
           },
           {
@@ -323,7 +324,7 @@ Se não encontrar um campo, use null.`,
               },
               {
                 type: "text" as const,
-                text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento.",
+                text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento. Verifique se o documento contém a tarja PENDENTE DE FINALIZAÇÃO ou expressões como 'documento parcial' e 'não produz os efeitos legais' para definir situacaoCli.",
               },
             ] as any,
           },
@@ -352,6 +353,7 @@ Se não encontrar um campo, use null.`,
                 orgaoEmissor: { type: ["string", "null"] },
                 dataEmissao: { type: ["string", "null"] },
                 dataVencimento: { type: ["string", "null"] },
+                situacaoCli: { type: ["string", "null"] },
               },
               required: [
                 "cnpj",
@@ -370,6 +372,7 @@ Se não encontrar um campo, use null.`,
                 "orgaoEmissor",
                 "dataEmissao",
                 "dataVencimento",
+                "situacaoCli",
               ],
               additionalProperties: false,
             },
@@ -414,6 +417,7 @@ Se não encontrar um campo, use null.`,
           dataVencimento: z.string().optional().nullable(),
           arquivoPdfKey: z.string().optional().nullable(),
           arquivoPdfUrl: z.string().optional().nullable(),
+          situacaoCli: z.string().optional().nullable(),
         }),
         colaborador: z.string().optional(),
       })
@@ -447,6 +451,8 @@ Se não encontrar um campo, use null.`,
       if (dados.dataVencimento) {
         const dataVencimento = parseDate(dados.dataVencimento);
         if (dataVencimento) {
+          const _situacaoCli = dados.situacaoCli ?? null;
+          const _pendencia = _situacaoCli === "parcial";
           alvaraId = await createAlvara({
             clienteId,
             numeroAlvara: dados.numeroAlvara ?? null,
@@ -456,6 +462,9 @@ Se não encontrar um campo, use null.`,
             dataVencimento,
             arquivoPdfKey: dados.arquivoPdfKey ?? null,
             arquivoPdfUrl: dados.arquivoPdfUrl ?? null,
+            situacaoCli: _situacaoCli,
+            pendenciaRegularizacao: _pendencia,
+            motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
             status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })(),
           });
           const _statusPdf = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })();
@@ -517,6 +526,7 @@ Campos a extrair:
 - orgaoEmissor: string ou null (no CLI retorne "Prefeitura de [cidade] / VRE-SP")
 - dataEmissao: string (formato YYYY-MM-DD) ou null (no CLI use "DATA DA SOLICITAÇÃO")
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
+- situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
               },
               {
@@ -526,7 +536,7 @@ Se não encontrar um campo, use null.`,
                     type: "file_url" as const,
                     file_url: { url: fileUrl, mime_type: "application/pdf" as const },
                   },
-                  { type: "text" as const, text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento." },
+                  { type: "text" as const, text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento. Verifique se o documento contém a tarja PENDENTE DE FINALIZAÇÃO ou expressões como 'documento parcial' e 'não produz os efeitos legais' para definir situacaoCli." },
                 ] as any,
               },
             ],
@@ -554,8 +564,9 @@ Se não encontrar um campo, use null.`,
                     orgaoEmissor: { type: ["string", "null"] },
                     dataEmissao: { type: ["string", "null"] },
                     dataVencimento: { type: ["string", "null"] },
+                    situacaoCli: { type: ["string", "null"] },
                   },
-                  required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento"],
+                  required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli"],
                   additionalProperties: false,
                 },
               },
@@ -637,6 +648,7 @@ Se não encontrar um campo, use null.`,
             orgaoEmissor: z.string().optional().nullable(),
             dataEmissao: z.string().optional().nullable(),
             dataVencimento: z.string().optional().nullable(),
+            situacaoCli: z.string().optional().nullable(),
           })
         ).min(1),
         colaborador: z.string().optional(),
@@ -687,6 +699,8 @@ Se não encontrar um campo, use null.`,
               const diasRestantes = Math.ceil((venc.getTime() - hoje.getTime()) / 86400000);
               const status = diasRestantes > 30 ? "Em Vigência" : "Vencido";
 
+              const _situacaoCliLote = reg.situacaoCli ?? null;
+              const _pendenciaLote = _situacaoCliLote === "parcial";
               const alvaraId = await createAlvara({
                 clienteId,
                 numeroAlvara: reg.numeroAlvara ?? null,
@@ -694,6 +708,9 @@ Se não encontrar um campo, use null.`,
                 orgaoEmissor: reg.orgaoEmissor ?? null,
                 dataEmissao: parseDate(reg.dataEmissao),
                 dataVencimento,
+                situacaoCli: _situacaoCliLote,
+                pendenciaRegularizacao: _pendenciaLote,
+                motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
                 status,
               });
 

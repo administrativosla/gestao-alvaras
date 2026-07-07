@@ -219,3 +219,14 @@
 - [x] Componentes por órgão: adicionar/remover com tipo de manifestação (AVCB, CLCB, Isento, Baixo Risco, Protocolo, Licença, Indeterminado)
 - [x] Detalhe do alvará: badge "VRE/REDESIM SP" e exibição estruturada dos componentes CLI
 - [x] Formulário pré-preenche tipo=CLI e órgão emissor correto por padrão
+
+## Melhorias V2.9 — Detecção Automática de CLI Parcial
+- [ ] Adicionar colunas `situacaoCli`, `pendenciaRegularizacao`, `motivoPendenciaCli` na tabela alvaras (migration)
+- [ ] Atualizar prompt LLM para detectar CLI parcial (expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais")
+- [ ] Atualizar schema Zod no router de alvarás com os novos campos
+- [ ] Ajustar lógica de cobertura do cliente: CLI Parcial = Cobertura Parcial (não Coberto)
+- [ ] Badge "CLI Parcial" destacado na listagem de alvarás e no detalhe
+- [ ] Filtro por situacaoCli na listagem de alvarás (Completo / Parcial / Não Avaliado)
+- [ ] Badge "CLI Parcial" na listagem de clientes (cobertura parcial por pendência)
+- [ ] Alerta recorrente de regularização no heartbeat para CLI Parcial (e-mail semanal enquanto pendente)
+- [ ] Seção "CLI Parcial — Pendentes de Regularização" no dashboard
