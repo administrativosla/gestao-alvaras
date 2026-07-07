@@ -12,6 +12,8 @@ import {
   listAlvaras,
   updateAlvara,
 } from "../db";
+import { alvaras, clientes } from "../../drizzle/schema";
+import { eq as eqDrizzle, and as andDrizzle } from "drizzle-orm";
 import { STATUS_RENOVACAO, emailsAlerta, emailsGlobais } from "../../drizzle/schema";
 import { parseDate } from "../utils/parseDate";
 import { enviarNotificacaoStatusAtualizado } from "../services/email";
@@ -215,4 +217,29 @@ export const alvarasRouter = router({
     .query(async ({ input }) => {
       return getHistoricoByAlvara(input.alvaraId);
     }),
+
+  listCliParciais: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select({ alvara: alvaras, cliente: clientes })
+      .from(alvaras)
+      .innerJoin(clientes, eqDrizzle(alvaras.clienteId, clientes.id))
+      .where(
+        andDrizzle(
+          eqDrizzle(alvaras.ativo, true),
+          eqDrizzle(alvaras.situacaoCli as any, "parcial")
+        )
+      );
+    return rows.map((r) => ({
+      id: r.alvara.id,
+      razaoSocial: r.cliente.razaoSocial,
+      cnpj: r.cliente.cnpj,
+      clienteId: r.cliente.id,
+      numeroAlvara: r.alvara.numeroAlvara,
+      dataVencimento: r.alvara.dataVencimento,
+      motivoPendenciaCli: (r.alvara as any).motivoPendenciaCli ?? null,
+      status: r.alvara.status,
+    }));
+  }),
 });

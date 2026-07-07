@@ -32,6 +32,7 @@ export default function Dashboard() {
   const { data: resumo, isLoading: loadingResumo } = trpc.dashboard.resumo.useQuery();
   const { data: alertas, isLoading: loadingAlertas, refetch } = trpc.dashboard.alertas.useQuery();
   const { data: proximos, isLoading: loadingProximos, refetch: refetchProximos } = trpc.dashboard.proximosVencimentos.useQuery({ limite: 50 });
+  const { data: clisParciais, isLoading: loadingCliParciais } = trpc.alvaras.listCliParciais.useQuery();
   const proximosFiltrados = (proximos ?? []).filter((p) =>
     !searchProximos ||
     p.cliente.razaoSocial.toLowerCase().includes(searchProximos.toLowerCase()) ||
@@ -363,6 +364,72 @@ export default function Dashboard() {
           </Card>
         )}
       </div>
+
+      {/* Seção CLI Parcial */}
+      {(loadingCliParciais || (clisParciais && clisParciais.length > 0)) && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                CLI Parcial — Pendentes de Regularização
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Certificados emitidos parcialmente que ainda não produzem efeitos legais completos
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras?situacaoCli=parcial")} className="gap-1.5 text-xs">
+              Ver todos <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {loadingCliParciais ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+            </div>
+          ) : (
+            <Card className="border border-amber-200 bg-amber-50/50 shadow-sm overflow-hidden">
+              <CardContent className="p-0">
+                <div className="divide-y divide-amber-100">
+                  {clisParciais!.map((cli) => (
+                    <button
+                      key={cli.id}
+                      onClick={() => setLocation(`/alvaras/${cli.id}`)}
+                      className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-amber-100/60 transition-colors text-left group"
+                    >
+                      <div className="p-2 rounded-lg bg-amber-100 shrink-0">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate group-hover:text-amber-700 transition-colors">
+                          {cli.razaoSocial}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {cli.cnpj} · CLI · {cli.numeroAlvara ?? "Sem número"}
+                        </p>
+                        {cli.motivoPendenciaCli && (
+                          <p className="text-xs text-amber-600 italic truncate mt-0.5">{cli.motivoPendenciaCli}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-200 text-amber-800 border border-amber-300">
+                          CLI Parcial
+                        </span>
+                        {cli.dataVencimento && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Val. {formatDate(cli.dataVencimento)}
+                          </p>
+                        )}
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-amber-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }
