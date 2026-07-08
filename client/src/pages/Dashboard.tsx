@@ -16,6 +16,7 @@ import {
   RefreshCw,
   CalendarClock,
   ShieldCheck,
+  UserX,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -83,6 +84,15 @@ export default function Dashboard() {
       color: "text-red-600",
       bg: "bg-red-50",
     },
+    {
+      title: "Sem Registro",
+      value: resumo?.totalSemRegistro ?? 0,
+      icon: UserX,
+      color: "text-violet-600",
+      bg: "bg-violet-50",
+      subtitle: "clientes sem alvará",
+      link: "/clientes?cobertura=Sem+Registro",
+    },
   ];
 
   const handleRefreshAll = () => {
@@ -107,9 +117,13 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((card) => (
-          <Card key={card.title} className="border shadow-sm hover:shadow-md transition-shadow">
+          <Card
+            key={card.title}
+            className={`border shadow-sm hover:shadow-md transition-shadow ${'link' in card && card.link ? 'cursor-pointer' : ''}`}
+            onClick={'link' in card && card.link ? () => setLocation(card.link!) : undefined}
+          >
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -120,6 +134,9 @@ export default function Dashboard() {
                     <Skeleton className="h-8 w-16" />
                   ) : (
                     <p className="text-3xl font-bold tracking-tight">{card.value}</p>
+                  )}
+                  {'subtitle' in card && card.subtitle && (
+                    <p className="text-xs text-muted-foreground">{card.subtitle}</p>
                   )}
                 </div>
                 <div className={`p-2.5 rounded-xl ${card.bg}`}>

@@ -10,10 +10,11 @@ import {
   Bell, Plus, Trash2, Loader2, Send, CheckCircle2,
   AlertCircle, Info, FlaskConical, Zap, Globe,
   CalendarClock, Clock, FileText, Users, RefreshCw,
-  Download, Mail,
+  Download, Mail, ShieldOff, Upload, X, Building2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 export default function ConfiguracaoAlertas() {
   const [novoEmailGlobal, setNovoEmailGlobal] = useState("");
@@ -125,6 +126,78 @@ export default function ConfiguracaoAlertas() {
   })();
 
   const totalDestinatariosAtivos = (emailsGlobais ?? []).filter((e) => e.ativo).length;
+
+  // ─── Painel Comercial: Sem Registro ──────────────────────────────────────────
+  const PAGE_SIZE_COMERCIAL = 10;
+  const [paginaComercial, setPaginaComercial] = useState(1);
+  const [emailsComerciais, setEmailsComerciais] = useState<string[]>([]);
+  const [novoEmailComercial, setNovoEmailComercial] = useState("");
+  const [emailsImportados, setEmailsImportados] = useState<string[]>([]);
+  const fileInputComercialRef = useRef<HTMLInputElement>(null);
+
+  const { data: clientesSemRegistro } = trpc.clientes.listSemRegistro.useQuery();
+
+  const exportarSemRegistroMutation = trpc.clientes.exportarSemRegistroXlsx.useMutation({
+    onSuccess: (data) => {
+      const link = document.createElement("a");
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${data.base64}`;
+      link.download = data.filename;
+      link.click();
+      toast.success(`Planilha exportada! ${data.total} cliente(s) sem registro.`);
+    },
+    onError: (e) => toast.error("Erro ao exportar: " + e.message),
+  });
+
+  const enviarEmailComercialMutation = trpc.clientes.enviarEmailComercialSemRegistro.useMutation({
+    onSuccess: (data) => {
+      if (data.success) toast.success(`E-mail enviado para ${emailsComerciais.length + emailsImportados.length} destinatário(s)! ${data.total} clientes sem registro.`);
+      else toast.warning(data.message ?? "Nenhum cliente sem registro encontrado.");
+    },
+    onError: (e) => toast.error("Erro ao enviar e-mail: " + e.message),
+  });
+
+  const handleAdicionarEmailComercial = () => {
+    const email = novoEmailComercial.trim().toLowerCase();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("E-mail inválido."); return; }
+    if (emailsComerciais.includes(email) || emailsImportados.includes(email)) { toast.error("E-mail já adicionado."); return; }
+    setEmailsComerciais((prev) => [...prev, email]);
+    setNovoEmailComercial("");
+  };
+
+  const handleImportarEmailsComercial = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const wb = XLSX.read(data, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const emails: string[] = [];
+        rows.forEach((row: any[]) => {
+          row.forEach((cell) => {
+            const val = String(cell ?? "").trim().toLowerCase();
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !emailsComerciais.includes(val) && !emailsImportados.includes(val) && !emails.includes(val)) {
+              emails.push(val);
+            }
+          });
+        });
+        if (emails.length === 0) { toast.error("Nenhum e-mail válido encontrado no arquivo."); return; }
+        setEmailsImportados((prev) => [...prev, ...emails]);
+        toast.success(`${emails.length} e-mail(s) importado(s) do arquivo.`);
+      } catch {
+        toast.error("Erro ao ler o arquivo. Use XLSX ou CSV.");
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const todosDestinatariosComerciais = [...emailsComerciais, ...emailsImportados];
+
+  const handleEnviarEmailComercial = () => {
+    if (todosDestinatariosComerciais.length === 0) { toast.error("Adicione ao menos um e-mail destinatário."); return; }
+    enviarEmailComercialMutation.mutate({ destinatarios: todosDestinatariosComerciais });
+  };
 
   return (
     <div className="space-y-8 max-w-3xl animate-fade-in-up">
@@ -547,6 +620,219 @@ export default function ConfiguracaoAlertas() {
                 Remetente configurado: <strong>alvarasmjp@gmail.com</strong> — Gmail com Senha de App.
               </span>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ─── Seção 4: Painel Comercial — Clientes Sem Registro ───────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-950/40 text-violet-600 text-xs font-bold">4</span>
+          <h2 className="text-base font-semibold">Painel Comercial — Clientes Sem Registro</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4 ml-8">
+          Clientes que não possuem nenhum alvará ou CLI cadastrado. Use esta seção para exportar a lista ou enviar ao time comercial para prospecção.
+        </p>
+        <Card className="border-violet-200 dark:border-violet-900/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldOff className="h-4 w-4 text-violet-500" />
+                <CardTitle className="text-sm font-medium">Clientes Sem Registro</CardTitle>
+              </div>
+              <Badge variant="outline" className="border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
+                {clientesSemRegistro?.length ?? 0} cliente(s)
+              </Badge>
+            </div>
+            <CardDescription className="text-xs">
+              Lista atualizada em tempo real. Exporte ou envie por e-mail para o time comercial.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+
+            {/* Lista paginada */}
+            {clientesSemRegistro && clientesSemRegistro.length > 0 && (() => {
+              const totalPaginas = Math.ceil(clientesSemRegistro.length / PAGE_SIZE_COMERCIAL);
+              const inicio = (paginaComercial - 1) * PAGE_SIZE_COMERCIAL;
+              const paginaAtual = clientesSemRegistro.slice(inicio, inicio + PAGE_SIZE_COMERCIAL);
+              return (
+                <div className="rounded-lg border overflow-hidden">
+                  <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {clientesSemRegistro.length} clientes sem registro
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">Pág. {paginaComercial}/{totalPaginas}</span>
+                  </div>
+                  <div className="divide-y">
+                    {paginaAtual.map((c, i) => (
+                      <div key={c.id} className="px-3 py-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs text-muted-foreground shrink-0 w-6 text-right">{inicio + i + 1}.</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate">{c.razaoSocial}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{c.cnpj}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {c.municipio ?? c.cidade ?? ""}{(c.estado ?? c.uf) ? ` / ${c.estado ?? c.uf}` : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {totalPaginas > 1 && (
+                    <div className="bg-muted/30 px-3 py-2 flex items-center justify-between border-t">
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setPaginaComercial((p) => Math.max(1, p - 1))}
+                        disabled={paginaComercial === 1}
+                      >
+                        ← Anterior
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {inicio + 1}–{Math.min(inicio + PAGE_SIZE_COMERCIAL, clientesSemRegistro.length)} de {clientesSemRegistro.length}
+                      </span>
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setPaginaComercial((p) => Math.min(totalPaginas, p + 1))}
+                        disabled={paginaComercial === totalPaginas}
+                      >
+                        Próxima →
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {clientesSemRegistro?.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                Todos os clientes já possuem alvarás cadastrados.
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Exportar planilha */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Exportar Lista</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => exportarSemRegistroMutation.mutate({})}
+                  disabled={exportarSemRegistroMutation.isPending || !clientesSemRegistro?.length}
+                >
+                  {exportarSemRegistroMutation.isPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Download className="h-3.5 w-3.5" />}
+                  Exportar Planilha XLSX
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Baixa uma planilha com todos os clientes sem registro (razão social, CNPJ, município, estado, contato, e-mail).</p>
+            </div>
+
+            <Separator />
+
+            {/* Enviar e-mail comercial */}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Enviar E-mail ao Time Comercial</Label>
+
+              {/* Adicionar e-mails manualmente */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Destinatários (adicionar manualmente)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="email@empresa.com.br"
+                    value={novoEmailComercial}
+                    onChange={(e) => setNovoEmailComercial(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAdicionarEmailComercial()}
+                    className="h-8 text-sm"
+                  />
+                  <Button variant="outline" size="sm" onClick={handleAdicionarEmailComercial} className="gap-1 shrink-0">
+                    <Plus className="h-3.5 w-3.5" /> Adicionar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Importar e-mails via XLSX/CSV */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Ou importar lista de e-mails (XLSX / CSV)</Label>
+                <div
+                  className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/50 dark:hover:bg-violet-950/10 transition-colors"
+                  onClick={() => fileInputComercialRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file) handleImportarEmailsComercial(file);
+                  }}
+                >
+                  <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Arraste ou clique para importar XLSX / CSV com e-mails</p>
+                  <input
+                    ref={fileInputComercialRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImportarEmailsComercial(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Lista de destinatários */}
+              {todosDestinatariosComerciais.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {todosDestinatariosComerciais.length} destinatário(s) configurado(s)
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg bg-muted/40 border">
+                    {emailsComerciais.map((email) => (
+                      <span key={email} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-xs">
+                        {email}
+                        <button onClick={() => setEmailsComerciais((prev) => prev.filter((e) => e !== email))} className="hover:text-red-500">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    {emailsImportados.map((email) => (
+                      <span key={email} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs">
+                        <Upload className="h-3 w-3" />
+                        {email}
+                        <button onClick={() => setEmailsImportados((prev) => prev.filter((e) => e !== email))} className="hover:text-red-500">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-violet-600">●</span> Adicionados manualmente  ·  <span className="text-blue-500">●</span> Importados de arquivo
+                  </p>
+                </div>
+              )}
+
+              {/* Botão enviar */}
+              <Button
+                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white w-full"
+                onClick={handleEnviarEmailComercial}
+                disabled={enviarEmailComercialMutation.isPending || todosDestinatariosComerciais.length === 0 || !clientesSemRegistro?.length}
+              >
+                {enviarEmailComercialMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Mail className="h-4 w-4" />}
+                Enviar E-mail Comercial ({todosDestinatariosComerciais.length} destinatário{todosDestinatariosComerciais.length !== 1 ? "s" : ""})
+              </Button>
+            </div>
+
           </CardContent>
         </Card>
       </div>

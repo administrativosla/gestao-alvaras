@@ -94,10 +94,11 @@ export async function listClientes(filters?: { search?: string; estado?: string;
 }
 
 // Cobertura de alvarás por cliente
-// "Sem Alvará" = nenhum alvará cadastrado
-// "Parcial"    = tem alvará(s) mas algum está Vencido ou sem cobertura total
-// "Coberto"    = todos os alvarás ativos estão Em Vigência ou Em Renovação
-export type CoberturaStatus = "Sem Alvará" | "Parcial" | "Coberto";
+// "Sem Registro" = nenhum alvará cadastrado — prospect comercial
+// "Sem Alvará"   = alias de Sem Registro (mantido para compatibilidade)
+// "Parcial"      = tem alvará(s) mas algum está Vencido, CLI Parcial ou sem cobertura total
+// "Coberto"      = todos os alvarás ativos estão Em Vigência ou Em Renovação
+export type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
 
 export async function listClientesComCobertura(
   filters?: { search?: string; estado?: string; municipio?: string; cobertura?: CoberturaStatus }
@@ -130,7 +131,7 @@ export async function listClientesComCobertura(
     const alvarasList = alvarasPorCliente.get(c.id) ?? [];
     let cobertura: CoberturaStatus;
     if (alvarasList.length === 0) {
-      cobertura = "Sem Alvará";
+      cobertura = "Sem Registro";
     } else if (
       alvarasList.every((a) => STATUS_COBERTOS.includes(a.status)) &&
       !alvarasList.some((a) => a.situacaoCli === "parcial")
@@ -392,11 +393,21 @@ export async function getResumo() {
       )
     );
 
+  // Clientes sem nenhum alvará ativo
+  const clientesComAlvara = await db
+    .selectDistinct({ clienteId: alvaras.clienteId })
+    .from(alvaras)
+    .where(eq(alvaras.ativo, true));
+  const idsComAlvara = new Set(clientesComAlvara.map((r) => r.clienteId));
+  const todosClientes = await db.select({ id: clientes.id }).from(clientes).where(eq(clientes.ativo, true));
+  const totalSemRegistro = todosClientes.filter((c) => !idsComAlvara.has(c.id)).length;
+
   return {
     totalClientes: Number(totalClientesRes?.count ?? 0),
     alvarasAtivos: Number(alvarasAtivosRes?.count ?? 0),
     alvarasVencidos: Number(vencidosRes?.count ?? 0),
     aVencer30: Number(aVencer30Res?.count ?? 0),
+    totalSemRegistro,
   };
 }
 

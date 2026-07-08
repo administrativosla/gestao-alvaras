@@ -230,3 +230,17 @@
 - [x] Badge "CLI Parcial" na listagem de clientes (cobertura parcial por pendência)
 - [x] Alerta recorrente de regularização no heartbeat para CLI Parcial (e-mail semanal enquanto pendente)
 - [x] Seção "CLI Parcial — Pendentes de Regularização" no dashboard
+
+## Melhorias V3.0 — Status "Sem Registro" (Time Comercial)
+- [x] Criar procedure `clientes.listSemRegistro`: retorna clientes sem nenhum alvará ativo cadastrado
+- [x] Criar procedure `clientes.exportarSemRegistroXlsx`: retorna base64 XLSX com clientes sem registro
+- [x] Atualizar `listClientesComCobertura` para distinguir "Sem Registro" de "Sem Alvará" (cobertura=none vs cobertura=semRegistro)
+- [x] Badge "Sem Registro" (roxo/violeta) na listagem de clientes com filtro dedicado
+- [x] Card clícavel "Sem Registro" no topo da listagem de clientes
+- [x] Painel comercial na página de Alertas: seção "Prospecção Comercial — Sem Registro"
+- [x] Box com lista paginada dos clientes sem registro (razão social, CNPJ, município, estado)
+- [x] Botão "Exportar Planilha" no box comercial (XLSX com todos os clientes sem registro)
+- [x] Indicador de total no Dashboard (card ou badge) para clientes sem registro
+- [x] Procedure `clientes.enviarEmailComercialSemRegistro`: aceita lista de e-mails manuais + opção de importar XLSX/CSV de e-mails
+- [x] Procedure `clientes.exportarSemRegistroPdf`: retorna PDF com lista de clientes sem registro (não implementado — XLSX é suficiente)
+- [x] Box comercial: campo de e-mails manuais (tags input), dropzone para importar XLSX/CSV de e-mails, e botões de exportação XLSX

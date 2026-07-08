@@ -58,14 +58,14 @@ import { useLocation } from "wouter";
 import { formatCnpj } from "@/lib/alvaras";
 import { toast } from "sonner";
 
-type CoberturaStatus = "Sem Alvará" | "Parcial" | "Coberto";
+type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
 
 function CoberturaBadge({ cobertura, total }: { cobertura: CoberturaStatus; total: number }) {
-  if (cobertura === "Sem Alvará") {
+  if (cobertura === "Sem Registro" || cobertura === "Sem Alvará") {
     return (
-      <Badge variant="outline" className="gap-1 text-xs border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-900/30">
+      <Badge variant="outline" className="gap-1 text-xs border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
         <ShieldOff className="h-3 w-3" />
-        Sem Alvará
+        Sem Registro
       </Badge>
     );
   }
@@ -165,7 +165,7 @@ export default function ClientesList() {
   const temFiltros = !!estadoFiltro || !!municipioFiltro || !!search || !!coberturaFiltro;
 
   // Contadores de cobertura para exibição no topo
-  const semAlvara = clientes?.filter((c) => c.cobertura === "Sem Alvará").length ?? 0;
+  const semRegistro = clientes?.filter((c) => c.cobertura === "Sem Registro").length ?? 0;
   const parcial = clientes?.filter((c) => c.cobertura === "Parcial").length ?? 0;
   const coberto = clientes?.filter((c) => c.cobertura === "Coberto").length ?? 0;
 
@@ -195,18 +195,18 @@ export default function ClientesList() {
       {!isLoading && clientes && clientes.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <button
-            onClick={() => setCoberturaFiltro(coberturaFiltro === "Sem Alvará" ? "" : "Sem Alvará")}
+            onClick={() => setCoberturaFiltro(coberturaFiltro === "Sem Registro" ? "" : "Sem Registro")}
             className={`p-3 rounded-lg border text-left transition-all ${
-              coberturaFiltro === "Sem Alvará"
-                ? "border-slate-400 bg-slate-100 dark:bg-slate-800"
-                : "border-border hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/20"
+              coberturaFiltro === "Sem Registro"
+                ? "border-violet-400 bg-violet-100 dark:bg-violet-950/40"
+                : "border-border hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/20"
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
-              <ShieldOff className="h-4 w-4 text-slate-500" />
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Sem Alvará</span>
+              <ShieldOff className="h-4 w-4 text-violet-500" />
+              <span className="text-xs font-medium text-violet-700 dark:text-violet-400">Sem Registro</span>
             </div>
-            <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">{semAlvara}</p>
+            <p className="text-2xl font-bold text-violet-700 dark:text-violet-400">{semRegistro}</p>
           </button>
           <button
             onClick={() => setCoberturaFiltro(coberturaFiltro === "Parcial" ? "" : "Parcial")}

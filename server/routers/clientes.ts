@@ -70,7 +70,7 @@ export const clientesRouter = router({
           search: z.string().optional(),
           estado: z.string().optional(),
           municipio: z.string().optional(),
-          cobertura: z.enum(["Sem Alvar\u00e1", "Parcial", "Coberto"]).optional(),
+          cobertura: z.enum(["Sem Registro", "Sem Alvará", "Parcial", "Coberto"]).optional(),
         })
         .optional()
     )
@@ -226,5 +226,55 @@ export const clientesRouter = router({
     .mutation(async ({ input }) => {
       await deleteCliente(input.id);
       return { success: true };
+    }),
+
+  // ─── Painel Comercial: Sem Registro ──────────────────────────────────────────
+
+  listSemRegistro: gestorProcedure
+    .input(z.object({ search: z.string().optional(), estado: z.string().optional(), municipio: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const todos = await listClientesComCobertura(input ?? undefined);
+      return todos.filter((c) => c.cobertura === "Sem Registro");
+    }),
+
+  exportarSemRegistroXlsx: gestorProcedure
+    .input(z.object({ search: z.string().optional(), estado: z.string().optional(), municipio: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      const todos = await listClientesComCobertura(input ?? undefined);
+      const semRegistro = todos.filter((c) => c.cobertura === "Sem Registro");
+      const rows = semRegistro.map((c, i) => ({
+        "#": i + 1,
+        "Razão Social": c.razaoSocial,
+        "CNPJ": formatCnpj(c.cnpj),
+        "Nome Fantasia": c.nomeFantasia ?? "",
+        "Município": c.municipio ?? c.cidade ?? "",
+        "Estado": c.estado ?? c.uf ?? "",
+        "Contato": c.nomeContato ?? "",
+        "Telefone": c.telefone ?? "",
+        "E-mail": c.email ?? "",
+        "Status Cobertura": "Sem Registro",
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = [{ wch: 5 }, { wch: 45 }, { wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 8 }, { wch: 25 }, { wch: 18 }, { wch: 35 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, ws, "Sem Registro");
+      const buf = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      return { base64: buf as string, filename: `clientes_sem_registro_${new Date().toISOString().slice(0, 10)}.xlsx`, total: semRegistro.length };
+    }),
+
+  enviarEmailComercialSemRegistro: gestorProcedure
+    .input(z.object({
+      destinatarios: z.array(z.string().email()).min(1, "Informe ao menos um e-mail destinatário"),
+      search: z.string().optional(),
+      estado: z.string().optional(),
+      municipio: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { enviarEmailComercialSemRegistro: enviarEmail } = await import("../services/emailComercial");
+      const todos = await listClientesComCobertura({ search: input.search, estado: input.estado, municipio: input.municipio });
+      const semRegistro = todos.filter((c) => c.cobertura === "Sem Registro");
+      if (semRegistro.length === 0) return { success: false, message: "Nenhum cliente sem registro encontrado." };
+      await enviarEmail(input.destinatarios, semRegistro);
+      return { success: true, total: semRegistro.length };
     }),
 });
