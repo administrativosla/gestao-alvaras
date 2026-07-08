@@ -61,11 +61,19 @@ import { toast } from "sonner";
 type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
 
 function CoberturaBadge({ cobertura, total }: { cobertura: CoberturaStatus; total: number }) {
-  if (cobertura === "Sem Registro" || cobertura === "Sem Alvará") {
+  if (cobertura === "Sem Registro") {
     return (
       <Badge variant="outline" className="gap-1 text-xs border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
         <ShieldOff className="h-3 w-3" />
         Sem Registro
+      </Badge>
+    );
+  }
+  if (cobertura === "Sem Alvará") {
+    return (
+      <Badge variant="outline" className="gap-1 text-xs border-gray-300 text-gray-500 bg-gray-50 dark:bg-gray-900/30">
+        <ShieldOff className="h-3 w-3" />
+        Sem Alvará
       </Badge>
     );
   }
@@ -165,6 +173,7 @@ export default function ClientesList() {
   const temFiltros = !!estadoFiltro || !!municipioFiltro || !!search || !!coberturaFiltro;
 
   // Contadores de cobertura para exibição no topo
+  const semAlvara = clientes?.filter((c) => c.cobertura === "Sem Alvará").length ?? 0;
   const semRegistro = clientes?.filter((c) => c.cobertura === "Sem Registro").length ?? 0;
   const parcial = clientes?.filter((c) => c.cobertura === "Parcial").length ?? 0;
   const coberto = clientes?.filter((c) => c.cobertura === "Coberto").length ?? 0;
@@ -193,7 +202,23 @@ export default function ClientesList() {
 
       {/* Cards de resumo de cobertura */}
       {!isLoading && clientes && clientes.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
+          {/* Sem Alvará — automático, cinza */}
+          <button
+            onClick={() => setCoberturaFiltro(coberturaFiltro === "Sem Alvará" ? "" : "Sem Alvará")}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              coberturaFiltro === "Sem Alvará"
+                ? "border-gray-400 bg-gray-100 dark:bg-gray-800/60"
+                : "border-border hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/30"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldOff className="h-4 w-4 text-gray-400" />
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Sem Alvará</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{semAlvara}</p>
+          </button>
+          {/* Sem Registro — manual, violeta */}
           <button
             onClick={() => setCoberturaFiltro(coberturaFiltro === "Sem Registro" ? "" : "Sem Registro")}
             className={`p-3 rounded-lg border text-left transition-all ${

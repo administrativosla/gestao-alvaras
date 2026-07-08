@@ -244,3 +244,14 @@
 - [x] Procedure `clientes.enviarEmailComercialSemRegistro`: aceita lista de e-mails manuais + opção de importar XLSX/CSV de e-mails
 - [x] Procedure `clientes.exportarSemRegistroPdf`: retorna PDF com lista de clientes sem registro (não implementado — XLSX é suficiente)
 - [x] Box comercial: campo de e-mails manuais (tags input), dropzone para importar XLSX/CSV de e-mails, e botões de exportação XLSX
+
+## Melhorias V3.1 — Correção Status Sem Registro / Sem Alvará
+- [x] Adicionar coluna `semRegistro` (boolean, default false) na tabela clientes (migration)
+- [x] Atualizar procedure `clientes.update` para aceitar campo semRegistro
+- [x] Atualizar lógica de cobertura: "Sem Registro" = semRegistro=true (manual); "Sem Alvará" = sem alvarás cadastrados (automático, cinza)
+- [x] Adicionar toggle "Marcar como Sem Registro" no formulário de edição do cliente
+- [x] Adicionar toggle "Marcar como Sem Registro" no detalhe do cliente (ação rápida)
+- [x] Restaurar badge "Sem Alvará" (cinza) na listagem e detalhe do cliente
+- [x] Ajustar card "Sem Registro" no Dashboard para contar apenas clientes com semRegistro=true
+- [x] Ajustar card "Sem Alvará" no topo da listagem de clientes (automático)
+- [x] Ajustar painel comercial: listar apenas clientes com semRegistro=true

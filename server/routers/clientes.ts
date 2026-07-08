@@ -45,6 +45,7 @@ const clienteSchema = z.object({
   email: z.string().email().max(320).optional().nullable(),
   dataAbertura: z.string().optional().nullable(),
   observacoesPreventivas: z.string().optional().nullable(),
+  semRegistro: z.boolean().optional(),
   emailsAlerta: z.array(z.string().email()).optional(),
 });
 
@@ -210,10 +211,11 @@ export const clientesRouter = router({
   update: publicProcedure
     .input(z.object({ id: z.number(), data: clienteSchema.partial() }))
     .mutation(async ({ input }) => {
-      const { emailsAlerta: emails, dataAbertura, ...rest } = input.data;
+      const { emailsAlerta: emails, dataAbertura, semRegistro, ...rest } = input.data;
       await updateCliente(input.id, {
         ...rest,
         dataAbertura: dataAbertura !== undefined ? (parseDate(dataAbertura) ?? undefined) : undefined,
+        ...(semRegistro !== undefined ? { semRegistro } : {}),
       });
       if (emails !== undefined) {
         await setEmailsAlerta(input.id, emails);

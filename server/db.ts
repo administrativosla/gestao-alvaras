@@ -94,8 +94,8 @@ export async function listClientes(filters?: { search?: string; estado?: string;
 }
 
 // Cobertura de alvarás por cliente
-// "Sem Registro" = nenhum alvará cadastrado — prospect comercial
-// "Sem Alvará"   = alias de Sem Registro (mantido para compatibilidade)
+// "Sem Registro" = marcado manualmente pelo gestor (campo semRegistro=true) — prospect comercial sem CLI/alvará disponível
+// "Sem Alvará"   = automático: nenhum alvará cadastrado ainda (semRegistro=false)
 // "Parcial"      = tem alvará(s) mas algum está Vencido, CLI Parcial ou sem cobertura total
 // "Coberto"      = todos os alvarás ativos estão Em Vigência ou Em Renovação
 export type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
@@ -130,8 +130,12 @@ export async function listClientesComCobertura(
   let result = rows.map((c) => {
     const alvarasList = alvarasPorCliente.get(c.id) ?? [];
     let cobertura: CoberturaStatus;
-    if (alvarasList.length === 0) {
+    if (c.semRegistro) {
+      // Marcado manualmente pelo gestor: prospect sem CLI/alvará disponível
       cobertura = "Sem Registro";
+    } else if (alvarasList.length === 0) {
+      // Automático: nenhum alvará cadastrado ainda
+      cobertura = "Sem Alvará";
     } else if (
       alvarasList.every((a) => STATUS_COBERTOS.includes(a.status)) &&
       !alvarasList.some((a) => a.situacaoCli === "parcial")

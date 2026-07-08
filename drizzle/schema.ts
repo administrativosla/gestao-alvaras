@@ -81,6 +81,8 @@ export const clientes = mysqlTable("clientes", {
   // Dados
   dataAbertura: date("dataAbertura"),
   observacoesPreventivas: text("observacoesPreventivas"),
+  // Status comercial manual: marcado pelo gestor quando não há registro de CLI/alvará disponível para oferta
+  semRegistro: boolean("semRegistro").default(false).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -22,6 +22,9 @@ import {
 import { useLocation } from "wouter";
 import { formatCnpj, formatDate, calcDiasParaVencimento, getAlertaInfo, getStatusColor } from "@/lib/alvaras";
 import StatusBadge from "@/components/StatusBadge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface Props {
   id: number;
@@ -29,12 +32,22 @@ interface Props {
 
 export default function ClienteDetail({ id }: Props) {
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
 
   const { data, isLoading } = trpc.clientes.get.useQuery({ id });
   const { data: alvaras } = trpc.alvaras.list.useQuery({ clienteId: id });
 
+  const toggleSemRegistroMutation = trpc.clientes.update.useMutation({
+    onSuccess: () => {
+      utils.clientes.get.invalidate({ id });
+      utils.clientes.listComCobertura.invalidate();
+    },
+    onError: (e) => toast.error("Erro ao atualizar: " + e.message),
+  });
+
   // Calcular cobertura localmente a partir dos alvarás já carregados
   const cobertura = (() => {
+    if (data?.semRegistro) return "Sem Registro" as const;
     if (!alvaras || alvaras.length === 0) return "Sem Alvará" as const;
     const STATUS_COBERTOS = ["Em Vigência", "Em Renovação", "Renovado"];
     const ativos = alvaras.filter((a) => a.alvara.ativo);
@@ -74,6 +87,11 @@ export default function ClienteDetail({ id }: Props) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold tracking-tight">{data.razaoSocial}</h1>
+              {cobertura === "Sem Registro" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
+                  <ShieldOff className="h-3 w-3" /> Sem Registro
+                </span>
+              )}
               {cobertura === "Sem Alvará" && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-900/30">
                   <ShieldOff className="h-3 w-3" /> Sem Alvará
@@ -185,6 +203,35 @@ export default function ClienteDetail({ id }: Props) {
               {!data.nomeContato && !data.telefone && !data.email && (
                 <p className="text-xs text-muted-foreground">Nenhum contato cadastrado</p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Toggle Sem Registro (Time Comercial) */}
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Status Comercial
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor={`sem-registro-${id}`} className="text-sm font-medium cursor-pointer">
+                    Sem Registro
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Marque quando não há CLI/alvará disponível para oferta comercial
+                  </p>
+                </div>
+                <Switch
+                  id={`sem-registro-${id}`}
+                  checked={data?.semRegistro ?? false}
+                  disabled={toggleSemRegistroMutation.isPending}
+                  onCheckedChange={(checked) =>
+                    toggleSemRegistroMutation.mutate({ id, data: { semRegistro: checked } })
+                  }
+                />
+              </div>
             </CardContent>
           </Card>
 

@@ -1,0 +1,1 @@
+ALTER TABLE `clientes` ADD `semRegistro` boolean DEFAULT false NOT NULL;
