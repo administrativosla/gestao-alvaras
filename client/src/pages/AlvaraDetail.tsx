@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,7 @@ import {
   FolderOpen,
   RotateCcw,
   History,
+  ShieldCheck,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -56,6 +58,56 @@ function getStatusIcon(status: string) {
     case "Cancelado": return { Icon: XCircle, color: "text-rose-600", bg: "bg-rose-100" };
     default: return { Icon: RotateCcw, color: "text-slate-500", bg: "bg-slate-100" };
   }
+}
+
+// ─── Card de ação rápida: marcar CLI como completo ─────────────────────────────
+function CliCompletarCard({ alvaraId, onUpdated }: { alvaraId: number; onUpdated: () => void }) {
+  const updateMutation = trpc.alvaras.update.useMutation({
+    onSuccess: () => {
+      toast.success("CLI marcado como Completo! Cobertura atualizada automaticamente.");
+      onUpdated();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="border border-green-300 bg-green-50 shadow-sm">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-green-500 shrink-0">
+            <ShieldCheck className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-green-800">CLI Parcial — Finalizar</p>
+            <p className="text-xs text-green-700 mt-0.5">
+              Recebeu o CLI definitivo? Marque como completo para atualizar a cobertura do cliente.
+            </p>
+            <Button
+              size="sm"
+              className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+              disabled={updateMutation.isPending}
+              onClick={() =>
+                updateMutation.mutate({
+                  id: alvaraId,
+                  data: {
+                    situacaoCli: "completo",
+                    pendenciaRegularizacao: false,
+                    motivoPendenciaCli: null,
+                  },
+                })
+              }
+            >
+              {updateMutation.isPending ? (
+                <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Atualizando...</>
+              ) : (
+                <><CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Completo</>
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AlvaraDetail({ id }: Props) {
@@ -395,6 +447,11 @@ export default function AlvaraDetail({ id }: Props) {
 
         {/* Coluna lateral */}
         <div className="space-y-4">
+          {/* CLI Parcial — ação rápida para marcar como completo */}
+          {(alvara as any).situacaoCli === "parcial" && (
+            <CliCompletarCard alvaraId={id} onUpdated={() => { refetch(); refetchHistorico(); }} />
+          )}
+
           {/* Status atual */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-3">

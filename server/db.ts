@@ -319,6 +319,53 @@ export async function getAlvaraById(id: number) {
   return rows[0];
 }
 
+/**
+ * Busca um alvará ativo do cliente pelo número de solicitação CLI ou número do alvará.
+ * Usado para detectar re-upload de CLI e fazer upsert em vez de criar duplicata.
+ */
+export async function findAlvaraExistente(
+  clienteId: number,
+  opts: { cliNumeroSolicitacao?: string | null; numeroAlvara?: string | null; tipo?: string | null }
+) {
+  const db = await getDb();
+  if (!db) return null;
+
+  // Tenta encontrar pelo número de solicitação CLI primeiro (mais específico)
+  if (opts.cliNumeroSolicitacao) {
+    const [row] = await db
+      .select()
+      .from(alvaras)
+      .where(
+        and(
+          eq(alvaras.clienteId, clienteId),
+          eq(alvaras.ativo, true),
+          eq(alvaras.cliNumeroSolicitacao, opts.cliNumeroSolicitacao)
+        )
+      )
+      .limit(1);
+    if (row) return row;
+  }
+
+  // Fallback: busca pelo número do alvará + tipo
+  if (opts.numeroAlvara && opts.tipo) {
+    const [row] = await db
+      .select()
+      .from(alvaras)
+      .where(
+        and(
+          eq(alvaras.clienteId, clienteId),
+          eq(alvaras.ativo, true),
+          eq(alvaras.numeroAlvara, opts.numeroAlvara),
+          eq(alvaras.tipo, opts.tipo)
+        )
+      )
+      .limit(1);
+    if (row) return row;
+  }
+
+  return null;
+}
+
 export async function createAlvara(data: typeof alvaras.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");

@@ -282,3 +282,13 @@
 - [x] Página Pipeline Comercial na rota `/comercial` com kanban por status
 - [x] Kanban com todos os clientes em negociação, agrupados por status, clicando vai ao detalhe do cliente
 - [x] Item "Pipeline Comercial" no menu lateral (nível 1)
+
+## Correção V3.3 — CLI Parcial → Completo com atualização automática de cobertura
+
+- [x] Incluir `situacaoCli` no estado inicial do AlvaraForm (com valor carregado ao editar)
+- [x] Incluir `situacaoCli` no payload enviado ao salvar/atualizar alvará
+- [x] Adicionar campo de seleção de situacaoCli no formulário de edição (completo / parcial / não avaliado)
+- [x] Corrigir procedure `alvaras.update` no backend: ao receber `situacaoCli=completo`, recalcular e atualizar o `status` do alvará automaticamente (se data de vencimento ainda válida → "Em Vigência")
+- [x] Adicionar botão rápido "Marcar como Completo" no AlvaraDetail para CLIs parciais
+- [x] Registrar no histórico quando situacaoCli muda de parcial para completo
+- [x] Corrigir importação via PDF (unitária e em lote): fazer upsert pelo número de solicitação CLI em vez de sempre criar novo registro

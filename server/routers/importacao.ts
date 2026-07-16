@@ -7,7 +7,9 @@ import {
   createAlvara,
   createCliente,
   createImportacao,
+  findAlvaraExistente,
   getClienteByCnpj,
+  updateAlvara,
   updateImportacao,
 } from "../db";
 import * as XLSX from "xlsx";
@@ -418,6 +420,7 @@ Se não encontrar um campo, use null.`,
           arquivoPdfKey: z.string().optional().nullable(),
           arquivoPdfUrl: z.string().optional().nullable(),
           situacaoCli: z.string().optional().nullable(),
+          cliNumeroSolicitacao: z.string().optional().nullable(),
         }),
         colaborador: z.string().optional(),
       })
@@ -451,30 +454,65 @@ Se não encontrar um campo, use null.`,
       if (dados.dataVencimento) {
         const dataVencimento = parseDate(dados.dataVencimento);
         if (dataVencimento) {
+          const _h = new Date(); _h.setHours(0, 0, 0, 0);
+          const _v = new Date(dataVencimento); _v.setHours(0, 0, 0, 0);
+          const _dias = Math.ceil((_v.getTime() - _h.getTime()) / 86400000);
+          const _statusPdf = _dias > 30 ? "Em Vigência" : "Vencido";
           const _situacaoCli = dados.situacaoCli ?? null;
           const _pendencia = _situacaoCli === "parcial";
-          alvaraId = await createAlvara({
-            clienteId,
+
+          // Verificar se já existe um alvará ativo para este cliente com o mesmo número de solicitação
+          const alvaraExistente = await findAlvaraExistente(clienteId, {
+            cliNumeroSolicitacao: dados.cliNumeroSolicitacao ?? dados.numeroAlvara ?? null,
             numeroAlvara: dados.numeroAlvara ?? null,
-            tipo: dados.tipo ?? "Funcionamento",
-            orgaoEmissor: dados.orgaoEmissor ?? null,
-            dataEmissao: parseDate(dados.dataEmissao),
-            dataVencimento,
-            arquivoPdfKey: dados.arquivoPdfKey ?? null,
-            arquivoPdfUrl: dados.arquivoPdfUrl ?? null,
-            situacaoCli: _situacaoCli,
-            pendenciaRegularizacao: _pendencia,
-            motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
-            status: (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })(),
+            tipo: dados.tipo ?? null,
           });
-          const _statusPdf = (() => { const _h=new Date();_h.setHours(0,0,0,0);const _v=new Date(dataVencimento);_v.setHours(0,0,0,0);return Math.ceil((_v.getTime()-_h.getTime())/86400000)>30?"Em Vigência":"Vencido"; })();
-          await addHistorico({
-            alvaraId,
-            statusAnterior: null,
-            statusNovo: _statusPdf,
-            observacao: `Importado via PDF: ${input.fileName}${_statusPdf==="Em Vigência"?`. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.`:". Vencimento próximo."}`,
-            colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
-          });
+
+          if (alvaraExistente) {
+            // UPSERT: atualizar o alvará existente com os novos dados
+            alvaraId = alvaraExistente.id;
+            const statusAnterior = alvaraExistente.status;
+            await updateAlvara(alvaraExistente.id, {
+              dataVencimento,
+              dataEmissao: parseDate(dados.dataEmissao) ?? alvaraExistente.dataEmissao ?? undefined,
+              arquivoPdfKey: dados.arquivoPdfKey ?? alvaraExistente.arquivoPdfKey ?? null,
+              arquivoPdfUrl: dados.arquivoPdfUrl ?? alvaraExistente.arquivoPdfUrl ?? null,
+              situacaoCli: _situacaoCli,
+              pendenciaRegularizacao: _pendencia,
+              motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+              status: _statusPdf,
+            });
+            await addHistorico({
+              alvaraId: alvaraExistente.id,
+              statusAnterior,
+              statusNovo: _statusPdf,
+              observacao: `Atualizado via re-upload de PDF: ${input.fileName}. Situação CLI: ${_situacaoCli ?? "não informada"}.${_statusPdf === "Em Vigência" ? ` Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : " Vencimento próximo."}`,
+              colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+            });
+          } else {
+            // INSERT: criar novo alvará
+            alvaraId = await createAlvara({
+              clienteId,
+              numeroAlvara: dados.numeroAlvara ?? null,
+              tipo: dados.tipo ?? "Funcionamento",
+              orgaoEmissor: dados.orgaoEmissor ?? null,
+              dataEmissao: parseDate(dados.dataEmissao),
+              dataVencimento,
+              arquivoPdfKey: dados.arquivoPdfKey ?? null,
+              arquivoPdfUrl: dados.arquivoPdfUrl ?? null,
+              situacaoCli: _situacaoCli,
+              pendenciaRegularizacao: _pendencia,
+              motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+              status: _statusPdf,
+            });
+            await addHistorico({
+              alvaraId,
+              statusAnterior: null,
+              statusNovo: _statusPdf,
+              observacao: `Importado via PDF: ${input.fileName}${_statusPdf === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
+              colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+            });
+          }
         }
       }
 
@@ -701,30 +739,60 @@ Se não encontrar um campo, use null.`,
 
               const _situacaoCliLote = reg.situacaoCli ?? null;
               const _pendenciaLote = _situacaoCliLote === "parcial";
-              const alvaraId = await createAlvara({
-                clienteId,
+
+              // Verificar se já existe alvará ativo para este cliente (upsert)
+              const alvaraExistenteLote = await findAlvaraExistente(clienteId, {
+                cliNumeroSolicitacao: (reg as any).cliNumeroSolicitacao ?? reg.numeroAlvara ?? null,
                 numeroAlvara: reg.numeroAlvara ?? null,
-                tipo: reg.tipo ?? "Funcionamento",
-                orgaoEmissor: reg.orgaoEmissor ?? null,
-                dataEmissao: parseDate(reg.dataEmissao),
-                dataVencimento,
-                situacaoCli: _situacaoCliLote,
-                pendenciaRegularizacao: _pendenciaLote,
-                motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
-                status,
+                tipo: reg.tipo ?? null,
               });
 
-              await addHistorico({
-                alvaraId,
-                statusAnterior: null,
-                statusNovo: status,
-                observacao: `Importado em lote via PDF: ${reg.fileName}${status === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
-                colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
-              });
+              if (alvaraExistenteLote) {
+                // Atualizar alvará existente
+                const statusAnteriorLote = alvaraExistenteLote.status;
+                await updateAlvara(alvaraExistenteLote.id, {
+                  dataVencimento,
+                  dataEmissao: parseDate(reg.dataEmissao) ?? alvaraExistenteLote.dataEmissao ?? undefined,
+                  situacaoCli: _situacaoCliLote,
+                  pendenciaRegularizacao: _pendenciaLote,
+                  motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+                  status,
+                });
+                await addHistorico({
+                  alvaraId: alvaraExistenteLote.id,
+                  statusAnterior: statusAnteriorLote,
+                  statusNovo: status,
+                  observacao: `Atualizado via re-upload em lote: ${reg.fileName}. Situação CLI: ${_situacaoCliLote ?? "não informada"}.${status === "Em Vigência" ? ` Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : " Vencimento próximo."}`,
+                  colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+                });
+                atualizados++;
+              } else {
+                // Criar novo alvará
+                const alvaraId = await createAlvara({
+                  clienteId,
+                  numeroAlvara: reg.numeroAlvara ?? null,
+                  tipo: reg.tipo ?? "Funcionamento",
+                  orgaoEmissor: reg.orgaoEmissor ?? null,
+                  dataEmissao: parseDate(reg.dataEmissao),
+                  dataVencimento,
+                  situacaoCli: _situacaoCliLote,
+                  pendenciaRegularizacao: _pendenciaLote,
+                  motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+                  status,
+                });
+                await addHistorico({
+                  alvaraId,
+                  statusAnterior: null,
+                  statusNovo: status,
+                  observacao: `Importado em lote via PDF: ${reg.fileName}${status === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
+                  colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+                });
+                importados++;
+              }
             }
+          } else {
+            importados++;
           }
-
-          importados++;
         } catch (e: any) {
           errosList.push(`${reg.fileName}: ${e.message ?? "Erro desconhecido"}`);
         }

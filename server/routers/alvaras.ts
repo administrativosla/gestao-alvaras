@@ -102,14 +102,59 @@ export const alvarasRouter = router({
 
   update: publicProcedure
     .input(z.object({ id: z.number(), data: alvaraSchema.partial() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const { dataEmissao, dataVencimento, cliDataSolicitacao, ...rest } = input.data;
-      await updateAlvara(input.id, {
+
+      // Buscar o alvará atual para comparar situacaoCli e recalcular status se necessário
+      const current = await getAlvaraById(input.id);
+      if (!current) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const updateData: Parameters<typeof updateAlvara>[1] = {
         ...rest,
         dataEmissao: dataEmissao !== undefined ? (parseDate(dataEmissao) ?? undefined) : undefined,
         dataVencimento: dataVencimento !== undefined ? (parseDate(dataVencimento) ?? undefined) : undefined,
         cliDataSolicitacao: cliDataSolicitacao !== undefined ? (parseDate(cliDataSolicitacao) ?? undefined) : undefined,
-      });
+      };
+
+      // Quando situacaoCli muda de "parcial" para "completo", recalcular status automaticamente
+      const novaSituacao = input.data.situacaoCli;
+      const situacaoAnterior = current.alvara.situacaoCli;
+      if (novaSituacao === "completo" && situacaoAnterior === "parcial") {
+        // Limpar flags de pendência
+        updateData.pendenciaRegularizacao = false;
+        updateData.motivoPendenciaCli = null;
+
+        // Recalcular status baseado na data de vencimento
+        const dataVenc = dataVencimento
+          ? (parseDate(dataVencimento) ?? current.alvara.dataVencimento)
+          : current.alvara.dataVencimento;
+        if (dataVenc) {
+          const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+          const venc = new Date(dataVenc); venc.setHours(0, 0, 0, 0);
+          const dias = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+          if (dias > 30) {
+            updateData.status = "Em Vigência";
+          } else if (dias >= 0) {
+            updateData.status = "A Vencer";
+          } else {
+            updateData.status = "Vencido";
+          }
+        }
+      }
+
+      await updateAlvara(input.id, updateData);
+
+      // Registrar histórico quando CLI muda de parcial para completo
+      if (novaSituacao === "completo" && situacaoAnterior === "parcial") {
+        await addHistorico({
+          alvaraId: input.id,
+          statusAnterior: current.alvara.status,
+          statusNovo: updateData.status ?? current.alvara.status,
+          observacao: "CLI atualizado de Parcial para Completo. Cobertura recalculada automaticamente.",
+          colaborador: (ctx as any).user?.name ?? "Sistema",
+        });
+      }
+
       return { success: true };
     }),
 
