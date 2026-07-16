@@ -25,6 +25,7 @@ import StatusBadge from "@/components/StatusBadge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import NegociacaoCard from "@/components/NegociacaoCard";
 
 interface Props {
   id: number;
@@ -205,6 +206,9 @@ export default function ClienteDetail({ id }: Props) {
               )}
             </CardContent>
           </Card>
+
+          {/* Pipeline de Negociação Comercial */}
+          <NegociacaoCard clienteId={id} />
 
           {/* Toggle Sem Registro (Time Comercial) */}
           <Card className="border shadow-sm">

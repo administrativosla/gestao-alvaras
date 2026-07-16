@@ -255,3 +255,30 @@
 - [x] Ajustar card "Sem Registro" no Dashboard para contar apenas clientes com semRegistro=true
 - [x] Ajustar card "Sem Alvará" no topo da listagem de clientes (automático)
 - [x] Ajustar painel comercial: listar apenas clientes com semRegistro=true
+
+## Melhorias V3.2 — Pipeline de Negociação Comercial
+
+### Schema / Migration
+- [x] Criar tabela `negociacoes` (id, clienteId, status enum, responsavel, observacao, dataContato, createdAt, updatedAt)
+- [x] Criar tabela `negociacoes_historico` (id, negociacaoId, clienteId, statusAnterior, statusNovo, responsavel, observacao, createdAt)
+- [x] Status enum: contato_realizado | proposta_recusada | proposta_aprovada | em_andamento | em_vigencia
+- [x] Aplicar migration no banco
+
+### Backend
+- [x] Procedure `negociacoes.get`: retorna negociação ativa do cliente (ou null)
+- [x] Procedure `negociacoes.criar`: cria negociação com status inicial "contato_realizado"
+- [x] Procedure `negociacoes.avancarStatus`: muda status com validação de fluxo + registra histórico
+- [x] Validação: ao avançar para "em_vigencia", exigir que o cliente já tenha pelo menos 1 alvará/CLI cadastrado
+- [x] Procedure `negociacoes.listarHistorico`: retorna histórico de movimentações da negociação
+- [x] Procedure `negociacoes.list`: lista todas as negociações com filtro por status (para painel comercial)
+- [x] Procedure `negociacoes.resumoPorStatus`: contagem por status para cards do pipeline
+- [x] Procedure `negociacoes.encerrar`: desativa negociação (gestorProcedure)
+
+### Frontend
+- [x] Card "Negociação Comercial" no ClienteDetail (sidebar): exibe status atual, botões de avançar status, campo de observação
+- [x] Timeline de histórico de movimentações no card de negociação
+- [x] Fluxo visual do pipeline: Contato Realizado → Proposta Aprovada/Recusada → Em Andamento → Em Vigência
+- [x] Ao tentar avançar para "Em Vigência" sem alvará cadastrado: exibir alerta com link para cadastrar alvará
+- [x] Página Pipeline Comercial na rota `/comercial` com kanban por status
+- [x] Kanban com todos os clientes em negociação, agrupados por status, clicando vai ao detalhe do cliente
+- [x] Item "Pipeline Comercial" no menu lateral (nível 1)

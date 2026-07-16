@@ -34,6 +34,7 @@ import {
   Crown,
   Shield,
   User as UserIcon,
+  TrendingUp,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -156,6 +157,7 @@ function DashboardLayoutContent({
     { icon: Upload, label: "Importar", path: "/importar", minLevel: 1 },
     { icon: PackageOpen, label: "Importar em Lote", path: "/importar/lote", minLevel: 1 },
     { icon: Download, label: "Exportar", path: "/exportar", minLevel: 2 },
+    { icon: TrendingUp, label: "Pipeline Comercial", path: "/comercial", minLevel: 1 },
     { icon: Bell, label: "Alertas", path: "/alertas", minLevel: 3 },
     { icon: UserCog, label: "Usuários", path: "/usuarios", minLevel: 3, badge: pendentes ?? 0 },
   ].filter((item) => userLevel >= item.minLevel);

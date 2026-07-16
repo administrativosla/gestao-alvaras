@@ -205,6 +205,61 @@ export const emailsGlobais = mysqlTable("emails_globais", {
 export type EmailGlobal = typeof emailsGlobais.$inferSelect;
 export type InsertEmailGlobal = typeof emailsGlobais.$inferInsert;
 
+// ─── Negociações Comerciais ─────────────────────────────────────────────────────
+// Pipeline de negociação para clientes sem registro de alvará
+export const NEGOCIACAO_STATUS = [
+  "contato_realizado",
+  "proposta_recusada",
+  "proposta_aprovada",
+  "em_andamento",
+  "em_vigencia",
+] as const;
+
+export type NegociacaoStatus = (typeof NEGOCIACAO_STATUS)[number];
+
+export const NEGOCIACAO_STATUS_LABELS: Record<NegociacaoStatus, string> = {
+  contato_realizado: "Contato Realizado",
+  proposta_recusada: "Proposta Recusada",
+  proposta_aprovada: "Proposta Aprovada",
+  em_andamento: "Em Andamento",
+  em_vigencia: "Em Vigência",
+};
+
+export const negociacoes = mysqlTable("negociacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  status: mysqlEnum("status", [
+    "contato_realizado",
+    "proposta_recusada",
+    "proposta_aprovada",
+    "em_andamento",
+    "em_vigencia",
+  ]).default("contato_realizado").notNull(),
+  responsavel: varchar("responsavel", { length: 255 }),
+  observacao: text("observacao"),
+  dataContato: date("dataContato"),
+  ativa: boolean("ativa").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Negociacao = typeof negociacoes.$inferSelect;
+export type InsertNegociacao = typeof negociacoes.$inferInsert;
+
+export const negociacoesHistorico = mysqlTable("negociacoes_historico", {
+  id: int("id").autoincrement().primaryKey(),
+  negociacaoId: int("negociacaoId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  statusAnterior: varchar("statusAnterior", { length: 30 }),
+  statusNovo: varchar("statusNovo", { length: 30 }).notNull(),
+  responsavel: varchar("responsavel", { length: 255 }),
+  observacao: text("observacao"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type NegociacaoHistorico = typeof negociacoesHistorico.$inferSelect;
+export type InsertNegociacaoHistorico = typeof negociacoesHistorico.$inferInsert;
+
 // ─── Log de Importações ─────────────────────────────────────────────────────────
 export const importacoes = mysqlTable("importacoes", {
   id: int("id").autoincrement().primaryKey(),

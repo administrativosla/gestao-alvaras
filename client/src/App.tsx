@@ -19,6 +19,7 @@ import ImportacaoLotePage from "./pages/ImportacaoLotePage";
 import ExportarPage from "./pages/ExportarPage";
 import ConfiguracaoAlertas from "./pages/ConfiguracaoAlertas";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
+import PipelineComercial from "./pages/PipelineComercial";
 
 function AppRoutes() {
   return (
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="/exportar" component={ExportarPage} />
         <Route path="/alertas" component={ConfiguracaoAlertas} />
         <Route path="/usuarios" component={GestaoUsuarios} />
+        <Route path="/comercial" component={PipelineComercial} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
