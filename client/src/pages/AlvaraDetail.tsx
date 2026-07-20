@@ -593,22 +593,43 @@ export default function AlvaraDetail({ id }: Props) {
         <div className="lg:col-span-2 space-y-4">
           {/* Alerta de CLI Parcial */}
           {(alvara as any).situacaoCli === "parcial" && (
-            <Card className="border border-amber-300 bg-amber-50">
-              <CardContent className="p-4 flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-amber-500 shrink-0">
-                  <AlertTriangle className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-amber-800">CLI Parcial — Pendente de Finalização</p>
-                  <p className="text-xs text-amber-700 mt-0.5">
-                    Este certificado ainda não produz os efeitos legais completos. É necessário finalizar as licenças dos órgãos integrados para obter o CLI definitivo.
-                  </p>
-                  {(alvara as any).motivoPendenciaCli && (
-                    <p className="text-xs text-amber-600 mt-1 italic">{(alvara as any).motivoPendenciaCli}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <>
+              <Card className="border border-amber-300 bg-amber-50">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500 shrink-0">
+                    <AlertTriangle className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">CLI Parcial — Pendente de Finalização</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Este certificado ainda não produz os efeitos legais completos. É necessário finalizar as licenças dos órgãos integrados para obter o CLI definitivo.
+                    </p>
+                    {(alvara as any).motivoPendenciaCli && (
+                      <p className="text-xs text-amber-600 mt-1 italic">{(alvara as any).motivoPendenciaCli}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              {/* Pendências por órgão — logo abaixo do alerta */}
+              {(() => {
+                let orgaos: OrgaoPendente[] = [];
+                try {
+                  if ((alvara as any).cliOrgaosPendentes) {
+                    orgaos = JSON.parse((alvara as any).cliOrgaosPendentes);
+                  }
+                } catch { /* ignore */ }
+                if (orgaos.length === 0) return null;
+                return (
+                  <CliPendenciasCard
+                    alvaraId={id}
+                    orgaosPendentes={orgaos}
+                    onUpdated={() => { refetch(); refetchHistorico(); }}
+                  />
+                );
+              })()}
+              {/* Ação rápida para marcar como completo */}
+              <CliCompletarCard alvaraId={id} onUpdated={() => { refetch(); refetchHistorico(); }} />
+            </>
           )}
           {/* Alerta de vencimento */}
           {alertaAtivo && info && dias !== null && (
@@ -882,28 +903,6 @@ export default function AlvaraDetail({ id }: Props) {
 
         {/* Coluna lateral */}
         <div className="space-y-4">
-          {/* CLI Parcial — painel de pendências por órgão */}
-          {(alvara as any).situacaoCli === "parcial" && (() => {
-            let orgaos: OrgaoPendente[] = [];
-            try {
-              if ((alvara as any).cliOrgaosPendentes) {
-                orgaos = JSON.parse((alvara as any).cliOrgaosPendentes);
-              }
-            } catch { /* ignore */ }
-            return (
-              <CliPendenciasCard
-                alvaraId={id}
-                orgaosPendentes={orgaos}
-                onUpdated={() => { refetch(); refetchHistorico(); }}
-              />
-            );
-          })()}
-
-          {/* CLI Parcial — ação rápida para marcar como completo */}
-          {(alvara as any).situacaoCli === "parcial" && (
-            <CliCompletarCard alvaraId={id} onUpdated={() => { refetch(); refetchHistorico(); }} />
-          )}
-
           {/* Status atual */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-3">
