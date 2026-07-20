@@ -292,3 +292,15 @@
 - [x] Adicionar botão rápido "Marcar como Completo" no AlvaraDetail para CLIs parciais
 - [x] Registrar no histórico quando situacaoCli muda de parcial para completo
 - [x] Corrigir importação via PDF (unitária e em lote): fazer upsert pelo número de solicitação CLI em vez de sempre criar novo registro
+
+## Melhoria V3.4 — Sinalizador Visual de Pendências por Órgão nas CLIs Parciais
+
+- [x] Ampliar prompt de extração de PDF (unitário e lote): capturar array `cliOrgaosPendentes` com nome do órgão, tipo de manifestação esperada e status (pendente/ok)
+- [x] Adicionar campo `cliOrgaosPendentes` (text/JSON) na tabela alvaras via migration
+- [x] Atualizar `confirmarPdf` e `confirmarImportacaoLote` para salvar cliOrgaosPendentes (com merge de resolvidos)
+- [x] Painel de checklist de pendências por órgão no AlvaraDetail (card dedicado para CLI parcial)
+- [x] Badge de contagem de pendências na listagem de alvarás (ex: "3 órgãos pendentes")
+- [x] Permitir marcar manualmente cada órgão como resolvido no AlvaraDetail
+- [x] Ao resolver todos os órgãos pendentes, sugerir automaticamente marcar CLI como completo
+- [x] Contagem de órgãos pendentes exibida no painel CLI Parcial do Dashboard
+- [x] Procedure `resolverPendenciaOrgao` no backend com registro no histórico

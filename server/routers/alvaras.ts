@@ -276,15 +276,79 @@ export const alvarasRouter = router({
           eqDrizzle(alvaras.situacaoCli as any, "parcial")
         )
       );
-    return rows.map((r) => ({
-      id: r.alvara.id,
-      razaoSocial: r.cliente.razaoSocial,
-      cnpj: r.cliente.cnpj,
-      clienteId: r.cliente.id,
-      numeroAlvara: r.alvara.numeroAlvara,
-      dataVencimento: r.alvara.dataVencimento,
-      motivoPendenciaCli: (r.alvara as any).motivoPendenciaCli ?? null,
-      status: r.alvara.status,
-    }));
+    return rows.map((r) => {
+      let orgaosPendentes: any[] | null = null;
+      try {
+        if ((r.alvara as any).cliOrgaosPendentes) {
+          orgaosPendentes = JSON.parse((r.alvara as any).cliOrgaosPendentes);
+        }
+      } catch { /* ignore */ }
+      const totalPendentes = orgaosPendentes?.filter((o: any) => o.status === "pendente").length ?? 0;
+      return {
+        id: r.alvara.id,
+        razaoSocial: r.cliente.razaoSocial,
+        cnpj: r.cliente.cnpj,
+        clienteId: r.cliente.id,
+        numeroAlvara: r.alvara.numeroAlvara,
+        dataVencimento: r.alvara.dataVencimento,
+        motivoPendenciaCli: (r.alvara as any).motivoPendenciaCli ?? null,
+        status: r.alvara.status,
+        cliOrgaosPendentes: orgaosPendentes,
+        totalOrgaosPendentes: totalPendentes,
+      };
+    });
   }),
+
+  // Resolve uma pendência específica de órgão no CLI parcial
+  resolverPendenciaOrgao: publicProcedure
+    .input(z.object({
+      alvaraId: z.number(),
+      orgao: z.string(),
+      observacao: z.string().optional(),
+      colaborador: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const row = await getAlvaraById(input.alvaraId);
+      if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const responsavel = input.colaborador ?? (ctx as any).user?.name ?? "Sistema";
+      const agora = new Date().toISOString();
+
+      // Atualizar a pendência do órgão específico
+      let orgaos: any[] = [];
+      try {
+        if ((row.alvara as any).cliOrgaosPendentes) {
+          orgaos = JSON.parse((row.alvara as any).cliOrgaosPendentes);
+        }
+      } catch { /* ignore */ }
+
+      const idx = orgaos.findIndex((o: any) => o.orgao === input.orgao);
+      if (idx === -1) throw new TRPCError({ code: "NOT_FOUND", message: "Orgão não encontrado nas pendências." });
+
+      orgaos[idx] = {
+        ...orgaos[idx],
+        status: "resolvido",
+        resolvidoEm: agora,
+        resolvidoPor: responsavel,
+        observacao: input.observacao ?? null,
+      };
+
+      const todosResolvidos = orgaos.every((o: any) => o.status === "resolvido");
+
+      await updateAlvara(input.alvaraId, {
+        cliOrgaosPendentes: JSON.stringify(orgaos),
+        // Se todos resolvidos, limpar flag de pendência
+        ...(todosResolvidos ? { pendenciaRegularizacao: false } : {}),
+      });
+
+      await addHistorico({
+        alvaraId: input.alvaraId,
+        statusAnterior: row.alvara.status,
+        statusNovo: row.alvara.status,
+        observacao: `Pendência resolvida: ${input.orgao}${input.observacao ? ` — ${input.observacao}` : ""}.${todosResolvidos ? " Todos os órgãos resolvidos! CLI pronto para ser marcado como completo." : ""}`,
+        colaborador: responsavel,
+      });
+
+      return { success: true, todosResolvidos };
+    }),
 });

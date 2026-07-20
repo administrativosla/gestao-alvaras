@@ -428,12 +428,17 @@ export default function Dashboard() {
                           <p className="text-xs text-amber-600 italic truncate mt-0.5">{cli.motivoPendenciaCli}</p>
                         )}
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="text-right shrink-0 space-y-1">
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-200 text-amber-800 border border-amber-300">
                           CLI Parcial
                         </span>
+                        {(cli as any).totalOrgaosPendentes > 0 && (
+                          <p className="text-xs font-semibold text-amber-700">
+                            {(cli as any).totalOrgaosPendentes} órgão{(cli as any).totalOrgaosPendentes !== 1 ? "s" : ""} pendente{(cli as any).totalOrgaosPendentes !== 1 ? "s" : ""}
+                          </p>
+                        )}
                         {cli.dataVencimento && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground">
                             Val. {formatDate(cli.dataVencimento)}
                           </p>
                         )}

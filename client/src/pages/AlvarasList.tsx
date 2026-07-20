@@ -153,12 +153,21 @@ export default function AlvarasList() {
                       <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                         <div className="flex flex-col gap-1">
                           <span>{a.alvara.tipo}</span>
-                          {(a.alvara as any).situacaoCli === "parcial" && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 w-fit">
-                              <AlertTriangle className="h-2.5 w-2.5" />
-                              CLI Parcial
-                            </span>
-                          )}
+                          {(a.alvara as any).situacaoCli === "parcial" && (() => {
+                            let totalPendentes = 0;
+                            try {
+                              if ((a.alvara as any).cliOrgaosPendentes) {
+                                const orgaos = JSON.parse((a.alvara as any).cliOrgaosPendentes);
+                                totalPendentes = orgaos.filter((o: any) => o.status === "pendente").length;
+                              }
+                            } catch { /* ignore */ }
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 w-fit">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                                CLI Parcial{totalPendentes > 0 ? ` • ${totalPendentes} órgão${totalPendentes !== 1 ? "s" : ""} pendente${totalPendentes !== 1 ? "s" : ""}` : ""}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden md:table-cell">

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import React from "react";
 import {
   ArrowLeft,
   Pencil,
@@ -27,6 +28,9 @@ import {
   RotateCcw,
   History,
   ShieldCheck,
+  ListChecks,
+  CircleDot,
+  CheckCheck,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -58,6 +62,169 @@ function getStatusIcon(status: string) {
     case "Cancelado": return { Icon: XCircle, color: "text-rose-600", bg: "bg-rose-100" };
     default: return { Icon: RotateCcw, color: "text-slate-500", bg: "bg-slate-100" };
   }
+}
+
+
+// ─── Card de pendências por órgão no CLI parcial ────────────────────────────
+interface OrgaoPendente {
+  orgao: string;
+  tipoManifestacao: string;
+  status: "pendente" | "resolvido";
+  resolvidoEm?: string | null;
+  resolvidoPor?: string | null;
+  observacao?: string | null;
+}
+
+function CliPendenciasCard({
+  alvaraId,
+  orgaosPendentes,
+  onUpdated,
+}: {
+  alvaraId: number;
+  orgaosPendentes: OrgaoPendente[];
+  onUpdated: () => void;
+}) {
+  const [resolvendoOrgao, setResolvendoOrgao] = React.useState<string | null>(null);
+  const [obsMap, setObsMap] = React.useState<Record<string, string>>({});
+
+  const resolverMutation = trpc.alvaras.resolverPendenciaOrgao.useMutation({
+    onSuccess: (result) => {
+      setResolvendoOrgao(null);
+      if (result.todosResolvidos) {
+        toast.success("Todos os órgãos resolvidos! Considere marcar o CLI como completo.");
+      } else {
+        toast.success("Pendência marcada como resolvida.");
+      }
+      onUpdated();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const totalPendentes = orgaosPendentes.filter((o) => o.status === "pendente").length;
+  const totalResolvidos = orgaosPendentes.filter((o) => o.status === "resolvido").length;
+  const total = orgaosPendentes.length;
+
+  return (
+    <Card className="border border-amber-300 bg-amber-50 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-500">
+              <ListChecks className="h-3.5 w-3.5 text-white" />
+            </div>
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-amber-800">
+              Pendências por Órgão
+            </CardTitle>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {totalPendentes > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-200 px-2 py-0.5 rounded-full">
+                <CircleDot className="h-3 w-3" />{totalPendentes} pendente{totalPendentes !== 1 ? "s" : ""}
+              </span>
+            )}
+            {totalResolvidos > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                <CheckCheck className="h-3 w-3" />{totalResolvidos}/{total}
+              </span>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-2">
+        {orgaosPendentes.map((orgao) => {
+          const isPendente = orgao.status === "pendente";
+          const isResolvendo = resolvendoOrgao === orgao.orgao;
+          return (
+            <div
+              key={orgao.orgao}
+              className={`rounded-lg border p-3 space-y-2 transition-colors ${
+                isPendente
+                  ? "bg-white border-amber-200 hover:border-amber-400"
+                  : "bg-green-50 border-green-200 opacity-80"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 min-w-0">
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
+                    isPendente ? "bg-amber-400" : "bg-green-500"
+                  }`}>
+                    {isPendente
+                      ? <CircleDot className="h-2.5 w-2.5 text-white" />
+                      : <CheckCheck className="h-2.5 w-2.5 text-white" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-xs font-semibold truncate ${
+                      isPendente ? "text-amber-900" : "text-green-800"
+                    }`}>{orgao.orgao}</p>
+                    <p className={`text-xs ${
+                      isPendente ? "text-amber-700" : "text-green-600"
+                    }`}>{orgao.tipoManifestacao}</p>
+                    {!isPendente && orgao.resolvidoPor && (
+                      <p className="text-xs text-green-600 mt-0.5">
+                        Resolvido por {orgao.resolvidoPor}
+                        {orgao.resolvidoEm ? ` em ${new Date(orgao.resolvidoEm).toLocaleDateString("pt-BR")}` : ""}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {isPendente && !isResolvendo && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-xs px-2 shrink-0 border-amber-400 text-amber-800 hover:bg-amber-100"
+                    onClick={() => setResolvendoOrgao(orgao.orgao)}
+                  >
+                    Resolver
+                  </Button>
+                )}
+              </div>
+              {isResolvendo && (
+                <div className="space-y-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Observação (opcional)"
+                    className="w-full text-xs rounded border border-amber-300 px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    value={obsMap[orgao.orgao] ?? ""}
+                    onChange={(e) => setObsMap((m) => ({ ...m, [orgao.orgao]: e.target.value }))}
+                  />
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      className="h-6 text-xs px-2 flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      disabled={resolverMutation.isPending}
+                      onClick={() =>
+                        resolverMutation.mutate({
+                          alvaraId,
+                          orgao: orgao.orgao,
+                          observacao: obsMap[orgao.orgao] || undefined,
+                        })
+                      }
+                    >
+                      {resolverMutation.isPending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <><CheckCircle2 className="h-3 w-3" /> Confirmar</>}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setResolvendoOrgao(null)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {orgaosPendentes.length === 0 && (
+          <p className="text-xs text-amber-700 text-center py-2">
+            Nenhuma pendência por órgão identificada automaticamente.
+            Re-importe o CLI para detectar os órgãos pendentes.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 // ─── Card de ação rápida: marcar CLI como completo ─────────────────────────────
@@ -447,6 +614,23 @@ export default function AlvaraDetail({ id }: Props) {
 
         {/* Coluna lateral */}
         <div className="space-y-4">
+          {/* CLI Parcial — painel de pendências por órgão */}
+          {(alvara as any).situacaoCli === "parcial" && (() => {
+            let orgaos: OrgaoPendente[] = [];
+            try {
+              if ((alvara as any).cliOrgaosPendentes) {
+                orgaos = JSON.parse((alvara as any).cliOrgaosPendentes);
+              }
+            } catch { /* ignore */ }
+            return (
+              <CliPendenciasCard
+                alvaraId={id}
+                orgaosPendentes={orgaos}
+                onUpdated={() => { refetch(); refetchHistorico(); }}
+              />
+            );
+          })()}
+
           {/* CLI Parcial — ação rápida para marcar como completo */}
           {(alvara as any).situacaoCli === "parcial" && (
             <CliCompletarCard alvaraId={id} onUpdated={() => { refetch(); refetchHistorico(); }} />

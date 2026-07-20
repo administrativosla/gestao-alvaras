@@ -312,6 +312,7 @@ Campos a extrair:
 - dataEmissao: string (formato YYYY-MM-DD) ou null (no CLI use "DATA DA SOLICITAÇÃO")
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
+- cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
 Se não encontrar um campo, use null.`,
           },
           {
@@ -326,7 +327,7 @@ Se não encontrar um campo, use null.`,
               },
               {
                 type: "text" as const,
-                text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento. Verifique se o documento contém a tarja PENDENTE DE FINALIZAÇÃO ou expressões como 'documento parcial' e 'não produz os efeitos legais' para definir situacaoCli.",
+                text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento. Verifique se o documento contém a tarja PENDENTE DE FINALIZAÇÃO ou expressões como 'documento parcial' e 'não produz os efeitos legais' para definir situacaoCli. Se for CLI parcial, identifique quais órgãos integrados ainda estão pendentes de manifestação definitiva para cliOrgaosPendentes.",
               },
             ] as any,
           },
@@ -356,6 +357,19 @@ Se não encontrar um campo, use null.`,
                 dataEmissao: { type: ["string", "null"] },
                 dataVencimento: { type: ["string", "null"] },
                 situacaoCli: { type: ["string", "null"] },
+                cliOrgaosPendentes: {
+                  type: ["array", "null"],
+                  items: {
+                    type: "object",
+                    properties: {
+                      orgao: { type: "string" },
+                      tipoManifestacao: { type: "string" },
+                      status: { type: "string" },
+                    },
+                    required: ["orgao", "tipoManifestacao", "status"],
+                    additionalProperties: false,
+                  },
+                },
               },
               required: [
                 "cnpj",
@@ -375,6 +389,7 @@ Se não encontrar um campo, use null.`,
                 "dataEmissao",
                 "dataVencimento",
                 "situacaoCli",
+                "cliOrgaosPendentes",
               ],
               additionalProperties: false,
             },
@@ -421,6 +436,14 @@ Se não encontrar um campo, use null.`,
           arquivoPdfUrl: z.string().optional().nullable(),
           situacaoCli: z.string().optional().nullable(),
           cliNumeroSolicitacao: z.string().optional().nullable(),
+          cliOrgaosPendentes: z.array(z.object({
+            orgao: z.string(),
+            tipoManifestacao: z.string(),
+            status: z.string(),
+            resolvidoEm: z.string().optional().nullable(),
+            resolvidoPor: z.string().optional().nullable(),
+            observacao: z.string().optional().nullable(),
+          })).optional().nullable(),
         }),
         colaborador: z.string().optional(),
       })
@@ -468,10 +491,29 @@ Se não encontrar um campo, use null.`,
             tipo: dados.tipo ?? null,
           });
 
+          // Serializar pendências por órgão
+          const orgaosPendentesJson = dados.cliOrgaosPendentes && dados.cliOrgaosPendentes.length > 0
+            ? JSON.stringify(dados.cliOrgaosPendentes)
+            : (_pendencia ? null : null); // null para CLIs completos (sem pendências)
+
           if (alvaraExistente) {
             // UPSERT: atualizar o alvará existente com os novos dados
             alvaraId = alvaraExistente.id;
             const statusAnterior = alvaraExistente.status;
+            // Ao re-upload: preservar pendências já resolvidas manualmente
+            let orgaosMerged = orgaosPendentesJson;
+            if (alvaraExistente.cliOrgaosPendentes && orgaosPendentesJson) {
+              try {
+                const existentes: any[] = JSON.parse(alvaraExistente.cliOrgaosPendentes);
+                const novos: any[] = JSON.parse(orgaosPendentesJson);
+                // Manter status "resolvido" para órgãos que já foram resolvidos manualmente
+                const merged = novos.map(n => {
+                  const prev = existentes.find(e => e.orgao === n.orgao);
+                  return prev?.status === "resolvido" ? prev : n;
+                });
+                orgaosMerged = JSON.stringify(merged);
+              } catch { /* manter novo */ }
+            }
             await updateAlvara(alvaraExistente.id, {
               dataVencimento,
               dataEmissao: parseDate(dados.dataEmissao) ?? alvaraExistente.dataEmissao ?? undefined,
@@ -480,6 +522,7 @@ Se não encontrar um campo, use null.`,
               situacaoCli: _situacaoCli,
               pendenciaRegularizacao: _pendencia,
               motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+              cliOrgaosPendentes: orgaosMerged,
               status: _statusPdf,
             });
             await addHistorico({
@@ -503,6 +546,7 @@ Se não encontrar um campo, use null.`,
               situacaoCli: _situacaoCli,
               pendenciaRegularizacao: _pendencia,
               motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+              cliOrgaosPendentes: orgaosPendentesJson,
               status: _statusPdf,
             });
             await addHistorico({
@@ -565,6 +609,7 @@ Campos a extrair:
 - dataEmissao: string (formato YYYY-MM-DD) ou null (no CLI use "DATA DA SOLICITAÇÃO")
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
+- cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
 Se não encontrar um campo, use null.`,
               },
               {
@@ -574,7 +619,7 @@ Se não encontrar um campo, use null.`,
                     type: "file_url" as const,
                     file_url: { url: fileUrl, mime_type: "application/pdf" as const },
                   },
-                  { type: "text" as const, text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento. Verifique se o documento contém a tarja PENDENTE DE FINALIZAÇÃO ou expressões como 'documento parcial' e 'não produz os efeitos legais' para definir situacaoCli." },
+                  { type: "text" as const, text: "Extraia os dados deste documento de licenciamento e retorne apenas o JSON. Atenção especial: se for um CLI de SP, a DATA DE VALIDADE da seção DADOS DA SOLICITAÇÃO deve ser o dataVencimento. Verifique se o documento contém a tarja PENDENTE DE FINALIZAÇÃO ou expressões como 'documento parcial' e 'não produz os efeitos legais' para definir situacaoCli. Se for CLI parcial, identifique quais órgãos integrados ainda estão pendentes de manifestação definitiva para cliOrgaosPendentes." },
                 ] as any,
               },
             ],
@@ -603,8 +648,21 @@ Se não encontrar um campo, use null.`,
                     dataEmissao: { type: ["string", "null"] },
                     dataVencimento: { type: ["string", "null"] },
                     situacaoCli: { type: ["string", "null"] },
+                    cliOrgaosPendentes: {
+                      type: ["array", "null"],
+                      items: {
+                        type: "object",
+                        properties: {
+                          orgao: { type: "string" },
+                          tipoManifestacao: { type: "string" },
+                          status: { type: "string" },
+                        },
+                        required: ["orgao", "tipoManifestacao", "status"],
+                        additionalProperties: false,
+                      },
+                    },
                   },
-                  required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli"],
+                  required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes"],
                   additionalProperties: false,
                 },
               },

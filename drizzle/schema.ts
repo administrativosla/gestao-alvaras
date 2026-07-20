@@ -168,6 +168,8 @@ export const alvaras = mysqlTable("alvaras", {
   situacaoCli: varchar("situacaoCli", { length: 20 }),
   pendenciaRegularizacao: boolean("pendenciaRegularizacao").default(false).notNull(),
   motivoPendenciaCli: text("motivoPendenciaCli"),
+  // Pendências por órgão integrado (JSON): [{orgao, tipoManifestacao, status: "pendente"|"resolvido", resolvidoEm, resolvidoPor, observacao}]
+  cliOrgaosPendentes: text("cliOrgaosPendentes"),
   // Controle de alertas enviados
   alertaEnviado30: boolean("alertaEnviado30").default(false).notNull(),
   alertaEnviado15: boolean("alertaEnviado15").default(false).notNull(),
