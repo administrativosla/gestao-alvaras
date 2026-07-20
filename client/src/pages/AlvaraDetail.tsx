@@ -722,6 +722,50 @@ export default function AlvaraDetail({ id }: Props) {
             </CardContent>
           </Card>
 
+          {/* Última Atualização — entre Dados e Histórico */}
+          {historico && historico.length > 0 && (
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Última Atualização
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(() => {
+                  const ultimo = historico[0];
+                  const dataHora = new Date(ultimo.createdAt);
+                  return (
+                    <>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const { Icon, color, bg } = getStatusIcon(ultimo.statusNovo);
+                          return (
+                            <div className={`p-1.5 rounded-lg ${bg}`}>
+                              <Icon className={`h-3.5 w-3.5 ${color}`} />
+                            </div>
+                          );
+                        })()}
+                        <span className="text-sm font-medium">{ultimo.statusNovo}</span>
+                      </div>
+                      {ultimo.colaborador && (
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{ultimo.colaborador}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {dataHora.toLocaleDateString("pt-BR")} às {dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Histórico de movimentações — visual aprimorado */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-3">
@@ -886,49 +930,6 @@ export default function AlvaraDetail({ id }: Props) {
             </CardContent>
           </Card>
 
-          {/* Resumo do histórico */}
-          {historico && historico.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Última Atualização
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(() => {
-                  const ultimo = historico[0];
-                  const dataHora = new Date(ultimo.createdAt);
-                  return (
-                    <>
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const { Icon, color, bg } = getStatusIcon(ultimo.statusNovo);
-                          return (
-                            <div className={`p-1.5 rounded-lg ${bg}`}>
-                              <Icon className={`h-3.5 w-3.5 ${color}`} />
-                            </div>
-                          );
-                        })()}
-                        <span className="text-sm font-medium">{ultimo.statusNovo}</span>
-                      </div>
-                      {ultimo.colaborador && (
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{ultimo.colaborador}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">
-                          {dataHora.toLocaleDateString("pt-BR")} às {dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>
