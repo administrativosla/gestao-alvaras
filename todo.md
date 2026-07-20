@@ -327,3 +327,9 @@
 - [x] Botão "Ver PDF" para abrir o arquivo do CLI carregado
 - [x] Botão "Excluir" para remover o CLI e suas informações do cliente
 - [x] Botão "Atualizar CLI" para fazer upload de novo PDF e atualizar as informações
+
+## Correção V3.6 — Desfazer Resolução de Órgão Pendente
+
+- [x] Adicionar botão "Desfazer Resolução" em cada órgão já marcado como resolvido no CliPendenciasCard
+- [x] Criar procedure `alvaras.desfazerResolucaoOrgao` no backend: reverte o status do órgão para "pendente" e registra no histórico
+- [x] Ao desfazer, o card volta ao estado âmbar (pendências ativas) e o contador é atualizado

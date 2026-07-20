@@ -351,4 +351,52 @@ export const alvarasRouter = router({
 
       return { success: true, todosResolvidos };
     }),
+
+  // Desfaz a resolução de uma pendência de órgão (reverte para "pendente")
+  desfazerResolucaoOrgao: publicProcedure
+    .input(z.object({
+      alvaraId: z.number(),
+      orgao: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const row = await getAlvaraById(input.alvaraId);
+      if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+      const responsavel = (ctx as any).user?.name ?? "Sistema";
+
+      let orgaos: any[] = [];
+      try {
+        if ((row.alvara as any).cliOrgaosPendentes) {
+          orgaos = JSON.parse((row.alvara as any).cliOrgaosPendentes);
+        }
+      } catch { /* ignore */ }
+
+      const idx = orgaos.findIndex((o: any) => o.orgao === input.orgao);
+      if (idx === -1) throw new TRPCError({ code: "NOT_FOUND", message: "Órgão não encontrado nas pendências." });
+      if (orgaos[idx].status !== "resolvido") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Este órgão já está pendente." });
+      }
+
+      orgaos[idx] = {
+        ...orgaos[idx],
+        status: "pendente",
+        resolvidoEm: null,
+        resolvidoPor: null,
+        observacao: null,
+      };
+
+      await updateAlvara(input.alvaraId, {
+        cliOrgaosPendentes: JSON.stringify(orgaos),
+        pendenciaRegularizacao: true,
+      });
+
+      await addHistorico({
+        alvaraId: input.alvaraId,
+        statusAnterior: row.alvara.status,
+        statusNovo: row.alvara.status,
+        observacao: `Resolução desfeita: ${input.orgao} voltou para pendente. Ação realizada por ${responsavel}.`,
+        colaborador: responsavel,
+      });
+
+      return { success: true };
+    }),
 });

@@ -124,6 +124,14 @@ function CliPendenciasCard({
     reader.readAsDataURL(f);
   };
 
+  const desfazerMutation = trpc.alvaras.desfazerResolucaoOrgao.useMutation({
+    onSuccess: () => {
+      toast.success("Resolução desfeita. Órgão voltou para pendente.");
+      onUpdated();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const resolverMutation = trpc.alvaras.resolverPendenciaOrgao.useMutation({
     onSuccess: (result) => {
       setResolvendoOrgao(null);
@@ -247,6 +255,21 @@ function CliPendenciasCard({
                   onClick={() => setResolvendoOrgao(orgao.orgao)}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Resolvido
+                </Button>
+              )}
+
+              {/* Botão desfazer (para órgãos já resolvidos) */}
+              {!isPendente && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-[11px] border-green-300 text-green-700 hover:bg-green-50 hover:border-red-300 hover:text-red-600 gap-1.5 transition-colors"
+                  disabled={desfazerMutation.isPending}
+                  onClick={() => desfazerMutation.mutate({ alvaraId, orgao: orgao.orgao })}
+                >
+                  {desfazerMutation.isPending
+                    ? <><RefreshCw className="h-3 w-3 animate-spin" /> Desfazendo...</>
+                    : <><RotateCcw className="h-3 w-3" /> Desfazer Resolução</>}
                 </Button>
               )}
 
