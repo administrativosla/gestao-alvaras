@@ -26,6 +26,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import NegociacaoCard from "@/components/NegociacaoCard";
+import ClienteCliManager from "@/components/ClienteCliManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   id: number;
@@ -263,10 +265,13 @@ export default function ClienteDetail({ id }: Props) {
         </div>
       </div>
 
-      {/* Alvarás do cliente */}
-      <div className="space-y-3">
+      {/* Abas: Alvarás / CLIs */}
+      <Tabs defaultValue="alvaras" className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold tracking-tight">Alvarás</h2>
+          <TabsList className="h-9">
+            <TabsTrigger value="alvaras" className="text-xs px-4">Alvarás</TabsTrigger>
+            <TabsTrigger value="clis" className="text-xs px-4">Gerenciar CLIs</TabsTrigger>
+          </TabsList>
           <Button
             size="sm"
             variant="outline"
@@ -277,54 +282,62 @@ export default function ClienteDetail({ id }: Props) {
           </Button>
         </div>
 
-        {!alvaras || alvaras.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
-              <FileText className="h-6 w-6 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhum alvará cadastrado para este cliente</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3">
-            {alvaras.map((a) => {
-              const dias = calcDiasParaVencimento(a.alvara.dataVencimento);
-              const info = dias !== null ? getAlertaInfo(dias) : null;
-              return (
-                <Card
-                  key={a.alvara.id}
-                  className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setLocation(`/alvaras/${a.alvara.id}`)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">{a.alvara.tipo}</p>
-                          {a.alvara.numeroAlvara && (
-                            <span className="text-xs text-muted-foreground">Nº {a.alvara.numeroAlvara}</span>
+        {/* Aba: lista simples de alvarás (visão rápida) */}
+        <TabsContent value="alvaras" className="mt-0 space-y-3">
+          {!alvaras || alvaras.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+                <FileText className="h-6 w-6 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Nenhum alvará cadastrado para este cliente</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {alvaras.map((a) => {
+                const dias = calcDiasParaVencimento(a.alvara.dataVencimento);
+                const info = dias !== null ? getAlertaInfo(dias) : null;
+                return (
+                  <Card
+                    key={a.alvara.id}
+                    className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setLocation(`/alvaras/${a.alvara.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{a.alvara.tipo}</p>
+                            {a.alvara.numeroAlvara && (
+                              <span className="text-xs text-muted-foreground">Nº {a.alvara.numeroAlvara}</span>
+                            )}
+                          </div>
+                          {a.alvara.orgaoEmissor && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{a.alvara.orgaoEmissor}</p>
                           )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Vencimento: <span className="font-medium">{formatDate(a.alvara.dataVencimento)}</span>
+                            {dias !== null && info && (
+                              <span className={`ml-2 font-medium ${info.textColor}`}>
+                                ({info.label})
+                              </span>
+                            )}
+                          </p>
                         </div>
-                        {a.alvara.orgaoEmissor && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{a.alvara.orgaoEmissor}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Vencimento: <span className="font-medium">{formatDate(a.alvara.dataVencimento)}</span>
-                          {dias !== null && info && (
-                            <span className={`ml-2 font-medium ${info.textColor}`}>
-                              ({info.label})
-                            </span>
-                          )}
-                        </p>
+                        <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
                       </div>
-                      <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Aba: gerenciamento completo de CLIs */}
+        <TabsContent value="clis" className="mt-0">
+          <ClienteCliManager clienteId={id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

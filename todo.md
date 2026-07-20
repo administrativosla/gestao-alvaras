@@ -304,3 +304,26 @@
 - [x] Ao resolver todos os órgãos pendentes, sugerir automaticamente marcar CLI como completo
 - [x] Contagem de órgãos pendentes exibida no painel CLI Parcial do Dashboard
 - [x] Procedure `resolverPendenciaOrgao` no backend com registro no histórico
+
+## Melhoria V3.5 — Card de Pendências Ampliado + Aba de Gerenciamento de CLIs no Cliente
+
+- [x] Remover truncamento do nome do órgão e da pendência no card de pendências por órgão
+- [x] Ampliar layout do card: cada item ocupa mais espaço vertical, nome completo visível
+- [x] Exibir descrição completa do que precisa ser feito por órgão (sem cortar texto)
+- [x] Criar aba "CLIs" na tela do cliente (ClienteDetail) com listagem de todos os CLIs vinculados
+- [x] Cada CLI na aba exibe: tipo, número, status, data de vencimento, situacaoCli, PDF disponível
+- [x] Botão "Ver PDF" para abrir o arquivo do CLI carregado
+- [x] Botão "Excluir" para remover o CLI e suas informações do cliente
+- [x] Botão "Atualizar" (re-importar) para fazer upload de novo PDF e atualizar as informações do CLI
+
+## Melhoria V3.5b — Card de Pendências: Estado "Todos Resolvidos" + Aba CLIs no Cliente
+
+- [x] Quando todos os órgãos estiverem resolvidos: mudar card para fundo verde com mensagem de sucesso
+- [x] Exibir botão "Marcar CLI como Completo" quando todos resolvidos
+- [x] Exibir botão "Fazer Upload do CLI Definitivo" quando todos resolvidos (mini-fluxo de re-upload inline)
+- [x] Mini-fluxo de upload inline: selecionar PDF → IA extrai → confirmar → atualiza o CLI existente
+- [x] Criar aba "Gerenciar CLIs" na tela do cliente com lista de todos os CLIs vinculados
+- [x] Cada CLI na aba exibe: tipo, número, status, data de vencimento, situacaoCli, PDF disponível
+- [x] Botão "Ver PDF" para abrir o arquivo do CLI carregado
+- [x] Botão "Excluir" para remover o CLI e suas informações do cliente
+- [x] Botão "Atualizar CLI" para fazer upload de novo PDF e atualizar as informações

@@ -86,6 +86,43 @@ function CliPendenciasCard({
 }) {
   const [resolvendoOrgao, setResolvendoOrgao] = React.useState<string | null>(null);
   const [obsMap, setObsMap] = React.useState<Record<string, string>>({});
+  const [uploadMode, setUploadMode] = React.useState(false);
+  const [uploadFile, setUploadFile] = React.useState<File | null>(null);
+  const [uploadBase64, setUploadBase64] = React.useState("");
+  const [uploadExtracted, setUploadExtracted] = React.useState<any>(null);
+  const [uploadStep, setUploadStep] = React.useState<"select" | "review" | "done">("select");
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const parsePdfMutation = trpc.importacao.parsePdf.useMutation({
+    onSuccess: (data) => { setUploadExtracted(data); setUploadStep("review"); },
+    onError: (e) => toast.error("Erro ao ler PDF: " + e.message),
+  });
+
+  const confirmarPdfMutation = trpc.importacao.confirmarPdf.useMutation({
+    onSuccess: () => {
+      toast.success("CLI definitivo importado! Cobertura atualizada.");
+      setUploadMode(false);
+      setUploadStep("select");
+      setUploadFile(null);
+      setUploadBase64("");
+      setUploadExtracted(null);
+      onUpdated();
+    },
+    onError: (e) => toast.error("Erro ao salvar: " + e.message),
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setUploadFile(f);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = (ev.target?.result as string).split(",")[1];
+      setUploadBase64(base64);
+      parsePdfMutation.mutate({ fileBase64: base64, fileName: f.name });
+    };
+    reader.readAsDataURL(f);
+  };
 
   const resolverMutation = trpc.alvaras.resolverPendenciaOrgao.useMutation({
     onSuccess: (result) => {
@@ -103,17 +140,26 @@ function CliPendenciasCard({
   const totalPendentes = orgaosPendentes.filter((o) => o.status === "pendente").length;
   const totalResolvidos = orgaosPendentes.filter((o) => o.status === "resolvido").length;
   const total = orgaosPendentes.length;
+  const todosResolvidos = total > 0 && totalPendentes === 0;
 
   return (
-    <Card className="border border-amber-300 bg-amber-50 shadow-sm">
+    <Card className={`shadow-sm transition-all duration-500 ${
+      todosResolvidos
+        ? "border-2 border-green-400 bg-green-50"
+        : "border border-amber-300 bg-amber-50"
+    }`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-amber-500">
+            <div className={`p-1.5 rounded-lg ${
+              todosResolvidos ? "bg-green-500" : "bg-amber-500"
+            }`}>
               <ListChecks className="h-3.5 w-3.5 text-white" />
             </div>
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-amber-800">
-              Pendências por Órgão
+            <CardTitle className={`text-xs font-semibold uppercase tracking-wider ${
+              todosResolvidos ? "text-green-800" : "text-amber-800"
+            }`}>
+              {todosResolvidos ? "Órgãos — Todos Resolvidos" : "Pendências por Órgão"}
             </CardTitle>
           </div>
           <div className="flex items-center gap-1.5">
@@ -123,74 +169,102 @@ function CliPendenciasCard({
               </span>
             )}
             {totalResolvidos > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+              <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                todosResolvidos
+                  ? "text-green-700 bg-green-200"
+                  : "text-green-700 bg-green-100"
+              }`}>
                 <CheckCheck className="h-3 w-3" />{totalResolvidos}/{total}
               </span>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-2">
+      <CardContent className="pt-0 space-y-3">
         {orgaosPendentes.map((orgao) => {
           const isPendente = orgao.status === "pendente";
           const isResolvendo = resolvendoOrgao === orgao.orgao;
           return (
             <div
               key={orgao.orgao}
-              className={`rounded-lg border p-3 space-y-2 transition-colors ${
+              className={`rounded-xl border-2 p-4 space-y-3 transition-all ${
                 isPendente
-                  ? "bg-white border-amber-200 hover:border-amber-400"
-                  : "bg-green-50 border-green-200 opacity-80"
+                  ? "bg-white border-amber-300 shadow-sm"
+                  : "bg-green-50/60 border-green-200"
               }`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 min-w-0">
-                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
-                    isPendente ? "bg-amber-400" : "bg-green-500"
-                  }`}>
-                    {isPendente
-                      ? <CircleDot className="h-2.5 w-2.5 text-white" />
-                      : <CheckCheck className="h-2.5 w-2.5 text-white" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={`text-xs font-semibold truncate ${
-                      isPendente ? "text-amber-900" : "text-green-800"
-                    }`}>{orgao.orgao}</p>
-                    <p className={`text-xs ${
-                      isPendente ? "text-amber-700" : "text-green-600"
-                    }`}>{orgao.tipoManifestacao}</p>
-                    {!isPendente && orgao.resolvidoPor && (
-                      <p className="text-xs text-green-600 mt-0.5">
-                        Resolvido por {orgao.resolvidoPor}
-                        {orgao.resolvidoEm ? ` em ${new Date(orgao.resolvidoEm).toLocaleDateString("pt-BR")}` : ""}
-                      </p>
-                    )}
-                  </div>
+              {/* Cabeçalho do órgão */}
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                  isPendente ? "bg-amber-400" : "bg-green-500"
+                }`}>
+                  {isPendente
+                    ? <CircleDot className="h-3 w-3 text-white" />
+                    : <CheckCheck className="h-3 w-3 text-white" />}
                 </div>
-                {isPendente && !isResolvendo && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-xs px-2 shrink-0 border-amber-400 text-amber-800 hover:bg-amber-100"
-                    onClick={() => setResolvendoOrgao(orgao.orgao)}
-                  >
-                    Resolver
-                  </Button>
-                )}
+                <div className="flex-1">
+                  {/* Nome completo do órgão — sem truncamento */}
+                  <p className={`text-sm font-semibold leading-snug ${
+                    isPendente ? "text-amber-900" : "text-green-800"
+                  }`}>{orgao.orgao}</p>
+                  {/* Tipo de manifestação / o que precisa ser feito */}
+                  <p className={`text-xs mt-1 leading-relaxed ${
+                    isPendente ? "text-amber-700" : "text-green-600"
+                  }`}>
+                    <span className="font-medium">O que fazer:</span> {orgao.tipoManifestacao}
+                  </p>
+                  {/* Informações de resolução */}
+                  {!isPendente && (
+                    <div className="mt-1.5 space-y-0.5">
+                      {orgao.resolvidoPor && (
+                        <p className="text-xs text-green-600">
+                          ✓ Resolvido por <span className="font-medium">{orgao.resolvidoPor}</span>
+                          {orgao.resolvidoEm ? ` em ${new Date(orgao.resolvidoEm).toLocaleDateString("pt-BR")}` : ""}
+                        </p>
+                      )}
+                      {orgao.observacao && (
+                        <p className="text-xs text-green-600 italic">"{orgao.observacao}"</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Badge de status */}
+                <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  isPendente
+                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                    : "bg-green-100 text-green-700 border border-green-300"
+                }`}>
+                  {isPendente ? "PENDENTE" : "RESOLVIDO"}
+                </span>
               </div>
+
+              {/* Botão resolver (quando não está no modo de confirmação) */}
+              {isPendente && !isResolvendo && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-8 text-xs border-amber-400 text-amber-800 hover:bg-amber-50 gap-1.5"
+                  onClick={() => setResolvendoOrgao(orgao.orgao)}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Resolvido
+                </Button>
+              )}
+
+              {/* Formulário de confirmação */}
               {isResolvendo && (
-                <div className="space-y-2 pt-1">
-                  <input
-                    type="text"
-                    placeholder="Observação (opcional)"
-                    className="w-full text-xs rounded border border-amber-300 px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                <div className="space-y-2.5 pt-1 border-t border-amber-200">
+                  <p className="text-xs text-amber-700 font-medium">Adicione uma observação (opcional):</p>
+                  <textarea
+                    rows={2}
+                    placeholder="Ex: Licença emitida em 15/07/2026, protocolo nº 12345..."
+                    className="w-full text-xs rounded-lg border border-amber-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
                     value={obsMap[orgao.orgao] ?? ""}
                     onChange={(e) => setObsMap((m) => ({ ...m, [orgao.orgao]: e.target.value }))}
                   />
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <Button
                       size="sm"
-                      className="h-6 text-xs px-2 flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      className="h-8 text-xs px-3 flex-1 bg-green-600 hover:bg-green-700 text-white gap-1.5"
                       disabled={resolverMutation.isPending}
                       onClick={() =>
                         resolverMutation.mutate({
@@ -200,12 +274,14 @@ function CliPendenciasCard({
                         })
                       }
                     >
-                      {resolverMutation.isPending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <><CheckCircle2 className="h-3 w-3" /> Confirmar</>}
+                      {resolverMutation.isPending
+                        ? <><RefreshCw className="h-3 w-3 animate-spin" /> Salvando...</>
+                        : <><CheckCircle2 className="h-3.5 w-3.5" /> Confirmar Resolução</>}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 text-xs px-2"
+                      className="h-8 text-xs px-3"
                       onClick={() => setResolvendoOrgao(null)}
                     >
                       Cancelar
@@ -217,10 +293,135 @@ function CliPendenciasCard({
           );
         })}
         {orgaosPendentes.length === 0 && (
-          <p className="text-xs text-amber-700 text-center py-2">
-            Nenhuma pendência por órgão identificada automaticamente.
-            Re-importe o CLI para detectar os órgãos pendentes.
-          </p>
+          <div className="text-center py-4 space-y-1">
+            <ListChecks className="h-8 w-8 text-amber-300 mx-auto" />
+            <p className="text-sm text-amber-700 font-medium">Nenhuma pendência identificada</p>
+            <p className="text-xs text-amber-600">
+              Re-importe o CLI para detectar automaticamente os órgãos pendentes.
+            </p>
+          </div>
+        )}
+
+        {/* ─── Estado: TODOS RESOLVIDOS ─── */}
+        {todosResolvidos && (
+          <div className="mt-2 space-y-3">
+            <div className="rounded-xl bg-green-100 border border-green-300 p-4 text-center space-y-1.5">
+              <CheckCheck className="h-8 w-8 text-green-500 mx-auto" />
+              <p className="text-sm font-semibold text-green-800">Todos os órgãos foram resolvidos!</p>
+              <p className="text-xs text-green-700">
+                O CLI está pronto para ser finalizado. Faça o upload do CLI definitivo ou marque-o como completo.
+              </p>
+            </div>
+
+            {/* Mini-fluxo de upload do CLI definitivo */}
+            {!uploadMode ? (
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => { setUploadMode(true); setUploadStep("select"); }}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Fazer Upload do CLI Definitivo
+                </Button>
+                <p className="text-[10px] text-green-600 text-center">
+                  Ou use o botão "Marcar como Completo" abaixo se já recebeu o documento.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Upload do CLI Definitivo</p>
+                  <button
+                    className="text-xs text-blue-500 hover:text-blue-700"
+                    onClick={() => { setUploadMode(false); setUploadStep("select"); setUploadFile(null); setUploadExtracted(null); }}
+                  >Cancelar</button>
+                </div>
+
+                {uploadStep === "select" && (
+                  <div className="space-y-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                      disabled={parsePdfMutation.isPending}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {parsePdfMutation.isPending
+                        ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Lendo PDF...</>
+                        : <><FileText className="h-3.5 w-3.5" /> Selecionar PDF do CLI</>}
+                    </Button>
+                    {uploadFile && !parsePdfMutation.isPending && (
+                      <p className="text-xs text-blue-600 text-center">{uploadFile.name}</p>
+                    )}
+                  </div>
+                )}
+
+                {uploadStep === "review" && uploadExtracted && (
+                  <div className="space-y-3">
+                    <div className="rounded-lg bg-white border border-blue-200 p-3 space-y-1.5 text-xs">
+                      <p className="font-semibold text-blue-800 mb-2">Dados extraídos do PDF:</p>
+                      {uploadExtracted.razaoSocial && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Empresa:</span>
+                          <span className="font-medium text-right">{uploadExtracted.razaoSocial}</span>
+                        </div>
+                      )}
+                      {uploadExtracted.numeroAlvara && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Número:</span>
+                          <span className="font-medium font-mono">{uploadExtracted.numeroAlvara}</span>
+                        </div>
+                      )}
+                      {uploadExtracted.dataVencimento && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Validade:</span>
+                          <span className="font-medium">{uploadExtracted.dataVencimento}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Situação CLI:</span>
+                        <span className={`font-bold ${
+                          uploadExtracted.situacaoCli === "completo" ? "text-green-600" : "text-amber-600"
+                        }`}>
+                          {uploadExtracted.situacaoCli === "completo" ? "✓ Completo" : "⚠ Parcial"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                        disabled={confirmarPdfMutation.isPending}
+                        onClick={() => confirmarPdfMutation.mutate({
+                          fileName: uploadFile?.name ?? "cli.pdf",
+                          dados: uploadExtracted,
+                        })}
+                      >
+                        {confirmarPdfMutation.isPending
+                          ? <><RefreshCw className="h-3 w-3 animate-spin" /> Salvando...</>
+                          : <><CheckCircle2 className="h-3.5 w-3.5" /> Confirmar e Salvar</>}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs px-3"
+                        onClick={() => { setUploadStep("select"); setUploadFile(null); setUploadExtracted(null); }}
+                      >
+                        Trocar PDF
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
