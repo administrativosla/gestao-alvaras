@@ -27,7 +27,6 @@ import {
   FolderOpen,
   RotateCcw,
   History,
-  ShieldCheck,
   ListChecks,
   CircleDot,
   CheckCheck,
@@ -332,7 +331,7 @@ function CliPendenciasCard({
               <CheckCheck className="h-8 w-8 text-green-500 mx-auto" />
               <p className="text-sm font-semibold text-green-800">Todos os órgãos foram resolvidos!</p>
               <p className="text-xs text-green-700">
-                O CLI está pronto para ser finalizado. Faça o upload do CLI definitivo ou marque-o como completo.
+                Para finalizar o CLI, é obrigatório fazer o upload do documento CLI definitivo. O sistema fará a leitura e atualização automática.
               </p>
             </div>
 
@@ -347,7 +346,7 @@ function CliPendenciasCard({
                   <RefreshCw className="h-3.5 w-3.5" /> Fazer Upload do CLI Definitivo
                 </Button>
                 <p className="text-[10px] text-green-600 text-center">
-                  Ou use o botão "Marcar como Completo" abaixo se já recebeu o documento.
+                  Obrigatório para marcar o CLI como completo.
                 </p>
               </div>
             ) : (
@@ -451,55 +450,6 @@ function CliPendenciasCard({
   );
 }
 
-// ─── Card de ação rápida: marcar CLI como completo ─────────────────────────────
-function CliCompletarCard({ alvaraId, onUpdated }: { alvaraId: number; onUpdated: () => void }) {
-  const updateMutation = trpc.alvaras.update.useMutation({
-    onSuccess: () => {
-      toast.success("CLI marcado como Completo! Cobertura atualizada automaticamente.");
-      onUpdated();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  return (
-    <Card className="border border-green-300 bg-green-50 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-green-500 shrink-0">
-            <ShieldCheck className="h-4 w-4 text-white" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-green-800">CLI Parcial — Finalizar</p>
-            <p className="text-xs text-green-700 mt-0.5">
-              Recebeu o CLI definitivo? Marque como completo para atualizar a cobertura do cliente.
-            </p>
-            <Button
-              size="sm"
-              className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white gap-2"
-              disabled={updateMutation.isPending}
-              onClick={() =>
-                updateMutation.mutate({
-                  id: alvaraId,
-                  data: {
-                    situacaoCli: "completo",
-                    pendenciaRegularizacao: false,
-                    motivoPendenciaCli: null,
-                  },
-                })
-              }
-            >
-              {updateMutation.isPending ? (
-                <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Atualizando...</>
-              ) : (
-                <><CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Completo</>
-              )}
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function AlvaraDetail({ id }: Props) {
   const [, setLocation] = useLocation();
@@ -627,8 +577,7 @@ export default function AlvaraDetail({ id }: Props) {
                   />
                 );
               })()}
-              {/* Ação rápida para marcar como completo */}
-              <CliCompletarCard alvaraId={id} onUpdated={() => { refetch(); refetchHistorico(); }} />
+
             </>
           )}
           {/* Alerta de vencimento */}

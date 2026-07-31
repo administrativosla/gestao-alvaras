@@ -109,6 +109,15 @@ export const alvarasRouter = router({
       const current = await getAlvaraById(input.id);
       if (!current) throw new TRPCError({ code: "NOT_FOUND" });
 
+      // TRAVA: situacaoCli só pode ser alterado para "completo" via importação de PDF
+      // Qualquer tentativa manual de marcar como completo é bloqueada aqui
+      if (input.data.situacaoCli === "completo" && current.alvara.situacaoCli !== "completo") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Para marcar o CLI como completo, é obrigatório fazer o upload do documento CLI definitivo. O sistema realizará a leitura e atualização automática.",
+        });
+      }
+
       const updateData: Parameters<typeof updateAlvara>[1] = {
         ...rest,
         dataEmissao: dataEmissao !== undefined ? (parseDate(dataEmissao) ?? undefined) : undefined,

@@ -372,55 +372,139 @@ export default function ImportarPage() {
       )}
 
       {/* Step 3: Revisão PDF */}
-      {step === "revisao" && pdfExtracted && (
-        <div className="space-y-4">
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-sm font-semibold">Revisão dos Dados Extraídos</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Verifique e corrija os dados extraídos automaticamente do PDF antes de salvar.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Object.entries(pdfRevisao).map(([key, value]) => (
-                  <div key={key} className="space-y-1.5">
-                    <Label className="text-xs font-medium capitalize">
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </Label>
-                    <Input
-                      value={String(value ?? "")}
-                      onChange={(e) => setPdfRevisao((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="text-sm"
-                    />
-                  </div>
-                ))}
+      {step === "revisao" && pdfExtracted && (() => {
+        // Campos a exibir no grid de edição (excluir campos estruturados/internos)
+        const CAMPOS_OCULTOS = new Set(["cliOrgaosPendentes", "situacaoCli", "cliNumeroSolicitacao", "arquivoPdfKey", "arquivoPdfUrl"]);
+        const LABELS: Record<string, string> = {
+          cnpj: "CNPJ", razaoSocial: "Razão Social", nomeFantasia: "Nome Fantasia",
+          inscricaoEstadual: "Inscrição Estadual", inscricaoMunicipal: "Inscrição Municipal",
+          logradouro: "Logradouro", numero: "Número", bairro: "Bairro", cidade: "Cidade",
+          uf: "UF", cep: "CEP", numeroAlvara: "Número / Protocolo", tipo: "Tipo",
+          orgaoEmissor: "Órgão Emissor", dataEmissao: "Data de Emissão", dataVencimento: "Data de Vencimento",
+        };
+        const orgaosPendentes: any[] = Array.isArray(pdfRevisao.cliOrgaosPendentes) ? pdfRevisao.cliOrgaosPendentes : [];
+        const isCliParcial = pdfRevisao.situacaoCli === "parcial";
+        const isCli = pdfRevisao.tipo === "CLI";
+        return (
+          <div className="space-y-4">
+            {/* Alerta CLI Parcial */}
+            {isCliParcial && (
+              <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">CLI Parcial — Pendente de Finalização</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Este documento ainda não produz efeitos legais completos. Os órgãos abaixo ainda não emitiram manifestação definitiva.
+                  </p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          <div className="flex gap-3 justify-between">
-            <Button variant="outline" onClick={resetar}>Voltar</Button>
-            <Button
-              onClick={() => {
-                if (!pdfRevisao.dataVencimento) {
-                  toast.error("Preencha a Data de Vencimento antes de salvar — o alvará não pode ser criado sem ela.");
-                  return;
-                }
-                confirmarPdfMutation.mutate({ fileName: file?.name ?? "alvara.pdf", dados: pdfRevisao });
-              }}
-              disabled={confirmarPdfMutation.isPending}
-              className="gap-2"
-            >
-              {confirmarPdfMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</>
-              ) : (
-                <>Confirmar e salvar <ArrowRight className="h-4 w-4" /></>
-              )}
-            </Button>
+            {/* Painel de órgãos pendentes detectados */}
+            {isCli && orgaosPendentes.length > 0 && (
+              <Card className="border border-amber-200 shadow-sm bg-amber-50/40">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <CardTitle className="text-sm font-semibold text-amber-800">
+                      Órgãos Pendentes Detectados ({orgaosPendentes.length})
+                    </CardTitle>
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    A IA identificou os seguintes órgãos que ainda não emitiram manifestação definitiva neste CLI:
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {orgaosPendentes.map((org: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-3 rounded-lg border border-amber-200 bg-white p-3">
+                      <div className="mt-0.5 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{org.orgao}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Tipo esperado: <span className="font-medium">{org.tipoManifestacao}</span>
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+                        Pendente
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-amber-600 mt-2">
+                    Estes órgãos serão registrados como pendências e poderão ser acompanhados no detalhe do alvará.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* CLI completo sem pendências */}
+            {isCli && !isCliParcial && (
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <p className="text-sm text-emerald-700 font-medium">CLI Completo — todos os órgãos com manifestação definitiva</p>
+              </div>
+            )}
+
+            {/* Situação CLI (readonly) */}
+            {isCli && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5" />
+                Situação detectada automaticamente:
+                <span className={`font-semibold ${isCliParcial ? "text-amber-600" : "text-emerald-600"}`}>
+                  {isCliParcial ? "Parcial" : "Completo"}
+                </span>
+              </div>
+            )}
+
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-sm font-semibold">Revisão dos Dados Extraídos</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Verifique e corrija os dados antes de salvar.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.entries(pdfRevisao)
+                    .filter(([key]) => !CAMPOS_OCULTOS.has(key))
+                    .map(([key, value]) => (
+                      <div key={key} className="space-y-1.5">
+                        <Label className="text-xs font-medium">
+                          {LABELS[key] ?? key.replace(/([A-Z])/g, " $1").trim()}
+                        </Label>
+                        <Input
+                          value={String(value ?? "")}
+                          onChange={(e) => setPdfRevisao((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-3 justify-between">
+              <Button variant="outline" onClick={resetar}>Voltar</Button>
+              <Button
+                onClick={() => {
+                  if (!pdfRevisao.dataVencimento) {
+                    toast.error("Preencha a Data de Vencimento antes de salvar — o alvará não pode ser criado sem ela.");
+                    return;
+                  }
+                  confirmarPdfMutation.mutate({ fileName: file?.name ?? "alvara.pdf", dados: pdfRevisao });
+                }}
+                disabled={confirmarPdfMutation.isPending}
+                className="gap-2"
+              >
+                {confirmarPdfMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</>
+                ) : (
+                  <>Confirmar e salvar <ArrowRight className="h-4 w-4" /></>
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Step 4: Concluído */}
       {step === "concluido" && resultado && (

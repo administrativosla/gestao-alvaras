@@ -745,6 +745,15 @@ Se não encontrar um campo, use null.`,
             dataEmissao: z.string().optional().nullable(),
             dataVencimento: z.string().optional().nullable(),
             situacaoCli: z.string().optional().nullable(),
+            cliNumeroSolicitacao: z.string().optional().nullable(),
+            cliOrgaosPendentes: z.array(z.object({
+              orgao: z.string(),
+              tipoManifestacao: z.string(),
+              status: z.string(),
+              resolvidoEm: z.string().optional().nullable(),
+              resolvidoPor: z.string().optional().nullable(),
+              observacao: z.string().optional().nullable(),
+            })).optional().nullable(),
           })
         ).min(1),
         colaborador: z.string().optional(),
@@ -798,22 +807,40 @@ Se não encontrar um campo, use null.`,
               const _situacaoCliLote = reg.situacaoCli ?? null;
               const _pendenciaLote = _situacaoCliLote === "parcial";
 
+              // Serializar pendências por órgão
+              const orgaosPendentesJsonLote = reg.cliOrgaosPendentes && reg.cliOrgaosPendentes.length > 0
+                ? JSON.stringify(reg.cliOrgaosPendentes)
+                : null;
+
               // Verificar se já existe alvará ativo para este cliente (upsert)
               const alvaraExistenteLote = await findAlvaraExistente(clienteId, {
-                cliNumeroSolicitacao: (reg as any).cliNumeroSolicitacao ?? reg.numeroAlvara ?? null,
+                cliNumeroSolicitacao: reg.cliNumeroSolicitacao ?? reg.numeroAlvara ?? null,
                 numeroAlvara: reg.numeroAlvara ?? null,
                 tipo: reg.tipo ?? null,
               });
 
               if (alvaraExistenteLote) {
-                // Atualizar alvará existente
+                // Atualizar alvará existente — preservar pendências já resolvidas manualmente
                 const statusAnteriorLote = alvaraExistenteLote.status;
+                let orgaosMergedLote = orgaosPendentesJsonLote;
+                if (alvaraExistenteLote.cliOrgaosPendentes && orgaosPendentesJsonLote) {
+                  try {
+                    const existentesL: any[] = JSON.parse(alvaraExistenteLote.cliOrgaosPendentes);
+                    const novosL: any[] = JSON.parse(orgaosPendentesJsonLote);
+                    const mergedL = novosL.map((n: any) => {
+                      const prev = existentesL.find((e: any) => e.orgao === n.orgao);
+                      return prev?.status === "resolvido" ? prev : n;
+                    });
+                    orgaosMergedLote = JSON.stringify(mergedL);
+                  } catch { /* manter novo */ }
+                }
                 await updateAlvara(alvaraExistenteLote.id, {
                   dataVencimento,
                   dataEmissao: parseDate(reg.dataEmissao) ?? alvaraExistenteLote.dataEmissao ?? undefined,
                   situacaoCli: _situacaoCliLote,
                   pendenciaRegularizacao: _pendenciaLote,
                   motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+                  cliOrgaosPendentes: orgaosMergedLote,
                   status,
                 });
                 await addHistorico({
@@ -836,6 +863,7 @@ Se não encontrar um campo, use null.`,
                   situacaoCli: _situacaoCliLote,
                   pendenciaRegularizacao: _pendenciaLote,
                   motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
+                  cliOrgaosPendentes: orgaosPendentesJsonLote,
                   status,
                 });
                 await addHistorico({

@@ -343,3 +343,22 @@
 - [x] Procedure `negociacoes.criar` aceita `statusInicial` opcional para registrar qualquer status
 - [x] Dialog de registro mostra o status selecionado, campos de responsável, data e observação
 - [x] Validação: "Em Vigência" exige alvará ativo cadastrado
+
+## Correção V3.9 — Órgãos Pendentes não aparecem após importação
+
+### Bug 1: Importação em lote não salva cliOrgaosPendentes
+- [ ] Adicionar cliOrgaosPendentes ao schema de input do confirmarLote
+- [ ] Salvar cliOrgaosPendentes no banco ao confirmar importação em lote (insert e update)
+- [ ] Fazer merge de resolvidos manualmente (igual ao confirmarPdf unitário)
+
+### Bug 2: Tela de revisão não exibe órgãos pendentes detectados
+- [ ] Exibir lista estruturada dos órgãos pendentes na tela de revisão da importação unitária (ImportarPage)
+- [ ] Exibir lista estruturada dos órgãos pendentes na tela de revisão da importação em lote (ImportarLotePage)
+- [ ] Garantir que cliOrgaosPendentes é passado corretamente no payload do confirmarPdf
+
+## V3.10 — Trava: CLI Parcial → Completo somente via Upload de PDF
+
+- [x] Backend: bloquear mudança manual de situacaoCli para "completo" na procedure alvaras.update (erro FORBIDDEN)
+- [x] Frontend: remover CliCompletarCard (botão "Marcar como Completo") do AlvaraDetail
+- [x] Frontend: no estado "todos resolvidos" do CliPendenciasCard, exibir apenas o botão de upload do CLI definitivo com mensagem obrigatória
+- [x] Frontend: mensagem clara ao operador explicando que o CLI só pode ser marcado como completo via upload do documento definitivo
