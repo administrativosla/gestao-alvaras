@@ -266,6 +266,50 @@ export default function ClientesList() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
+        {/* Atalho rápido: filtrar por São Paulo */}
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-3 w-3" /> Estado
+          </Label>
+          <div className="flex gap-1.5 items-center">
+            <button
+              onClick={() => {
+                if (estadoFiltro === "SP") {
+                  setEstadoFiltro("");
+                  setMunicipioFiltro("");
+                } else {
+                  setEstadoFiltro("SP");
+                  setMunicipioFiltro("");
+                }
+              }}
+              className={`h-9 px-3 rounded-md text-xs font-semibold border transition-all ${
+                estadoFiltro === "SP"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-white text-blue-700 border-blue-300 hover:bg-blue-50"
+              }`}
+            >
+              🇧🇷 SP
+            </button>
+            <Select
+              value={estadoFiltro || "all"}
+              onValueChange={(v) => {
+                setEstadoFiltro(v === "all" ? "" : v);
+                setMunicipioFiltro("");
+              }}
+            >
+              <SelectTrigger className="h-9 text-sm w-[130px]">
+                <SelectValue placeholder="Outros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os estados</SelectItem>
+                {(estados ?? []).map((e) => (
+                  <SelectItem key={e} value={e}>{e}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -274,29 +318,6 @@ export default function ClientesList() {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-9 text-sm"
           />
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-3 w-3" /> Estado
-          </Label>
-          <Select
-            value={estadoFiltro || "all"}
-            onValueChange={(v) => {
-              setEstadoFiltro(v === "all" ? "" : v);
-              setMunicipioFiltro("");
-            }}
-          >
-            <SelectTrigger className="h-9 text-sm w-[140px]">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os estados</SelectItem>
-              {(estados ?? []).map((e) => (
-                <SelectItem key={e} value={e}>{e}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="space-y-1">

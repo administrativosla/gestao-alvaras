@@ -112,6 +112,7 @@ export default function NegociacaoCard({ clienteId }: Props) {
   const [observacao, setObservacao] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [dataContato, setDataContato] = useState(new Date().toISOString().slice(0, 10));
+  const [statusInicialSelecionado, setStatusInicialSelecionado] = useState<NegociacaoStatus>("contato_realizado");
 
   const invalidate = () => {
     utils.negociacoes.get.invalidate({ clienteId });
@@ -205,18 +206,31 @@ export default function NegociacaoCard({ clienteId }: Props) {
         </CardHeader>
         <CardContent className="space-y-3">
           {!negociacao ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Nenhuma negociação ativa. Inicie uma para acompanhar o pipeline comercial.
+                Nenhuma negociação ativa. Registre o status atual deste cliente no pipeline comercial.
               </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => setShowIniciarDialog(true)}
-              >
-                <Plus className="h-3.5 w-3.5" /> Iniciar Negociação
-              </Button>
+              {/* Seletor rápido de status inicial */}
+              <div className="grid grid-cols-1 gap-1.5">
+                {(Object.entries(STATUS_CONFIG) as [NegociacaoStatus, typeof STATUS_CONFIG[NegociacaoStatus]][]).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setStatusInicialSelecionado(key);
+                      setShowIniciarDialog(true);
+                    }}
+                    className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-all hover:shadow-sm ${
+                      key === "proposta_recusada"
+                        ? "border-red-200 bg-red-50 hover:bg-red-100 dark:bg-red-950/20"
+                        : cfg.bg
+                    }`}
+                  >
+                    <cfg.icon className={`h-3.5 w-3.5 shrink-0 ${cfg.color}`} />
+                    <span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
+                    <ArrowRight className="h-3 w-3 ml-auto text-muted-foreground/50" />
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -365,12 +379,25 @@ export default function NegociacaoCard({ clienteId }: Props) {
       </Card>
 
       {/* Dialog: Iniciar negociação */}
-      <Dialog open={showIniciarDialog} onOpenChange={setShowIniciarDialog}>
+      <Dialog open={showIniciarDialog} onOpenChange={(open) => {
+        setShowIniciarDialog(open);
+        if (!open) { setObservacao(""); setResponsavel(""); setDataContato(new Date().toISOString().slice(0, 10)); }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Iniciar Negociação</DialogTitle>
+            <DialogTitle>Registrar Status de Negociação</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Status selecionado */}
+            <div>
+              <Label className="text-xs text-muted-foreground">Status inicial</Label>
+              <div className={`mt-1 flex items-center gap-2 rounded-lg border px-3 py-2 ${STATUS_CONFIG[statusInicialSelecionado].bg}`}>
+                {(() => { const Ic = STATUS_CONFIG[statusInicialSelecionado].icon; return <Ic className={`h-4 w-4 ${STATUS_CONFIG[statusInicialSelecionado].color}`} />; })()}
+                <span className={`text-sm font-semibold ${STATUS_CONFIG[statusInicialSelecionado].color}`}>
+                  {STATUS_CONFIG[statusInicialSelecionado].label}
+                </span>
+              </div>
+            </div>
             <div>
               <Label className="text-xs">Responsável</Label>
               <Input
@@ -381,7 +408,7 @@ export default function NegociacaoCard({ clienteId }: Props) {
               />
             </div>
             <div>
-              <Label className="text-xs">Data do Contato</Label>
+              <Label className="text-xs">Data do Contato / Registro</Label>
               <Input
                 type="date"
                 value={dataContato}
@@ -394,11 +421,19 @@ export default function NegociacaoCard({ clienteId }: Props) {
               <Textarea
                 value={observacao}
                 onChange={(e) => setObservacao(e.target.value)}
-                placeholder="Descreva o contato realizado..."
+                placeholder="Descreva a situação atual..."
                 className="mt-1 resize-none"
                 rows={3}
               />
             </div>
+            {statusInicialSelecionado === "em_vigencia" && (
+              <div className="flex items-start gap-2 rounded-md bg-violet-50 border border-violet-200 p-2.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-violet-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-violet-700">
+                  Para registrar "Em Vigência" é necessário ter pelo menos um CLI/alvará ativo cadastrado para este cliente.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowIniciarDialog(false)}>
@@ -411,12 +446,13 @@ export default function NegociacaoCard({ clienteId }: Props) {
                   responsavel: responsavel || undefined,
                   observacao: observacao || undefined,
                   dataContato,
+                  statusInicial: statusInicialSelecionado,
                 })
               }
               disabled={criarMutation.isPending}
             >
               {criarMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Iniciar
+              Registrar
             </Button>
           </DialogFooter>
         </DialogContent>

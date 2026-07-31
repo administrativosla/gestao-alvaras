@@ -127,6 +127,7 @@ export const negociacoesRouter = router({
         responsavel: z.string().optional(),
         observacao: z.string().optional(),
         dataContato: z.string().optional(), // ISO date string
+        statusInicial: z.enum(NEGOCIACAO_STATUS).optional(), // permite definir status inicial diferente de contato_realizado
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -148,10 +149,26 @@ export const negociacoesRouter = router({
       }
 
       const responsavel = input.responsavel ?? ctx.user.name ?? ctx.user.email ?? "Sistema";
+      const statusInicial = input.statusInicial ?? "contato_realizado";
+
+      // Validação especial: em_vigencia exige alvara cadastrado
+      if (statusInicial === "em_vigencia") {
+        const [alvaraAtivo] = await db
+          .select({ id: alvaras.id })
+          .from(alvaras)
+          .where(and(eq(alvaras.clienteId, input.clienteId), eq(alvaras.ativo, true)))
+          .limit(1);
+        if (!alvaraAtivo) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Para registrar 'Em Vigência' é obrigatório cadastrar pelo menos um CLI ou alvará ativo para este cliente.",
+          });
+        }
+      }
 
       const [result] = await db.insert(negociacoes).values({
         clienteId: input.clienteId,
-        status: "contato_realizado",
+        status: statusInicial,
         responsavel,
         observacao: input.observacao,
         dataContato: input.dataContato ? new Date(input.dataContato) : new Date(),
@@ -164,7 +181,7 @@ export const negociacoesRouter = router({
         negociacaoId,
         clienteId: input.clienteId,
         statusAnterior: null,
-        statusNovo: "contato_realizado",
+        statusNovo: statusInicial,
         responsavel,
         observacao: input.observacao ?? "Negociação iniciada",
       });

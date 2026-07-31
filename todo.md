@@ -333,3 +333,13 @@
 - [x] Adicionar botão "Desfazer Resolução" em cada órgão já marcado como resolvido no CliPendenciasCard
 - [x] Criar procedure `alvaras.desfazerResolucaoOrgao` no backend: reverte o status do órgão para "pendente" e registra no histórico
 - [x] Ao desfazer, o card volta ao estado âmbar (pendências ativas) e o contador é atualizado
+
+## V3.8 — Limpeza de Base + Filtro SP + Card de Status para Clientes sem Alvará
+
+- [x] Limpar tabelas: alvaras, alvara_historico, negociacoes, negociacoes_historico
+- [x] Mover filtro "São Paulo" para o início da barra de filtros na tela de clientes (botão SP + dropdown)
+- [x] Criar card de status completo para clientes sem nenhum alvará cadastrado
+- [x] Card exibe todos os 5 status como botões clicáveis para registro direto
+- [x] Procedure `negociacoes.criar` aceita `statusInicial` opcional para registrar qualquer status
+- [x] Dialog de registro mostra o status selecionado, campos de responsável, data e observação
+- [x] Validação: "Em Vigência" exige alvará ativo cadastrado
