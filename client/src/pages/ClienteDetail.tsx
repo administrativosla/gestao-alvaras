@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   ShieldOff,
+  ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatCnpj, formatDate, calcDiasParaVencimento, getAlertaInfo, getStatusColor } from "@/lib/alvaras";
@@ -275,10 +276,10 @@ export default function ClienteDetail({ id }: Props) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setLocation(`/alvaras/novo?clienteId=${id}`)}
+            onClick={() => setLocation(`/importar?clienteId=${id}`)}
             className="gap-2"
           >
-            <Plus className="h-3.5 w-3.5" /> Novo Alvará
+            <Plus className="h-3.5 w-3.5" /> Importar PDF
           </Button>
         </div>
 
@@ -323,7 +324,20 @@ export default function ClienteDetail({ id }: Props) {
                             )}
                           </p>
                         </div>
-                        <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
+                        <div className="flex items-center gap-2 shrink-0">
+                          {(a.alvara as any).arquivoPdfUrl && (
+                            <a
+                              href={(a.alvara as any).arquivoPdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink className="h-3 w-3" /> PDF
+                            </a>
+                          )}
+                          <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

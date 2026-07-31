@@ -143,8 +143,8 @@ export default function NegociacaoCard({ clienteId }: Props) {
       if (e.message.includes("obrigatório cadastrar")) {
         toast.error(e.message, {
           action: {
-            label: "Cadastrar Alvará",
-            onClick: () => setLocation(`/alvaras/novo?clienteId=${clienteId}`),
+            label: "Importar PDF",
+            onClick: () => setLocation(`/importar?clienteId=${clienteId}`),
           },
           duration: 8000,
         });
@@ -273,9 +273,9 @@ export default function NegociacaoCard({ clienteId }: Props) {
                       size="sm"
                       variant="outline"
                       className="mt-2 h-6 text-xs gap-1 border-violet-300 text-violet-700 hover:bg-violet-100"
-                      onClick={() => setLocation(`/alvaras/novo?clienteId=${clienteId}`)}
+                      onClick={() => setLocation(`/importar?clienteId=${clienteId}`)}
                     >
-                      <Plus className="h-3 w-3" /> Cadastrar Alvará
+                      <Plus className="h-3 w-3" /> Importar PDF do CLI
                     </Button>
                   </div>
                 </div>

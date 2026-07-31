@@ -17,6 +17,7 @@ import {
   CalendarClock,
   ShieldCheck,
   UserX,
+  ExternalLink,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -443,7 +444,20 @@ export default function Dashboard() {
                           </p>
                         )}
                       </div>
-                      <ArrowRight className="h-3.5 w-3.5 text-amber-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-2 shrink-0">
+                        {(cli as any).arquivoPdfUrl && (
+                          <a
+                            href={(cli as any).arquivoPdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink className="h-3 w-3" /> PDF
+                          </a>
+                        )}
+                        <ArrowRight className="h-3.5 w-3.5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                     </button>
                   ))}
                 </div>

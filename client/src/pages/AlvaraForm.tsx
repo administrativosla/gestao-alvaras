@@ -52,6 +52,58 @@ export default function AlvaraForm({ id }: Props) {
   const clienteIdFromUrl = params.get("clienteId");
   const isEditing = !!id;
 
+  // Bloquear criação manual — redirecionar para importação via PDF
+  if (!isEditing) {
+    return (
+      <div className="space-y-6 max-w-2xl animate-fade-in-up">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/alvaras")} className="h-9 w-9">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Cadastro de Alvará</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Importação obrigatória via PDF</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-amber-100 shrink-0">
+              <Info className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-800">Cadastro manual não disponível</p>
+              <p className="text-sm text-amber-700">
+                Todos os alvarás e CLIs devem ser cadastrados via upload do documento PDF original.
+                O sistema realiza a leitura automática do documento e extrai os dados necessários.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button
+              onClick={() => setLocation(clienteIdFromUrl ? `/importar?clienteId=${clienteIdFromUrl}` : "/importar")}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" /> Importar PDF (unitário)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/importar/lote")}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" /> Importar em Lote
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setLocation("/alvaras")}
+            >
+              Voltar para Alvarás
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const [form, setForm] = useState({
     clienteId: clienteIdFromUrl ? Number(clienteIdFromUrl) : 0,
     numeroAlvara: "",

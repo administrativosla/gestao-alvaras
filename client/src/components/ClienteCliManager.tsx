@@ -152,7 +152,7 @@ export default function ClienteCliManager({ clienteId }: Props) {
           <FileText className="h-7 w-7 text-muted-foreground" />
           <p className="text-sm text-muted-foreground font-medium">Nenhum CLI ou alvará cadastrado</p>
           <p className="text-xs text-muted-foreground text-center max-w-xs">
-            Importe um PDF de CLI ou cadastre manualmente via "Novo Alvará".
+            Importe o PDF do CLI ou alvará para registrar automaticamente as informações de licenciamento.
           </p>
         </CardContent>
       </Card>

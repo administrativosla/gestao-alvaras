@@ -362,3 +362,20 @@
 - [x] Frontend: remover CliCompletarCard (botão "Marcar como Completo") do AlvaraDetail
 - [x] Frontend: no estado "todos resolvidos" do CliPendenciasCard, exibir apenas o botão de upload do CLI definitivo com mensagem obrigatória
 - [x] Frontend: mensagem clara ao operador explicando que o CLI só pode ser marcado como completo via upload do documento definitivo
+
+## V3.11 — Upload Obrigatório + Acesso ao PDF em Todo o Sistema
+
+### Bloquear cadastro manual de alvará sem PDF
+- [x] Verificar se existe rota /alvaras/novo (AlvaraForm) e remover ou redirecionar para importação
+- [x] Remover botão "Novo Alvará" de qualquer tela que ainda o exiba (AlvarasList, ClienteDetail)
+- [x] Garantir que o único ponto de entrada de alvará seja via /importar ou /importar-lote
+
+### Garantir acesso ao PDF em todo o sistema
+- [x] AlvaraDetail: confirmar que botão "Ver PDF" / "Download" está presente e funcional
+- [x] AlvarasList: adicionar ícone/link de acesso ao PDF em cada linha da listagem
+- [x] ClienteDetail (aba Gerenciar CLIs): confirmar botão "Ver PDF" funcional em cada CLI
+- [x] Dashboard (seção CLI Parcial): adicionar link para o PDF junto ao nome do alvará
+- [x] Garantir que arquivoPdfUrl é retornado em todas as queries relevantes (alvaras.list, alvaras.get, alvaras.getByCliente)
+
+### Relatório técnico
+- [x] Gerar relatório técnico PDF explicando a lógica de análise dos documentos CLI

@@ -10,7 +10,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { FileText, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, AlertTriangle, Download } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { calcDiasParaVencimento, formatDate, formatCnpj, getAlertaInfo, TIPOS_ALVARA, STATUS_RENOVACAO } from "@/lib/alvaras";
@@ -55,8 +55,8 @@ export default function AlvarasList() {
           <h1 className="text-2xl font-semibold tracking-tight">Alvarás</h1>
           <p className="text-sm text-muted-foreground mt-1">Gerencie todos os alvarás cadastrados</p>
         </div>
-        <Button onClick={() => setLocation("/alvaras/novo")} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Alvará
+        <Button onClick={() => setLocation("/importar")} className="gap-2">
+          <Plus className="h-4 w-4" /> Importar Alvará
         </Button>
       </div>
 
@@ -117,8 +117,8 @@ export default function AlvarasList() {
                 <FileText className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">Nenhum alvará encontrado</p>
-              <Button variant="outline" size="sm" onClick={() => setLocation("/alvaras/novo")}>
-                Cadastrar alvará
+              <Button variant="outline" size="sm" onClick={() => setLocation("/importar")} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Importar PDF
               </Button>
             </div>
           ) : (
@@ -200,6 +200,11 @@ export default function AlvarasList() {
                             <DropdownMenuItem onClick={() => setLocation(`/alvaras/${a.alvara.id}/editar`)}>
                               <Pencil className="mr-2 h-4 w-4" /> Editar
                             </DropdownMenuItem>
+                            {(a.alvara as any).arquivoPdfUrl && (
+                              <DropdownMenuItem onClick={() => window.open((a.alvara as any).arquivoPdfUrl, "_blank")}>
+                                <FileText className="mr-2 h-4 w-4 text-red-500" /> Ver PDF
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => handleDelete(a.alvara.id)}

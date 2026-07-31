@@ -304,6 +304,7 @@ export const alvarasRouter = router({
         status: r.alvara.status,
         cliOrgaosPendentes: orgaosPendentes,
         totalOrgaosPendentes: totalPendentes,
+        arquivoPdfUrl: (r.alvara as any).arquivoPdfUrl ?? null,
       };
     });
   }),
