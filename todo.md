@@ -347,14 +347,14 @@
 ## Correção V3.9 — Órgãos Pendentes não aparecem após importação
 
 ### Bug 1: Importação em lote não salva cliOrgaosPendentes
-- [ ] Adicionar cliOrgaosPendentes ao schema de input do confirmarLote
-- [ ] Salvar cliOrgaosPendentes no banco ao confirmar importação em lote (insert e update)
-- [ ] Fazer merge de resolvidos manualmente (igual ao confirmarPdf unitário)
+- [x] Adicionar cliOrgaosPendentes ao schema de input do confirmarLote
+- [x] Salvar cliOrgaosPendentes no banco ao confirmar importação em lote (insert e update)
+- [x] Fazer merge de resolvidos manualmente (igual ao confirmarPdf unitário)
 
 ### Bug 2: Tela de revisão não exibe órgãos pendentes detectados
-- [ ] Exibir lista estruturada dos órgãos pendentes na tela de revisão da importação unitária (ImportarPage)
-- [ ] Exibir lista estruturada dos órgãos pendentes na tela de revisão da importação em lote (ImportarLotePage)
-- [ ] Garantir que cliOrgaosPendentes é passado corretamente no payload do confirmarPdf
+- [x] Exibir lista estruturada dos órgãos pendentes na tela de revisão da importação unitária (ImportarPage)
+- [x] Exibir lista estruturada dos órgãos pendentes na tela de revisão da importação em lote (ImportarLotePage)
+- [x] Garantir que cliOrgaosPendentes é passado corretamente no payload do confirmarPdf
 
 ## V3.10 — Trava: CLI Parcial → Completo somente via Upload de PDF
 

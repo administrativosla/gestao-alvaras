@@ -51,6 +51,9 @@ interface RegistroLote {
   orgaoEmissor?: string | null;
   dataEmissao?: string | null;
   dataVencimento?: string | null;
+  situacaoCli?: string | null;
+  cliOrgaosPendentes?: Array<{ orgao: string; tipoManifestacao: string; status: string }> | null;
+  cliNumeroSolicitacao?: string | null;
   _erro?: string | null;
   _incluir: boolean;
 }
@@ -551,7 +554,26 @@ export default function ImportacaoLotePage() {
                                   {reg.cidade && reg.uf && (
                                     <span className="text-xs text-muted-foreground">{reg.cidade}/{reg.uf}</span>
                                   )}
+                                  {reg.situacaoCli === "parcial" && (
+                                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-600 shrink-0">⚠ CLI Parcial</Badge>
+                                  )}
+                                  {reg.situacaoCli === "completo" && (
+                                    <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-600 shrink-0">✓ CLI Completo</Badge>
+                                  )}
                                 </div>
+                                {/* Órgãos pendentes detectados */}
+                                {reg.situacaoCli === "parcial" && reg.cliOrgaosPendentes && reg.cliOrgaosPendentes.length > 0 && (
+                                  <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50/60 p-2 space-y-1">
+                                    <p className="text-xs font-semibold text-amber-700">Órgãos pendentes ({reg.cliOrgaosPendentes.length}):</p>
+                                    {reg.cliOrgaosPendentes.map((org, oi) => (
+                                      <div key={oi} className="flex items-center gap-2">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                                        <span className="text-xs text-amber-800">{org.orgao}</span>
+                                        <span className="text-xs text-amber-600">({org.tipoManifestacao})</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                                 <p className="text-xs text-muted-foreground/60 mt-0.5">{reg.fileName}</p>
                               </div>
                               <Button
