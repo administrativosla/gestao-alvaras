@@ -54,11 +54,41 @@ import {
   ShieldOff,
 } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatCnpj } from "@/lib/alvaras";
 import { toast } from "sonner";
 
 type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
+
+function CnpjCopyCell({ cnpj }: { cnpj: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const raw = cnpj.replace(/\D/g, "");
+    navigator.clipboard.writeText(raw).then(() => {
+      setCopied(true);
+      toast.success("CNPJ copiado!", { duration: 1500 });
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 group">
+      <span className="text-sm font-mono text-muted-foreground">{formatCnpj(cnpj)}</span>
+      <button
+        onClick={handleCopy}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+        title="Copiar CNPJ"
+      >
+        {copied
+          ? <Check className="h-3 w-3 text-green-600" />
+          : <Copy className="h-3 w-3" />}
+      </button>
+    </div>
+  );
+}
 
 function CoberturaBadge({ cobertura, total }: { cobertura: CoberturaStatus; total: number }) {
   if (cobertura === "Sem Registro") {
@@ -436,8 +466,8 @@ export default function ClientesList() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm font-mono text-muted-foreground">
-                        {formatCnpj(c.cnpj)}
+                      <TableCell>
+                        <CnpjCopyCell cnpj={c.cnpj} />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                         <div className="flex items-center gap-1">
