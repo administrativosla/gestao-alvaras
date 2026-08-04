@@ -365,25 +365,22 @@ export default function ClienteDetail({ id }: Props) {
         </Card>
       )}
 
-      {/* ── GRID LATERAL: Comercial + Alertas ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
-          {/* Observações preventivas */}
-          {data.observacoesPreventivas && (
-            <Card className="border shadow-sm border-amber-200 bg-amber-50/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-                  Observações Preventivas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-amber-900 whitespace-pre-wrap">{data.observacoesPreventivas}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      {/* ── PAINEL COMERCIAL (coluna lateral) ─────────────────────────────────── */}
+      {/* Observações preventivas — largura total, só renderiza se houver conteúdo */}
+      {data.observacoesPreventivas && (
+        <Card className="border shadow-sm border-amber-200 bg-amber-50/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+              Observações Preventivas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-amber-900 whitespace-pre-wrap">{data.observacoesPreventivas}</p>
+          </CardContent>
+        </Card>
+      )}
 
-        <div className="space-y-4">
+      <div className="space-y-4">
           {/* Pipeline Comercial */}
           <NegociacaoCard clienteId={id} />
 
@@ -437,7 +434,7 @@ export default function ClienteDetail({ id }: Props) {
               )}
             </CardContent>
           </Card>
-        </div>
+
       </div>
 
       {/* BLOCO 4 — Alvarás e CLIs */}
