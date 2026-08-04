@@ -17,6 +17,8 @@ import { eq as eqDrizzle, and as andDrizzle } from "drizzle-orm";
 import { STATUS_RENOVACAO, emailsAlerta, emailsGlobais } from "../../drizzle/schema";
 import { parseDate } from "../utils/parseDate";
 import { enviarNotificacaoStatusAtualizado } from "../services/email";
+import { executarValidacao, validacaoParaCampos } from "../validation";
+import { getClienteById } from "../db";
 
 const statusEnum = z.enum(STATUS_RENOVACAO);
 
@@ -360,6 +362,45 @@ export const alvarasRouter = router({
       });
 
       return { success: true, todosResolvidos };
+    }),
+
+  // Revalida um alvará cruzando com os dados atuais da Receita Federal
+  revalidar: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const row = await getAlvaraById(input.id);
+      if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const clienteData = await getClienteById(row.alvara.clienteId);
+      if (!clienteData) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+
+      const validacao = executarValidacao(
+        {
+          logradouro: (row.alvara as any).logradouro ?? null,
+          numero: (row.alvara as any).numero ?? null,
+          bairro: (row.alvara as any).bairro ?? null,
+          cidade: (row.alvara as any).cidade ?? null,
+          uf: (row.alvara as any).uf ?? null,
+          cep: (row.alvara as any).cep ?? null,
+          tipo: row.alvara.tipo ?? null,
+          orgaoEmissor: row.alvara.orgaoEmissor ?? null,
+        },
+        {
+          situacaoCadastral: clienteData.situacaoCadastral,
+          logradouro: clienteData.logradouro,
+          numero: clienteData.numero,
+          bairro: clienteData.bairro,
+          cidade: clienteData.cidade,
+          uf: clienteData.uf,
+          cep: clienteData.cep,
+          cnaePrincipal: clienteData.cnaePrincipal,
+          cnaePrincipalDescricao: clienteData.cnaePrincipalDescricao,
+          cnaesSecundarios: clienteData.cnaesSecundarios,
+        }
+      );
+
+      await updateAlvara(input.id, validacaoParaCampos(validacao));
+      return { success: true, validacao };
     }),
 
   // Desfaz a resolução de uma pendência de órgão (reverte para "pendente")

@@ -15,6 +15,8 @@ import {
 import * as XLSX from "xlsx";
 import { invokeLLM } from "../_core/llm";
 import { parseDate } from "../utils/parseDate";
+import { executarValidacao, validacaoParaCampos } from "../validation";
+import { getClienteById } from "../db";
 
 // Campos disponíveis para mapeamento
 export const CAMPOS_MAPEAMENTO = [
@@ -560,10 +562,47 @@ Se não encontrar um campo, use null.`,
         }
       }
 
+      // ── Executar validação após salvar o alvará ─────────────────────────────────────────────────────────────────────────────────
+      if (alvaraId) {
+        try {
+          const clienteData = await getClienteById(clienteId);
+          if (clienteData) {
+            const validacao = executarValidacao(
+              {
+                logradouro: dados.logradouro,
+                numero: dados.numero,
+                bairro: dados.bairro,
+                cidade: dados.cidade,
+                uf: dados.uf,
+                cep: dados.cep,
+                tipo: dados.tipo,
+                orgaoEmissor: dados.orgaoEmissor,
+              },
+              {
+                situacaoCadastral: clienteData.situacaoCadastral,
+                logradouro: clienteData.logradouro,
+                numero: clienteData.numero,
+                bairro: clienteData.bairro,
+                cidade: clienteData.cidade,
+                uf: clienteData.uf,
+                cep: clienteData.cep,
+                cnaePrincipal: clienteData.cnaePrincipal,
+                cnaePrincipalDescricao: clienteData.cnaePrincipalDescricao,
+                cnaesSecundarios: clienteData.cnaesSecundarios,
+              }
+            );
+            await updateAlvara(alvaraId, validacaoParaCampos(validacao));
+          }
+        } catch (e) {
+          // Validação não bloqueia a importação — falha silenciosa com log
+          console.error("[Validação] Erro ao validar alvará", alvaraId, e);
+        }
+      }
+
       return { clienteId, alvaraId, success: true };
     }),
 
-  // ── Extrai dados de múltiplos PDFs via LLM (processamento paralelo) ─────────
+  // ── Extrai dados de múltiplos PDFs via LLM (processamento paralelo) ───────────
   parsePdfLote: publicProcedure
     .input(
       z.object({
@@ -819,6 +858,9 @@ Se não encontrar um campo, use null.`,
                 tipo: reg.tipo ?? null,
               });
 
+              // Variável para guardar o ID do alvará criado/atualizado
+              let alvaraIdLote: number | null = null;
+
               if (alvaraExistenteLote) {
                 // Atualizar alvará existente — preservar pendências já resolvidas manualmente
                 const statusAnteriorLote = alvaraExistenteLote.status;
@@ -850,10 +892,11 @@ Se não encontrar um campo, use null.`,
                   observacao: `Atualizado via re-upload em lote: ${reg.fileName}. Situação CLI: ${_situacaoCliLote ?? "não informada"}.${status === "Em Vigência" ? ` Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : " Vencimento próximo."}`,
                   colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
                 });
+                alvaraIdLote = alvaraExistenteLote.id;
                 atualizados++;
               } else {
                 // Criar novo alvará
-                const alvaraId = await createAlvara({
+                const novoAlvaraId = await createAlvara({
                   clienteId,
                   numeroAlvara: reg.numeroAlvara ?? null,
                   tipo: reg.tipo ?? "Funcionamento",
@@ -867,13 +910,50 @@ Se não encontrar um campo, use null.`,
                   status,
                 });
                 await addHistorico({
-                  alvaraId,
+                  alvaraId: novoAlvaraId,
                   statusAnterior: null,
                   statusNovo: status,
                   observacao: `Importado em lote via PDF: ${reg.fileName}${status === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
                   colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
                 });
+                alvaraIdLote = novoAlvaraId;
                 importados++;
+              }
+
+              // ── Executar validação após salvar o alvará ─────────────────────────────────────────────────────────────────────────────────
+              if (alvaraIdLote) {
+                try {
+                  const clienteDataLote = await getClienteById(clienteId);
+                  if (clienteDataLote) {
+                    const validacaoLote = executarValidacao(
+                      {
+                        logradouro: reg.logradouro,
+                        numero: reg.numero,
+                        bairro: reg.bairro,
+                        cidade: reg.cidade,
+                        uf: reg.uf,
+                        cep: reg.cep,
+                        tipo: reg.tipo,
+                        orgaoEmissor: reg.orgaoEmissor,
+                      },
+                      {
+                        situacaoCadastral: clienteDataLote.situacaoCadastral,
+                        logradouro: clienteDataLote.logradouro,
+                        numero: clienteDataLote.numero,
+                        bairro: clienteDataLote.bairro,
+                        cidade: clienteDataLote.cidade,
+                        uf: clienteDataLote.uf,
+                        cep: clienteDataLote.cep,
+                        cnaePrincipal: clienteDataLote.cnaePrincipal,
+                        cnaePrincipalDescricao: clienteDataLote.cnaePrincipalDescricao,
+                        cnaesSecundarios: clienteDataLote.cnaesSecundarios,
+                      }
+                    );
+                    await updateAlvara(alvaraIdLote, validacaoParaCampos(validacaoLote));
+                  }
+                } catch (e) {
+                  console.error("[Validação Lote] Erro ao validar alvará", alvaraIdLote, e);
+                }
               }
             }
           } else {

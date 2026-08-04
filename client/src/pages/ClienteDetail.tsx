@@ -435,7 +435,7 @@ export default function ClienteDetail({ id }: Props) {
             </CardContent>
           </Card>
 
-      </div>
+      </div>{/* fim space-y-4 comercial */}
 
       {/* BLOCO 4 — Alvarás e CLIs */}
       <Tabs defaultValue="alvaras" className="space-y-4">

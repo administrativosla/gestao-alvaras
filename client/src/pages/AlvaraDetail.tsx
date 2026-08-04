@@ -30,6 +30,9 @@ import {
   ListChecks,
   CircleDot,
   CheckCheck,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -458,6 +461,11 @@ export default function AlvaraDetail({ id }: Props) {
   const { data, isLoading, refetch } = trpc.alvaras.get.useQuery({ id });
   const { data: historico, refetch: refetchHistorico } = trpc.alvaras.getHistorico.useQuery({ alvaraId: id });
 
+  const revalidarMutation = trpc.alvaras.revalidar.useMutation({
+    onSuccess: () => { toast.success("Revalidação concluída."); refetch(); },
+    onError: () => toast.error("Erro ao revalidar."),
+  });
+
   const exportHistoricoMutation = trpc.exportacao.historico.useMutation({
     onSuccess: (data) => {
       const link = document.createElement("a");
@@ -580,6 +588,88 @@ export default function AlvaraDetail({ id }: Props) {
 
             </>
           )}
+          {/* Painel de Validação Receita Federal */}
+          {((alvara as any).validacaoSituacao || (alvara as any).validacaoEndereco || (alvara as any).validacaoCnae) && (() => {
+            let detalhes: Record<string, { resultado: string; detalhe: string }> = {};
+            try {
+              if ((alvara as any).validacaoDetalhes) {
+                detalhes = JSON.parse((alvara as any).validacaoDetalhes);
+              }
+            } catch { /* ignore */ }
+
+            const dimensoes = [
+              { key: "situacao", label: "Situação Cadastral", resultado: (alvara as any).validacaoSituacao },
+              { key: "endereco", label: "Endereço", resultado: (alvara as any).validacaoEndereco },
+              { key: "cnae", label: "Atividades (CNAE)", resultado: (alvara as any).validacaoCnae },
+            ];
+
+            const temDivergencia = dimensoes.some((d) => d.resultado === "divergente");
+            const temInconclusivo = dimensoes.some((d) => d.resultado === "inconclusivo");
+            const tudoOk = dimensoes.every((d) => d.resultado === "ok");
+
+            const borderColor = temDivergencia ? "border-red-300" : temInconclusivo ? "border-amber-300" : "border-green-300";
+            const bgColor = temDivergencia ? "bg-red-50" : temInconclusivo ? "bg-amber-50" : "bg-green-50";
+            const headerText = temDivergencia ? "Divergência detectada com a Receita Federal" : temInconclusivo ? "Validação inconclusiva" : "Conforme com a Receita Federal";
+            const HeaderIcon = temDivergencia ? ShieldAlert : temInconclusivo ? ShieldQuestion : ShieldCheck;
+            const iconBg = temDivergencia ? "bg-red-500" : temInconclusivo ? "bg-amber-500" : "bg-green-500";
+            const textColor = temDivergencia ? "text-red-800" : temInconclusivo ? "text-amber-800" : "text-green-800";
+
+            return (
+              <Card className={`border ${borderColor} ${bgColor}`}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2.5 rounded-xl ${iconBg} shrink-0`}>
+                        <HeaderIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${textColor}`}>{headerText}</p>
+                        {(alvara as any).validacaoExecutadaEm && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Validado em {new Date((alvara as any).validacaoExecutadaEm).toLocaleString("pt-BR")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => revalidarMutation.mutate({ id })}
+                      disabled={revalidarMutation.isPending}
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${revalidarMutation.isPending ? "animate-spin" : ""}`} />
+                      Revalidar
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {dimensoes.map((d) => {
+                      const det = detalhes[d.key];
+                      const isOk = d.resultado === "ok";
+                      const isDivergente = d.resultado === "divergente";
+                      const DimIcon = isOk ? ShieldCheck : isDivergente ? ShieldAlert : ShieldQuestion;
+                      const dimColor = isOk ? "text-green-700" : isDivergente ? "text-red-700" : "text-amber-700";
+                      const dimBg = isOk ? "bg-green-100" : isDivergente ? "bg-red-100" : "bg-amber-100";
+                      const dimBadge = isOk ? "Conforme" : isDivergente ? "Divergente" : "Inconclusivo";
+                      return (
+                        <div key={d.key} className={`rounded-lg p-3 ${dimBg}`}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <DimIcon className={`h-3.5 w-3.5 ${dimColor}`} />
+                            <span className={`text-xs font-semibold ${dimColor}`}>{d.label}</span>
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] ${dimColor} border-current mb-1`}>{dimBadge}</Badge>
+                          {det?.detalhe && (
+                            <p className={`text-[11px] ${dimColor} leading-tight mt-1`}>{det.detalhe}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Alerta de vencimento */}
           {alertaAtivo && info && dias !== null && (
             <Card className={`border ${info.borderColor} ${info.bgColor}`}>

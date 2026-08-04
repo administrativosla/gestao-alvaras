@@ -407,3 +407,19 @@
 - [x] Bloco 4 — Alvarás/CLIs: manter existente, adicionar badge de validação quando disponível
 - [x] Estado de carregamento (skeleton) para os novos blocos
 - [x] Botão "Atualizar dados da Receita" para reenriquecer manualmente
+
+## V3.14 — Fase 3: Motor de Validação
+
+### Backend
+- [x] Criar server/validation.ts com funções: validarEndereco, validarCnaes, validarSituacaoCadastral
+- [x] validarEndereco: comparar CEP/município do PDF extraído vs dados da Receita
+- [x] validarCnaes: cruzar atividades licenciadas no alvará vs CNAEs da Receita (principal + secundários)
+- [x] validarSituacaoCadastral: verificar se empresa está ATIVA no momento da vigência
+- [x] Integrar motor de validação no router de importação (confirmarPdf e confirmarLote)
+- [x] Salvar resultado em alvaras.validacaoEndereco, validacaoCnae, validacaoSituacao, validacaoDetalhes, validacaoExecutadaEm
+- [x] Procedure alvaras.revalidar para reprocessar validação de um alvará específico
+
+### Frontend
+- [x] AlvaraDetail: exibir painel de validação com resultado por dimensão (endereço, CNAE, situação)
+- [x] ClienteDetail (aba Alvarás): exibir ícone de validação em cada card de alvará
+- [x] AlvarasList: adicionar coluna/ícone de validação na listagem
