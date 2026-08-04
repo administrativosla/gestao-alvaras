@@ -233,16 +233,27 @@ function validarCnaes(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidacao {
   }
 
   // ── Opção A: cruzamento direto por código CNAE (CLI) ────────────────────────
+  // Comparação por prefixo: CLI usa 7 dígitos (6203100), Receita usa 6 dígitos (620310)
+  // Ambos são normalizados para apenas dígitos e comparados por startsWith
+  function cnaeCompativel(docCnae: string, receitaCnaes: string[]): boolean {
+    const d = docCnae.replace(/\D/g, "");
+    return receitaCnaes.some((r) => {
+      const rv = r.replace(/\D/g, "");
+      // Considera compatível se um é prefixo do outro (ex: 6203100 vs 620310)
+      return d === rv || d.startsWith(rv) || rv.startsWith(d);
+    });
+  }
+
   if (pdf.cliCnaesLicenciados && pdf.cliCnaesLicenciados.length > 0) {
-    const cnaesDocumento = pdf.cliCnaesLicenciados.map(normalizarCnae);
+    const cnaesDocumento = pdf.cliCnaesLicenciados;
     const encontrados: string[] = [];
     const ausentes: string[] = [];
 
     for (const cnaeDoc of cnaesDocumento) {
-      if (cnaesReceita.includes(cnaeDoc)) {
-        encontrados.push(pdf.cliCnaesLicenciados[cnaesDocumento.indexOf(cnaeDoc)]);
+      if (cnaeCompativel(cnaeDoc, cnaesReceita)) {
+        encontrados.push(cnaeDoc);
       } else {
-        ausentes.push(pdf.cliCnaesLicenciados[cnaesDocumento.indexOf(cnaeDoc)]);
+        ausentes.push(cnaeDoc);
       }
     }
 

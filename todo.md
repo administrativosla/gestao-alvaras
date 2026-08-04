@@ -426,6 +426,6 @@
 
 ## V3.15 — Ajustes pós-importação CLI
 
-- [ ] Ao confirmar importação de alvará/CLI, desativar automaticamente semRegistro do cliente
-- [ ] Ocultar bloco "Negociação Comercial" no ClienteDetail quando cliente tem CLI/alvará ativo
-- [ ] Adicionar botão "Ver PDF" / "Download" no card do CLI na aba Alvarás do ClienteDetail
+- [x] Ao confirmar importação de alvará/CLI, desativar automaticamente semRegistro do cliente
+- [x] Ocultar bloco "Negociação Comercial" no ClienteDetail quando cliente tem CLI/alvará ativo
+- [x] Adicionar botão "Ver PDF" / "Download" no card do CLI na aba Alvarás do ClienteDetail

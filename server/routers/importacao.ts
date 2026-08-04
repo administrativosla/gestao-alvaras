@@ -10,6 +10,7 @@ import {
   findAlvaraExistente,
   getClienteByCnpj,
   updateAlvara,
+  updateCliente,
   updateImportacao,
 } from "../db";
 import * as XLSX from "xlsx";
@@ -315,7 +316,7 @@ Campos a extrair:
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 - cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
-- cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento (ex: ["4751-2/01", "4751-2/02"]). Procure na seção de atividades econômicas ou na tabela de CNAEs do CLI. Para documentos que não são CLI, retorne null.
+- cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento. Procure em DUAS seções do documento: (1) seção "ATIVIDADES ECONÔMICAS LICENCIADAS" que lista no formato "6203100 - Descrição"; (2) seção "PARECER DA PREFEITURA" que lista no formato "CNAE: 6203-1/00-Descrição". Extraia apenas o código numérico sem formatação (ex: "62031", "62023", "62040"). Use a seção com mais entradas. Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
           },
           {
@@ -613,10 +614,17 @@ Se não encontrar um campo, use null.`,
         }
       }
 
+      // ── Desativar semRegistro ao importar alvara/CLI ────────────────────────────────
+      try {
+        await updateCliente(clienteId, { semRegistro: false });
+      } catch (e) {
+        console.error("[Importação] Erro ao desativar semRegistro", clienteId, e);
+      }
+
       return { clienteId, alvaraId, success: true };
     }),
 
-  // ── Extrai dados de múltiplos PDFs via LLM (processamento paralelo) ───────────
+  // ── Extrai dados de múltiplos PDFs via LLM (processamento paralelo) ────────────────────────
   parsePdfLote: publicProcedure
     .input(
       z.object({
@@ -663,7 +671,7 @@ Campos a extrair:
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 - cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
-- cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento (ex: ["4751-2/01", "4751-2/02"]). Procure na seção de atividades econômicas ou na tabela de CNAEs do CLI. Para documentos que não são CLI, retorne null.
+- cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento. Procure em DUAS seções do documento: (1) seção "ATIVIDADES ECONÔMICAS LICENCIADAS" que lista no formato "6203100 - Descrição"; (2) seção "PARECER DA PREFEITURA" que lista no formato "CNAE: 6203-1/00-Descrição". Extraia apenas o código numérico sem formatação (ex: "62031", "62023", "62040"). Use a seção com mais entradas. Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
               },
               {
@@ -980,6 +988,13 @@ Se não encontrar um campo, use null.`,
                 } catch (e) {
                   console.error("[Validação Lote] Erro ao validar alvará", alvaraIdLote, e);
                 }
+              }
+
+              // Desativar semRegistro ao importar
+              try {
+                await updateCliente(clienteId, { semRegistro: false });
+              } catch (e) {
+                console.error("[Importação Lote] Erro ao desativar semRegistro", clienteId, e);
               }
             }
           } else {

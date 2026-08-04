@@ -381,8 +381,10 @@ export default function ClienteDetail({ id }: Props) {
       )}
 
       <div className="space-y-4">
-          {/* Pipeline Comercial */}
-          <NegociacaoCard clienteId={id} />
+          {/* Pipeline Comercial — oculto quando há alvará/CLI ativo */}
+          {(!alvaras || alvaras.length === 0) && (
+            <NegociacaoCard clienteId={id} />
+          )}
 
           {/* Status Comercial */}
           <Card className="border shadow-sm">
