@@ -374,16 +374,24 @@ export const alvarasRouter = router({
       const clienteData = await getClienteById(row.alvara.clienteId);
       if (!clienteData) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
 
+      // Parsear CNAEs licenciados armazenados no alvará
+      let cliCnaesLicenciados: string[] | null = null;
+      if (row.alvara.cliCnaesLicenciados) {
+        try { cliCnaesLicenciados = JSON.parse(row.alvara.cliCnaesLicenciados); } catch { /* ignorar */ }
+      }
+
       const validacao = executarValidacao(
         {
-          logradouro: (row.alvara as any).logradouro ?? null,
-          numero: (row.alvara as any).numero ?? null,
-          bairro: (row.alvara as any).bairro ?? null,
-          cidade: (row.alvara as any).cidade ?? null,
-          uf: (row.alvara as any).uf ?? null,
-          cep: (row.alvara as any).cep ?? null,
+          // Endereço vem do cliente (alvarás não armazenam endereço próprio)
+          logradouro: clienteData.logradouro ?? null,
+          numero: clienteData.numero ?? null,
+          bairro: clienteData.bairro ?? null,
+          cidade: clienteData.cidade ?? null,
+          uf: clienteData.uf ?? null,
+          cep: clienteData.cep ?? null,
           tipo: row.alvara.tipo ?? null,
           orgaoEmissor: row.alvara.orgaoEmissor ?? null,
+          cliCnaesLicenciados,
         },
         {
           situacaoCadastral: clienteData.situacaoCadastral,

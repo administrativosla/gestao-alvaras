@@ -315,6 +315,7 @@ Campos a extrair:
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 - cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
+- cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento (ex: ["4751-2/01", "4751-2/02"]). Procure na seção de atividades econômicas ou na tabela de CNAEs do CLI. Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
           },
           {
@@ -372,6 +373,10 @@ Se não encontrar um campo, use null.`,
                     additionalProperties: false,
                   },
                 },
+                cliCnaesLicenciados: {
+                  type: ["array", "null"],
+                  items: { type: "string" },
+                },
               },
               required: [
                 "cnpj",
@@ -392,6 +397,7 @@ Se não encontrar um campo, use null.`,
                 "dataVencimento",
                 "situacaoCli",
                 "cliOrgaosPendentes",
+                "cliCnaesLicenciados",
               ],
               additionalProperties: false,
             },
@@ -446,6 +452,7 @@ Se não encontrar um campo, use null.`,
             resolvidoPor: z.string().optional().nullable(),
             observacao: z.string().optional().nullable(),
           })).optional().nullable(),
+          cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
         }),
         colaborador: z.string().optional(),
       })
@@ -525,6 +532,9 @@ Se não encontrar um campo, use null.`,
               pendenciaRegularizacao: _pendencia,
               motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
               cliOrgaosPendentes: orgaosMerged,
+              cliCnaesLicenciados: dados.cliCnaesLicenciados && dados.cliCnaesLicenciados.length > 0
+                ? JSON.stringify(dados.cliCnaesLicenciados)
+                : null,
               status: _statusPdf,
             });
             await addHistorico({
@@ -549,6 +559,9 @@ Se não encontrar um campo, use null.`,
               pendenciaRegularizacao: _pendencia,
               motivoPendenciaCli: _pendencia ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
               cliOrgaosPendentes: orgaosPendentesJson,
+              cliCnaesLicenciados: dados.cliCnaesLicenciados && dados.cliCnaesLicenciados.length > 0
+                ? JSON.stringify(dados.cliCnaesLicenciados)
+                : null,
               status: _statusPdf,
             });
             await addHistorico({
@@ -577,6 +590,7 @@ Se não encontrar um campo, use null.`,
                 cep: dados.cep,
                 tipo: dados.tipo,
                 orgaoEmissor: dados.orgaoEmissor,
+                cliCnaesLicenciados: dados.cliCnaesLicenciados ?? null,
               },
               {
                 situacaoCadastral: clienteData.situacaoCadastral,
@@ -649,6 +663,7 @@ Campos a extrair:
 - dataVencimento: string (formato YYYY-MM-DD) ou null — CAMPO CRÍTICO: no CLI use obrigatoriamente a "DATA DE VALIDADE" da seção "DADOS DA SOLICITAÇÃO"
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 - cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
+- cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento (ex: ["4751-2/01", "4751-2/02"]). Procure na seção de atividades econômicas ou na tabela de CNAEs do CLI. Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
               },
               {
@@ -687,22 +702,26 @@ Se não encontrar um campo, use null.`,
                     dataEmissao: { type: ["string", "null"] },
                     dataVencimento: { type: ["string", "null"] },
                     situacaoCli: { type: ["string", "null"] },
-                    cliOrgaosPendentes: {
-                      type: ["array", "null"],
-                      items: {
-                        type: "object",
-                        properties: {
-                          orgao: { type: "string" },
-                          tipoManifestacao: { type: "string" },
-                          status: { type: "string" },
-                        },
-                        required: ["orgao", "tipoManifestacao", "status"],
-                        additionalProperties: false,
-                      },
+                cliOrgaosPendentes: {
+                  type: ["array", "null"],
+                  items: {
+                    type: "object",
+                    properties: {
+                      orgao: { type: "string" },
+                      tipoManifestacao: { type: "string" },
+                      status: { type: "string" },
                     },
+                    required: ["orgao", "tipoManifestacao", "status"],
+                    additionalProperties: false,
                   },
-                  required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes"],
-                  additionalProperties: false,
+                },
+                cliCnaesLicenciados: {
+                  type: ["array", "null"],
+                  items: { type: "string" },
+                },
+              },
+              required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes","cliCnaesLicenciados"],
+              additionalProperties: false,
                 },
               },
             },
@@ -793,6 +812,7 @@ Se não encontrar um campo, use null.`,
               resolvidoPor: z.string().optional().nullable(),
               observacao: z.string().optional().nullable(),
             })).optional().nullable(),
+            cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
           })
         ).min(1),
         colaborador: z.string().optional(),
@@ -883,6 +903,9 @@ Se não encontrar um campo, use null.`,
                   pendenciaRegularizacao: _pendenciaLote,
                   motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
                   cliOrgaosPendentes: orgaosMergedLote,
+                  cliCnaesLicenciados: reg.cliCnaesLicenciados && reg.cliCnaesLicenciados.length > 0
+                    ? JSON.stringify(reg.cliCnaesLicenciados)
+                    : null,
                   status,
                 });
                 await addHistorico({
@@ -907,6 +930,9 @@ Se não encontrar um campo, use null.`,
                   pendenciaRegularizacao: _pendenciaLote,
                   motivoPendenciaCli: _pendenciaLote ? "Detectado automaticamente: CLI parcial pendente de finalização" : null,
                   cliOrgaosPendentes: orgaosPendentesJsonLote,
+                  cliCnaesLicenciados: reg.cliCnaesLicenciados && reg.cliCnaesLicenciados.length > 0
+                    ? JSON.stringify(reg.cliCnaesLicenciados)
+                    : null,
                   status,
                 });
                 await addHistorico({

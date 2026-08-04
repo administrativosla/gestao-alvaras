@@ -423,3 +423,9 @@
 - [x] AlvaraDetail: exibir painel de validação com resultado por dimensão (endereço, CNAE, situação)
 - [x] ClienteDetail (aba Alvarás): exibir ícone de validação em cada card de alvará
 - [x] AlvarasList: adicionar coluna/ícone de validação na listagem
+
+## V3.15 — Ajustes pós-importação CLI
+
+- [ ] Ao confirmar importação de alvará/CLI, desativar automaticamente semRegistro do cliente
+- [ ] Ocultar bloco "Negociação Comercial" no ClienteDetail quando cliente tem CLI/alvará ativo
+- [ ] Adicionar botão "Ver PDF" / "Download" no card do CLI na aba Alvarás do ClienteDetail

@@ -38,6 +38,8 @@ interface DadosPdf {
   orgaoEmissor?: string | null;
   /** Atividades mencionadas no texto do alvará (extraídas pelo LLM) */
   atividadesLicenciadas?: string[] | null;
+  /** Códigos CNAE extraídos diretamente do CLI (ex: ["4751-2/01", "4751-2/02"]) */
+  cliCnaesLicenciados?: string[] | null;
 }
 
 interface DadosCliente {
@@ -230,22 +232,49 @@ function validarCnaes(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidacao {
     };
   }
 
-  // Sem atividades extraídas do PDF
-  if (!pdf.atividadesLicenciadas || pdf.atividadesLicenciadas.length === 0) {
-    // Tentar inferir pelo tipo do alvará
-    if (pdf.tipo === "CLI") {
+  // ── Opção A: cruzamento direto por código CNAE (CLI) ────────────────────────
+  if (pdf.cliCnaesLicenciados && pdf.cliCnaesLicenciados.length > 0) {
+    const cnaesDocumento = pdf.cliCnaesLicenciados.map(normalizarCnae);
+    const encontrados: string[] = [];
+    const ausentes: string[] = [];
+
+    for (const cnaeDoc of cnaesDocumento) {
+      if (cnaesReceita.includes(cnaeDoc)) {
+        encontrados.push(pdf.cliCnaesLicenciados[cnaesDocumento.indexOf(cnaeDoc)]);
+      } else {
+        ausentes.push(pdf.cliCnaesLicenciados[cnaesDocumento.indexOf(cnaeDoc)]);
+      }
+    }
+
+    if (ausentes.length === 0) {
       return {
-        resultado: "inconclusivo",
-        detalhe: `CLI importado. CNAEs da Receita disponíveis (${cnaesReceita.length} atividades). Atividades licenciadas não extraídas do PDF para cruzamento automático.`,
+        resultado: "ok",
+        detalhe: `Todos os CNAEs do CLI (${encontrados.join(", ")}) estão declarados na Receita Federal.`,
       };
     }
+
+    if (encontrados.length > 0) {
+      return {
+        resultado: "inconclusivo",
+        detalhe: `CNAEs parcialmente compatíveis. Encontrados na Receita: ${encontrados.join(", ")}. Não encontrados: ${ausentes.join(", ")}. Verificar se há CNAE secundário não cadastrado.`,
+      };
+    }
+
+    return {
+      resultado: "divergente",
+      detalhe: `CNAEs do CLI (${ausentes.join(", ")}) não encontrados nos CNAEs declarados na Receita Federal (${cnaesReceita.length} CNAEs disponíveis). Verificar atualização cadastral.`,
+    };
+  }
+
+  // Sem atividades extraídas do PDF
+  if (!pdf.atividadesLicenciadas || pdf.atividadesLicenciadas.length === 0) {
     return {
       resultado: "inconclusivo",
       detalhe: "Atividades licenciadas não extraídas do PDF — cruzamento com CNAEs não realizado.",
     };
   }
 
-  // Cruzar atividades do PDF com CNAEs da Receita
+  // Cruzar atividades do PDF com CNAEs da Receita (alvarás não-CLI)
   const atividadesPdf = pdf.atividadesLicenciadas.map(normalizarTexto);
   const descricaoPrincipal = normalizarTexto(cliente.cnaePrincipalDescricao);
 
@@ -253,7 +282,6 @@ function validarCnaes(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidacao {
   const detalhes: string[] = [];
 
   for (const atividade of atividadesPdf) {
-    // Verificar se a atividade do PDF menciona palavras do CNAE principal
     if (descricaoPrincipal) {
       const palavrasCnae = descricaoPrincipal.split(" ").filter((p) => p.length > 4);
       const matches = palavrasCnae.filter((p) => atividade.includes(p));
@@ -271,8 +299,6 @@ function validarCnaes(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidacao {
     };
   }
 
-  // Se há atividades no PDF mas não cruzaram com CNAEs, pode ser inconclusivo
-  // (vocabulário diferente, não necessariamente divergência real)
   return {
     resultado: "inconclusivo",
     detalhe: `Não foi possível cruzar automaticamente as atividades do alvará com os CNAEs da Receita (${cnaesReceita.length} CNAEs disponíveis). Verificação manual recomendada.`,
