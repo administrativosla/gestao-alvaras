@@ -265,15 +265,31 @@ function validarCnaes(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidacao {
     }
 
     if (encontrados.length > 0) {
+      // Verificar se o CNAE principal da Receita está entre os encontrados
+      const cnaePrincipalReceita = cliente.cnaePrincipal ? normalizarCnae(cliente.cnaePrincipal) : null;
+      const principalCoberto = cnaePrincipalReceita
+        ? cnaesDocumento.some((d) => cnaeCompativel(d, [cnaePrincipalReceita]))
+        : false;
+
+      if (principalCoberto) {
+        // CNAE principal da empresa está licenciado no CLI — resultado conforme
+        // CNAEs extras no CLI que não constam na Receita são normais (CLI pode licenciar mais atividades)
+        return {
+          resultado: "ok",
+          detalhe: `CNAE principal da empresa (${cliente.cnaePrincipal}) está licenciado no CLI. ${ausentes.length} CNAE(s) do CLI não constam na Receita (${ausentes.join(", ")}) — isso é normal, o CLI pode licenciar atividades adicionais.`,
+        };
+      }
+
+      // CNAE principal não coberto, mas há CNAEs secundários cobertos
       return {
         resultado: "inconclusivo",
-        detalhe: `CNAEs parcialmente compatíveis. Encontrados na Receita: ${encontrados.join(", ")}. Não encontrados: ${ausentes.join(", ")}. Verificar se há CNAE secundário não cadastrado.`,
+        detalhe: `CNAEs parcialmente compatíveis. CNAE principal (${cliente.cnaePrincipal}) não encontrado no CLI. CNAEs da Receita cobertos pelo CLI: ${encontrados.join(", ")}. CNAEs do CLI não declarados na Receita: ${ausentes.join(", ")}.`,
       };
     }
 
     return {
       resultado: "divergente",
-      detalhe: `CNAEs do CLI (${ausentes.join(", ")}) não encontrados nos CNAEs declarados na Receita Federal (${cnaesReceita.length} CNAEs disponíveis). Verificar atualização cadastral.`,
+      detalhe: `Nenhum CNAE do CLI (${cnaesDocumento.join(", ")}) corresponde aos CNAEs declarados na Receita Federal (${cnaesReceita.length} CNAE(s) disponível(is)). Verificar atualização cadastral.`,
     };
   }
 
