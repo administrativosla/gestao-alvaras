@@ -19,9 +19,19 @@ import {
   ShieldAlert,
   ShieldOff,
   ExternalLink,
+  Briefcase,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  TrendingUp,
+  Scale,
+  Landmark,
+  Hash,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { formatCnpj, formatDate, calcDiasParaVencimento, getAlertaInfo, getStatusColor } from "@/lib/alvaras";
+import { formatCnpj, formatDate, calcDiasParaVencimento, getAlertaInfo } from "@/lib/alvaras";
 import StatusBadge from "@/components/StatusBadge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -32,6 +42,69 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   id: number;
+}
+
+// ─── Badge de Situação Cadastral ──────────────────────────────────────────────
+function SituacaoBadge({ situacao }: { situacao: string | null | undefined }) {
+  if (!situacao) return null;
+  const s = situacao.toUpperCase();
+  if (s === "ATIVA") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30">
+        <CheckCircle2 className="h-3 w-3" /> Ativa
+      </span>
+    );
+  }
+  if (s === "BAIXADA") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-red-300 text-red-700 bg-red-50 dark:bg-red-950/30">
+        <XCircle className="h-3 w-3" /> Baixada
+      </span>
+    );
+  }
+  if (s === "SUSPENSA") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30">
+        <AlertTriangle className="h-3 w-3" /> Suspensa
+      </span>
+    );
+  }
+  if (s === "INAPTA") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-orange-300 text-orange-700 bg-orange-50 dark:bg-orange-950/30">
+        <AlertTriangle className="h-3 w-3" /> Inapta
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-slate-300 text-slate-600 bg-slate-50 dark:bg-slate-900/30">
+      {situacao}
+    </span>
+  );
+}
+
+// ─── Badge de Cobertura ───────────────────────────────────────────────────────
+function CoberturaBadge({ cobertura }: { cobertura: string }) {
+  if (cobertura === "Sem Registro") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
+      <ShieldOff className="h-3 w-3" /> Sem Registro
+    </span>
+  );
+  if (cobertura === "Sem Alvará") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-900/30">
+      <ShieldOff className="h-3 w-3" /> Sem Alvará
+    </span>
+  );
+  if (cobertura === "Parcial") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30">
+      <ShieldAlert className="h-3 w-3" /> Cobertura Parcial
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30">
+      <ShieldCheck className="h-3 w-3" /> Coberto
+    </span>
+  );
 }
 
 export default function ClienteDetail({ id }: Props) {
@@ -49,7 +122,14 @@ export default function ClienteDetail({ id }: Props) {
     onError: (e) => toast.error("Erro ao atualizar: " + e.message),
   });
 
-  // Calcular cobertura localmente a partir dos alvarás já carregados
+  const reenriquecerMutation = trpc.clientes.reenriquecer.useMutation({
+    onSuccess: () => {
+      utils.clientes.get.invalidate({ id });
+      toast.success("Dados da Receita Federal atualizados com sucesso.");
+    },
+    onError: (e) => toast.error("Erro ao atualizar dados: " + e.message),
+  });
+
   const cobertura = (() => {
     if (data?.semRegistro) return "Sem Registro" as const;
     if (!alvaras || alvaras.length === 0) return "Sem Alvará" as const;
@@ -60,11 +140,21 @@ export default function ClienteDetail({ id }: Props) {
     return "Parcial" as const;
   })();
 
+  // Parse CNAEs secundários do JSON
+  const cnaesSecundarios: { codigo: string; descricao: string }[] = (() => {
+    if (!data?.cnaesSecundarios) return [];
+    try { return JSON.parse(data.cnaesSecundarios); } catch { return []; }
+  })();
+
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-5xl">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-48 w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+        <Skeleton className="h-32 w-full" />
         <Skeleton className="h-48 w-full" />
       </div>
     );
@@ -80,10 +170,29 @@ export default function ClienteDetail({ id }: Props) {
     );
   }
 
+  // Montar endereço para Google Maps
+  const enderecoCompleto = [
+    data.logradouro,
+    data.numero && `${data.numero}`,
+    data.bairro,
+    data.cidade,
+    data.uf,
+    data.cep,
+  ].filter(Boolean).join(", ");
+  const mapsUrl = enderecoCompleto
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoCompleto)}`
+    : null;
+
+  // Formatar capital social
+  const capitalFormatado = data.capitalSocial
+    ? Number(data.capitalSocial).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    : null;
+
   return (
-    <div className="space-y-6 max-w-4xl animate-fade-in-up">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+    <div className="space-y-6 max-w-5xl animate-fade-in-up">
+
+      {/* ── CABEÇALHO ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Button variant="ghost" size="icon" onClick={() => setLocation("/clientes")} className="h-9 w-9 mt-0.5">
             <ArrowLeft className="h-4 w-4" />
@@ -91,92 +200,175 @@ export default function ClienteDetail({ id }: Props) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold tracking-tight">{data.razaoSocial}</h1>
-              {cobertura === "Sem Registro" && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
-                  <ShieldOff className="h-3 w-3" /> Sem Registro
-                </span>
-              )}
-              {cobertura === "Sem Alvará" && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-900/30">
-                  <ShieldOff className="h-3 w-3" /> Sem Alvará
-                </span>
-              )}
-              {cobertura === "Parcial" && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30">
-                  <ShieldAlert className="h-3 w-3" /> Cobertura Parcial
-                </span>
-              )}
-              {cobertura === "Coberto" && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30">
-                  <ShieldCheck className="h-3 w-3" /> Coberto
-                </span>
-              )}
+              <SituacaoBadge situacao={data.situacaoCadastral} />
+              <CoberturaBadge cobertura={cobertura} />
             </div>
             {data.nomeFantasia && (
               <p className="text-sm text-muted-foreground mt-0.5">{data.nomeFantasia}</p>
             )}
             <p className="text-sm font-mono text-muted-foreground mt-1">{formatCnpj(data.cnpj)}</p>
+            {data.dadosReceitaAtualizadoEm && (
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Receita atualizada em {new Date(data.dadosReceitaAtualizadoEm).toLocaleDateString("pt-BR")}
+              </p>
+            )}
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setLocation(`/clientes/${id}/editar`)}
-          className="gap-2"
-        >
-          <Pencil className="h-3.5 w-3.5" /> Editar
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => reenriquecerMutation.mutate({ id })}
+            disabled={reenriquecerMutation.isPending}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${reenriquecerMutation.isPending ? "animate-spin" : ""}`} />
+            {reenriquecerMutation.isPending ? "Atualizando..." : "Atualizar Receita"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation(`/clientes/${id}/editar`)}
+            className="gap-2"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna principal */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Dados cadastrais */}
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Dados Cadastrais
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <InfoRow icon={Building2} label="CNPJ" value={formatCnpj(data.cnpj)} />
-              {data.inscricaoEstadual && <InfoRow icon={FileText} label="IE" value={data.inscricaoEstadual} />}
-              {data.inscricaoMunicipal && <InfoRow icon={FileText} label="IM" value={data.inscricaoMunicipal} />}
-              {data.dataAbertura && (
-                <InfoRow icon={Calendar} label="Data de Abertura" value={formatDate(data.dataAbertura)} />
-              )}
-            </CardContent>
-          </Card>
+      {/* ── GRID PRINCIPAL: 4 BLOCOS ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-          {/* Endereço */}
-          {(data.logradouro || data.cidade) && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Endereço
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <p className="text-sm text-foreground">
+        {/* BLOCO 1 — Dados da Receita Federal */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Landmark className="h-3.5 w-3.5" /> Dados da Receita Federal
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            <InfoRow icon={Hash} label="CNPJ" value={formatCnpj(data.cnpj)} mono />
+            {data.inscricaoEstadual && <InfoRow icon={FileText} label="IE" value={data.inscricaoEstadual} />}
+            {data.inscricaoMunicipal && <InfoRow icon={FileText} label="IM" value={data.inscricaoMunicipal} />}
+            {data.dataAbertura && (
+              <InfoRow icon={Calendar} label="Abertura" value={formatDate(data.dataAbertura)} />
+            )}
+            {data.porte && <InfoRow icon={TrendingUp} label="Porte" value={data.porte} />}
+            {data.naturezaJuridica && (
+              <InfoRow icon={Scale} label="Natureza Jurídica" value={data.naturezaJuridica} />
+            )}
+            {capitalFormatado && (
+              <InfoRow icon={Briefcase} label="Capital Social" value={capitalFormatado} />
+            )}
+            {!data.porte && !data.naturezaJuridica && !data.dataAbertura && (
+              <p className="text-xs text-muted-foreground italic">Dados da Receita ainda não carregados</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* BLOCO 2 — Endereço */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5" /> Endereço
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {data.logradouro ? (
+              <>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    {data.logradouro}{data.numero ? `, ${data.numero}` : ""}
+                    {data.complemento ? ` — ${data.complemento}` : ""}
+                  </p>
+                  {data.bairro && <p className="text-xs text-muted-foreground">{data.bairro}</p>}
+                  <p className="text-xs text-muted-foreground">
                     {[
-                      data.logradouro,
-                      data.numero && `nº ${data.numero}`,
-                      data.complemento,
-                      data.bairro,
-                      data.cidade && data.uf ? `${data.cidade}/${data.uf}` : data.cidade,
+                      data.cidade && data.uf ? `${data.cidade} / ${data.uf}` : data.cidade,
                       data.cep && `CEP ${data.cep}`,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
+                    ].filter(Boolean).join(" · ")}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                {mapsUrl && (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Ver no Google Maps
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Endereço ainda não carregado da Receita</p>
+            )}
+            <Separator className="my-2" />
+            {/* Contato */}
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Contato</p>
+            {data.nomeContato && <InfoRow icon={Building2} label="Responsável" value={data.nomeContato} />}
+            {data.telefone && <InfoRow icon={Phone} label="Telefone" value={data.telefone} />}
+            {data.email && <InfoRow icon={Mail} label="E-mail" value={data.email} />}
+            {!data.nomeContato && !data.telefone && !data.email && (
+              <p className="text-xs text-muted-foreground italic">Nenhum contato cadastrado</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Observações */}
+      {/* BLOCO 3 — Atividades Econômicas (CNAEs) */}
+      {(data.cnaePrincipal || cnaesSecundarios.length > 0) && (
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" /> Atividades Econômicas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* CNAE Principal */}
+            {data.cnaePrincipal && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="default" className="text-xs font-mono shrink-0">
+                      {data.cnaePrincipal}
+                    </Badge>
+                    <span className="text-xs font-semibold text-primary">Principal</span>
+                  </div>
+                  {data.cnaePrincipalDescricao && (
+                    <p className="text-sm mt-1 text-foreground">{data.cnaePrincipalDescricao}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* CNAEs Secundários */}
+            {cnaesSecundarios.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {cnaesSecundarios.length} atividade{cnaesSecundarios.length > 1 ? "s" : ""} secundária{cnaesSecundarios.length > 1 ? "s" : ""}
+                </p>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {cnaesSecundarios.map((cnae, i) => (
+                    <div key={i} className="flex items-start gap-2.5 py-1.5 border-b border-border/50 last:border-0">
+                      <Badge variant="outline" className="text-xs font-mono shrink-0 mt-0.5">
+                        {cnae.codigo}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">{cnae.descricao}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── GRID LATERAL: Comercial + Alertas ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
+          {/* Observações preventivas */}
           {data.observacoesPreventivas && (
             <Card className="border shadow-sm border-amber-200 bg-amber-50/50">
               <CardHeader className="pb-3">
@@ -191,29 +383,11 @@ export default function ClienteDetail({ id }: Props) {
           )}
         </div>
 
-        {/* Coluna lateral */}
         <div className="space-y-4">
-          {/* Contato */}
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Contato
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {data.nomeContato && <InfoRow icon={Building2} label="Responsável" value={data.nomeContato} />}
-              {data.telefone && <InfoRow icon={Phone} label="Telefone" value={data.telefone} />}
-              {data.email && <InfoRow icon={Mail} label="E-mail" value={data.email} />}
-              {!data.nomeContato && !data.telefone && !data.email && (
-                <p className="text-xs text-muted-foreground">Nenhum contato cadastrado</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Pipeline de Negociação Comercial */}
+          {/* Pipeline Comercial */}
           <NegociacaoCard clienteId={id} />
 
-          {/* Toggle Sem Registro (Time Comercial) */}
+          {/* Status Comercial */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -266,7 +440,7 @@ export default function ClienteDetail({ id }: Props) {
         </div>
       </div>
 
-      {/* Abas: Alvarás / CLIs */}
+      {/* BLOCO 4 — Alvarás e CLIs */}
       <Tabs defaultValue="alvaras" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList className="h-9">
@@ -283,13 +457,15 @@ export default function ClienteDetail({ id }: Props) {
           </Button>
         </div>
 
-        {/* Aba: lista simples de alvarás (visão rápida) */}
         <TabsContent value="alvaras" className="mt-0 space-y-3">
           {!alvaras || alvaras.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
                 <FileText className="h-6 w-6 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">Nenhum alvará cadastrado para este cliente</p>
+                <Button size="sm" variant="outline" onClick={() => setLocation(`/importar?clienteId=${id}`)}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Importar PDF
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -347,7 +523,6 @@ export default function ClienteDetail({ id }: Props) {
           )}
         </TabsContent>
 
-        {/* Aba: gerenciamento completo de CLIs */}
         <TabsContent value="clis" className="mt-0">
           <ClienteCliManager clienteId={id} />
         </TabsContent>
@@ -356,13 +531,23 @@ export default function ClienteDetail({ id }: Props) {
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div className="flex items-start gap-2.5">
       <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
       <div className="min-w-0">
         <span className="text-xs text-muted-foreground">{label}: </span>
-        <span className="text-sm font-medium">{value}</span>
+        <span className={`text-sm font-medium ${mono ? "font-mono" : ""}`}>{value}</span>
       </div>
     </div>
   );

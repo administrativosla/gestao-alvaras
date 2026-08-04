@@ -230,6 +230,55 @@ export const clientesRouter = router({
       return { success: true };
     }),
 
+  // ─── Reenriquecimento individual via BrasilAPI ─────────────────────────────
+  reenriquecer: gestorProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const cliente = await getClienteById(input.id);
+      if (!cliente) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente n\u00e3o encontrado." });
+
+      const cnpjLimpo = cliente.cnpj.replace(/\D/g, "");
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`, {
+        headers: { "User-Agent": "GestaoAlvaras/1.0" },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!res.ok) {
+        const status = res.status === 404 ? "cnpj_invalido" : "erro";
+        await updateCliente(input.id, { dadosReceitaStatus: status });
+        throw new TRPCError({ code: "BAD_REQUEST", message: `BrasilAPI retornou ${res.status}.` });
+      }
+
+      const dados = await res.json();
+      const cnaesSecundarios = (dados.cnaes_secundarios ?? []).map((c: any) => ({ codigo: c.codigo, descricao: c.descricao }));
+      const cidade = dados.municipio
+        ? dados.municipio.toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())
+        : undefined;
+
+      await updateCliente(input.id, {
+        nomeFantasia: dados.nome_fantasia || cliente.nomeFantasia,
+        dataAbertura: dados.data_inicio_atividade ? new Date(dados.data_inicio_atividade) : undefined,
+        logradouro: dados.logradouro ?? undefined,
+        numero: dados.numero ?? undefined,
+        complemento: dados.complemento || undefined,
+        bairro: dados.bairro ?? undefined,
+        cidade,
+        uf: dados.uf ?? undefined,
+        cep: dados.cep ?? undefined,
+        situacaoCadastral: dados.descricao_situacao_cadastral ?? undefined,
+        cnaePrincipal: dados.cnae_fiscal ? String(dados.cnae_fiscal) : undefined,
+        cnaePrincipalDescricao: dados.cnae_fiscal_descricao ?? undefined,
+        cnaesSecundarios: cnaesSecundarios.length > 0 ? JSON.stringify(cnaesSecundarios) : undefined,
+        porte: dados.porte ?? undefined,
+        naturezaJuridica: dados.natureza_juridica ? `${dados.codigo_natureza_juridica} - ${dados.natureza_juridica}` : undefined,
+        capitalSocial: dados.capital_social ? String(dados.capital_social) : undefined,
+        dadosReceitaStatus: "ok",
+        dadosReceitaAtualizadoEm: new Date(),
+      });
+
+      return { success: true };
+    }),
+
   // ─── Painel Comercial: Sem Registro ──────────────────────────────────────────
 
   listSemRegistro: gestorProcedure

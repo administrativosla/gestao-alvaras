@@ -392,3 +392,18 @@
 - [x] Script de enriquecimento: consultar BrasilAPI para cada um dos 442 CNPJs e salvar os dados
 - [x] Executar enriquecimento em lote (1 req/s, ~8 min)
 - [x] Verificar resultado: quantos enriquecidos com sucesso, quantos com erro
+
+## V3.13 — Fase 2: Redesenho da Página Central do Cliente
+
+### Backend
+- [x] Incluir novos campos (situacaoCadastral, cnae*, porte, naturezaJuridica, capitalSocial, dadosReceitaStatus, dadosReceitaAtualizadoEm) no router clientes.getById e clientes.list
+- [x] Adicionar procedure clientes.reenriquecer para reprocessar um cliente específico via BrasilAPI
+
+### Frontend — ClienteDetail
+- [x] Cabeçalho: badge colorido de situação cadastral (ATIVA=verde, SUSPENSA=amarelo, BAIXADA=vermelho)
+- [x] Bloco 1 — Dados da Receita: nomeFantasia, dataAbertura, porte, naturezaJuridica, capitalSocial
+- [x] Bloco 2 — Endereço completo: logradouro, numero, complemento, bairro, cidade, uf, cep + link Google Maps
+- [x] Bloco 3 — Atividades Econômicas: CNAE principal destacado + lista de CNAEs secundários
+- [x] Bloco 4 — Alvarás/CLIs: manter existente, adicionar badge de validação quando disponível
+- [x] Estado de carregamento (skeleton) para os novos blocos
+- [x] Botão "Atualizar dados da Receita" para reenriquecer manualmente
