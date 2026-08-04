@@ -19,6 +19,7 @@ import { parseDate } from "../utils/parseDate";
 import { enviarNotificacaoStatusAtualizado } from "../services/email";
 import { executarValidacao, validacaoParaCampos } from "../validation";
 import { getClienteById } from "../db";
+import { invokeLLM } from "../_core/llm";
 
 const statusEnum = z.enum(STATUS_RENOVACAO);
 
@@ -378,6 +379,59 @@ export const alvarasRouter = router({
       let cliCnaesLicenciados: string[] | null = null;
       if (row.alvara.cliCnaesLicenciados) {
         try { cliCnaesLicenciados = JSON.parse(row.alvara.cliCnaesLicenciados); } catch { /* ignorar */ }
+      }
+
+      // Se CLI sem CNAEs e PDF disponível, reextrair via LLM
+      const arquivoPdfUrl = (row.alvara as any).arquivoPdfUrl as string | null;
+      if (!cliCnaesLicenciados && row.alvara.tipo === "CLI" && arquivoPdfUrl) {
+        try {
+          const llmResp = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `Você é um extrator de dados de documentos de licenciamento municipal (CLI). Extraia APENAS os códigos CNAE licenciados deste documento. Procure em DUAS seções: (1) seção "ATIVIDADES ECONÔMICAS LICENCIADAS" no formato "6203100 - Descrição"; (2) seção "PARECER DA PREFEITURA" no formato "CNAE: 6203-1/00-Descrição". Retorne apenas os dígitos numéricos de cada código (ex: "6203100", "6202300"). Use a seção com mais entradas.`,
+              },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "file_url" as const,
+                    file_url: { url: arquivoPdfUrl, mime_type: "application/pdf" as const },
+                  },
+                  { type: "text" as const, text: "Extraia os códigos CNAE licenciados deste CLI e retorne apenas o JSON." },
+                ] as any,
+              },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "cnae_extraction",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    cliCnaesLicenciados: { type: ["array", "null"], items: { type: "string" } },
+                  },
+                  required: ["cliCnaesLicenciados"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+          const content = llmResp.choices[0]?.message?.content;
+          if (content && typeof content === "string") {
+            const parsed = JSON.parse(content);
+            if (parsed.cliCnaesLicenciados && parsed.cliCnaesLicenciados.length > 0) {
+              cliCnaesLicenciados = parsed.cliCnaesLicenciados;
+              // Salvar no banco para não precisar reextrair novamente
+              await updateAlvara(input.id, {
+                cliCnaesLicenciados: JSON.stringify(cliCnaesLicenciados),
+              });
+            }
+          }
+        } catch (e) {
+          console.error("[Revalidar] Erro ao reextrair CNAEs do PDF", input.id, e);
+        }
       }
 
       const validacao = executarValidacao(

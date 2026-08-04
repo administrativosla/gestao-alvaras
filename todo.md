@@ -429,3 +429,9 @@
 - [x] Ao confirmar importação de alvará/CLI, desativar automaticamente semRegistro do cliente
 - [x] Ocultar bloco "Negociação Comercial" no ClienteDetail quando cliente tem CLI/alvará ativo
 - [x] Adicionar botão "Ver PDF" / "Download" no card do CLI na aba Alvarás do ClienteDetail
+
+## V3.16 — Revalidar com reextração de CNAEs do PDF
+
+- [x] Procedure alvaras.revalidar: quando cliCnaesLicenciados está vazio e arquivoPdfUrl disponível, reextrair CNAEs do PDF via LLM antes de validar
+- [x] Salvar cliCnaesLicenciados extraídos no banco antes de executar validação
+- [x] Testar com o CLI já importado (ID 660001)
