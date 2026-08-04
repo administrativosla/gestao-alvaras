@@ -379,3 +379,16 @@
 
 ### Relatório técnico
 - [x] Gerar relatório técnico PDF explicando a lógica de análise dos documentos CLI
+
+## V3.12 — Fase 1: Enriquecimento CNPJ + Schema de Validação
+
+### Schema — tabela clientes
+- [x] Adicionar colunas: situacaoCadastral, cnaePrincipal, cnaePrincipalDescricao, cnaesSecundarios, porte, naturezaJuridica, capitalSocial, dadosReceitaAtualizadoEm, dadosReceitaStatus
+
+### Schema — tabela alvaras
+- [x] Adicionar colunas: validacaoEndereco, validacaoCnae, validacaoSituacao, validacaoDetalhes, validacaoExecutadaEm
+
+### Enriquecimento em lote
+- [x] Script de enriquecimento: consultar BrasilAPI para cada um dos 442 CNPJs e salvar os dados
+- [x] Executar enriquecimento em lote (1 req/s, ~8 min)
+- [x] Verificar resultado: quantos enriquecidos com sucesso, quantos com erro

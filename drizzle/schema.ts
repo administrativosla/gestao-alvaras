@@ -83,6 +83,16 @@ export const clientes = mysqlTable("clientes", {
   observacoesPreventivas: text("observacoesPreventivas"),
   // Status comercial manual: marcado pelo gestor quando não há registro de CLI/alvará disponível para oferta
   semRegistro: boolean("semRegistro").default(false).notNull(),
+  // ── Dados enriquecidos via BrasilAPI (Receita Federal) ────────────────────────
+  situacaoCadastral: varchar("situacaoCadastral", { length: 30 }),       // "ATIVA" | "BAIXADA" | "SUSPENSA" | "INAPTA"
+  cnaePrincipal: varchar("cnaePrincipal", { length: 10 }),               // ex.: "4711-3/02"
+  cnaePrincipalDescricao: varchar("cnaePrincipalDescricao", { length: 255 }),
+  cnaesSecundarios: text("cnaesSecundarios"),                            // JSON: [{codigo, descricao}]
+  porte: varchar("porte", { length: 30 }),                               // "ME" | "EPP" | "DEMAIS"
+  naturezaJuridica: varchar("naturezaJuridica", { length: 100 }),
+  capitalSocial: varchar("capitalSocial", { length: 30 }),
+  dadosReceitaAtualizadoEm: timestamp("dadosReceitaAtualizadoEm"),
+  dadosReceitaStatus: varchar("dadosReceitaStatus", { length: 20 }).default("pendente"), // "pendente" | "ok" | "erro" | "cnpj_invalido"
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -174,6 +184,12 @@ export const alvaras = mysqlTable("alvaras", {
   alertaEnviado30: boolean("alertaEnviado30").default(false).notNull(),
   alertaEnviado15: boolean("alertaEnviado15").default(false).notNull(),
   alertaEnviado7: boolean("alertaEnviado7").default(false).notNull(),
+  // ── Validação contra dados da Receita Federal ─────────────────────────────
+  validacaoEndereco: varchar("validacaoEndereco", { length: 20 }),        // "compativel" | "divergente" | "nao_verificado"
+  validacaoCnae: varchar("validacaoCnae", { length: 20 }),                // "compativel" | "parcial" | "incompativel" | "nao_verificado"
+  validacaoSituacao: varchar("validacaoSituacao", { length: 20 }),        // "ok" | "alerta" | "critico" | "nao_verificado"
+  validacaoDetalhes: text("validacaoDetalhes"),                           // JSON com divergências encontradas
+  validacaoExecutadaEm: timestamp("validacaoExecutadaEm"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
