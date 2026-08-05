@@ -54,6 +54,9 @@ interface RegistroLote {
   situacaoCli?: string | null;
   cliOrgaosPendentes?: Array<{ orgao: string; tipoManifestacao: string; status: string }> | null;
   cliNumeroSolicitacao?: string | null;
+  cliCnaesLicenciados?: string[] | null;
+  arquivoPdfKey?: string | null;
+  arquivoPdfUrl?: string | null;
   _erro?: string | null;
   _incluir: boolean;
 }
@@ -86,6 +89,21 @@ export default function ImportacaoLotePage() {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+
+  // Faz upload do PDF ao storage S3 e retorna { key, url }
+  const uploadPdfStorage = useCallback(async (fileBase64: string, fileName: string): Promise<{ key: string; url: string } | null> => {
+    try {
+      const resp = await fetch("/api/upload-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileBase64, fileName }),
+      });
+      if (resp.ok) return await resp.json();
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const processarArquivos = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
@@ -130,9 +148,20 @@ export default function ImportacaoLotePage() {
         // Processar os PDFs extraídos do ZIP
         if (arquivos.length > 0) {
           const resultados = await parseLoteMutation.mutateAsync({ arquivos });
-          resultados.forEach((r) => {
+          // Fazer upload de cada PDF ao storage em paralelo
+          const storageResults = await Promise.all(
+            arquivos.map((arq) => uploadPdfStorage(arq.fileBase64, arq.fileName))
+          );
+          resultados.forEach((r, i) => {
+            const storage = storageResults[i];
             if (r.dados && !r.erro) {
-              todosRegistros.push({ ...r.dados, fileName: r.fileName, _incluir: true });
+              todosRegistros.push({
+                ...r.dados,
+                fileName: r.fileName,
+                arquivoPdfKey: storage?.key ?? null,
+                arquivoPdfUrl: storage?.url ?? null,
+                _incluir: true,
+              });
             } else {
               todosRegistros.push({
                 fileName: r.fileName,
@@ -168,11 +197,22 @@ export default function ImportacaoLotePage() {
           pdfs.map(async (f) => ({ fileName: f.name, fileBase64: await toBase64(f) }))
         );
         const resultados = await parseLoteMutation.mutateAsync({ arquivos });
+        // Fazer upload de cada PDF ao storage em paralelo
+        const storageResults = await Promise.all(
+          arquivos.map((arq) => uploadPdfStorage(arq.fileBase64, arq.fileName))
+        );
 
         resultados.forEach((r, i) => {
           const fileName = pdfs[i]?.name ?? r.fileName;
+          const storage = storageResults[i];
           if (r.dados && !r.erro) {
-            todosRegistros.push({ ...r.dados, fileName, _incluir: true });
+            todosRegistros.push({
+              ...r.dados,
+              fileName,
+              arquivoPdfKey: storage?.key ?? null,
+              arquivoPdfUrl: storage?.url ?? null,
+              _incluir: true,
+            });
             setArquivosStatus((prev) =>
               prev.map((a) => (a.name === fileName ? { ...a, status: "ok" } : a))
             );
@@ -200,7 +240,7 @@ export default function ImportacaoLotePage() {
 
     setRegistros(todosRegistros);
     setStep("revisao");
-  }, [parseLoteMutation, parseZipMutation]);
+  }, [parseLoteMutation, parseZipMutation, uploadPdfStorage]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {

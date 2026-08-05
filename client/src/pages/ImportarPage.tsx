@@ -57,6 +57,9 @@ export default function ImportarPage() {
   const [preview, setPreview] = useState<any[]>([]);
   const [pdfExtracted, setPdfExtracted] = useState<any>(null);
   const [pdfRevisao, setPdfRevisao] = useState<any>({});
+  const [pdfStorageKey, setPdfStorageKey] = useState<string | null>(null);
+  const [pdfStorageUrl, setPdfStorageUrl] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [resultado, setResultado] = useState<{ criados: number; atualizados: number; erros: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -90,9 +93,31 @@ export default function ImportarPage() {
   });
 
   const pdfMutation = trpc.importacao.parsePdf.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setPdfExtracted(data);
-      setPdfRevisao(data);
+      // Fazer upload do PDF ao storage S3 para armazenamento persistente
+      try {
+        setUploadingPdf(true);
+        const resp = await fetch("/api/upload-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileBase64, fileName: file?.name ?? "alvara.pdf" }),
+        });
+        if (resp.ok) {
+          const { key, url } = await resp.json();
+          setPdfStorageKey(key);
+          setPdfStorageUrl(url);
+          setPdfRevisao({ ...data, arquivoPdfKey: key, arquivoPdfUrl: url });
+        } else {
+          console.warn("Upload do PDF ao storage falhou, continuando sem URL");
+          setPdfRevisao(data);
+        }
+      } catch (e) {
+        console.warn("Erro ao salvar PDF no storage:", e);
+        setPdfRevisao(data);
+      } finally {
+        setUploadingPdf(false);
+      }
       setStep("revisao");
     },
     onError: (e) => toast.error("Erro ao extrair PDF: " + e.message),
@@ -155,6 +180,9 @@ export default function ImportarPage() {
     setStep("upload");
     setFile(null);
     setFileBase64("");
+    setPdfStorageKey(null);
+    setPdfStorageUrl(null);
+    setUploadingPdf(false);
     setColunas([]);
     setMapeamento({});
     setPreview([]);
@@ -257,10 +285,12 @@ export default function ImportarPage() {
             <div className="flex justify-end">
               <Button
                 onClick={handleProcessar}
-                disabled={!file || previewMutation.isPending || pdfMutation.isPending}
+                disabled={!file || previewMutation.isPending || pdfMutation.isPending || uploadingPdf}
                 className="gap-2"
               >
-                {(previewMutation.isPending || pdfMutation.isPending) ? (
+                {uploadingPdf ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Salvando PDF...</>
+                ) : (previewMutation.isPending || pdfMutation.isPending) ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Processando...</>
                 ) : (
                   <>Processar arquivo <ArrowRight className="h-4 w-4" /></>
@@ -452,6 +482,21 @@ export default function ImportarPage() {
                 <span className={`font-semibold ${isCliParcial ? "text-amber-600" : "text-emerald-600"}`}>
                   {isCliParcial ? "Parcial" : "Completo"}
                 </span>
+              </div>
+            )}
+
+            {/* Indicador de PDF salvo no storage */}
+            {pdfStorageUrl && (
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-emerald-800">PDF salvo — disponível para consulta futura</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">O arquivo foi armazenado com segurança e estará acessível no detalhe do alvará.</p>
+                </div>
+                <a href={pdfStorageUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-medium text-emerald-700 underline hover:text-emerald-900 shrink-0">
+                  Visualizar PDF
+                </a>
               </div>
             )}
 

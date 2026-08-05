@@ -821,6 +821,8 @@ Se não encontrar um campo, use null.`,
               observacao: z.string().optional().nullable(),
             })).optional().nullable(),
             cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
+            arquivoPdfKey: z.string().optional().nullable(),
+            arquivoPdfUrl: z.string().optional().nullable(),
           })
         ).min(1),
         colaborador: z.string().optional(),
@@ -915,6 +917,8 @@ Se não encontrar um campo, use null.`,
                     ? JSON.stringify(reg.cliCnaesLicenciados)
                     : null,
                   status,
+                  ...(reg.arquivoPdfKey ? { arquivoPdfKey: reg.arquivoPdfKey } : {}),
+                  ...(reg.arquivoPdfUrl ? { arquivoPdfUrl: reg.arquivoPdfUrl } : {}),
                 });
                 await addHistorico({
                   alvaraId: alvaraExistenteLote.id,
@@ -942,6 +946,8 @@ Se não encontrar um campo, use null.`,
                     ? JSON.stringify(reg.cliCnaesLicenciados)
                     : null,
                   status,
+                  arquivoPdfKey: reg.arquivoPdfKey ?? null,
+                  arquivoPdfUrl: reg.arquivoPdfUrl ?? null,
                 });
                 await addHistorico({
                   alvaraId: novoAlvaraId,

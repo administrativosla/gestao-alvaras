@@ -435,3 +435,14 @@
 - [x] Procedure alvaras.revalidar: quando cliCnaesLicenciados está vazio e arquivoPdfUrl disponível, reextrair CNAEs do PDF via LLM antes de validar
 - [x] Salvar cliCnaesLicenciados extraídos no banco antes de executar validação
 - [x] Testar com o CLI já importado (ID 660001)
+
+## V3.18 — Limpeza de Banco + Storage de PDFs
+
+- [x] Limpar tabelas alvaras, historico_alvaras, negociacoes, negociacoes_historico
+- [x] Criar endpoint POST /api/upload-pdf no backend para salvar PDF no storage S3
+- [x] Corrigir fluxo ImportarPage: fazer upload do PDF ao storage antes de confirmar, injetar arquivoPdfKey/arquivoPdfUrl no payload
+- [x] Corrigir fluxo ImportacaoLotePage: fazer upload de cada PDF ao storage, injetar URL no registro
+- [x] Corrigir re-upload no ClienteCliManager: salvar PDF no storage antes de confirmarPdf
+- [x] Corrigir re-upload no AlvaraDetail: salvar PDF no storage antes de confirmarPdf
+- [x] Adicionar indicador "PDF salvo" com link "Visualizar" em todas as telas de revisão
+- [x] Confirmar que arquivoPdfUrl é persistido corretamente no banco após importação

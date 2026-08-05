@@ -65,6 +65,8 @@ export default function ClienteCliManager({ clienteId }: Props) {
   const [reuploadBase64, setReuploadBase64] = useState("");
   const [reuploadExtracted, setReuploadExtracted] = useState<any>(null);
   const [reuploadStep, setReuploadStep] = useState<"select" | "review">("select");
+  const [reuploadPdfUrl, setReuploadPdfUrl] = useState<string | null>(null);
+  const [reuploadPdfKey, setReuploadPdfKey] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -78,8 +80,25 @@ export default function ClienteCliManager({ clienteId }: Props) {
   });
 
   const parsePdfMutation = trpc.importacao.parsePdf.useMutation({
-    onSuccess: (data) => {
-      setReuploadExtracted(data);
+    onSuccess: async (data) => {
+      // Fazer upload do PDF ao storage S3
+      try {
+        const resp = await fetch("/api/upload-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileBase64: reuploadBase64, fileName: reuploadFile?.name ?? "cli.pdf" }),
+        });
+        if (resp.ok) {
+          const { key, url } = await resp.json();
+          setReuploadPdfKey(key);
+          setReuploadPdfUrl(url);
+          setReuploadExtracted({ ...data, arquivoPdfKey: key, arquivoPdfUrl: url });
+        } else {
+          setReuploadExtracted(data);
+        }
+      } catch {
+        setReuploadExtracted(data);
+      }
       setReuploadStep("review");
     },
     onError: (e) => toast.error("Erro ao ler PDF: " + e.message),
@@ -92,6 +111,8 @@ export default function ClienteCliManager({ clienteId }: Props) {
       setReuploadFile(null);
       setReuploadBase64("");
       setReuploadExtracted(null);
+      setReuploadPdfKey(null);
+      setReuploadPdfUrl(null);
       setReuploadStep("select");
       utils.alvaras.list.invalidate({ clienteId });
       utils.clientes.listComCobertura.invalidate();
@@ -127,6 +148,8 @@ export default function ClienteCliManager({ clienteId }: Props) {
   };
 
   const cancelReupload = () => {
+    setReuploadPdfKey(null);
+    setReuploadPdfUrl(null);
     setReuploadId(null);
     setReuploadFile(null);
     setReuploadBase64("");
@@ -353,6 +376,16 @@ export default function ClienteCliManager({ clienteId }: Props) {
               {isReuploadTarget && reuploadStep === "review" && reuploadExtracted && (
                 <div className="pt-2 border-t border-blue-200 space-y-3">
                   <p className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Confirmar Atualização do CLI</p>
+                  {reuploadPdfUrl && (
+                    <div className="flex items-center gap-2 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <span className="text-xs text-emerald-700 flex-1">PDF salvo no storage</span>
+                      <a href={reuploadPdfUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-xs font-medium text-emerald-700 underline hover:text-emerald-900">
+                        Visualizar
+                      </a>
+                    </div>
+                  )}
                   <div className="rounded-lg bg-white border border-blue-200 p-3 space-y-1.5 text-xs">
                     <p className="font-semibold text-blue-700 mb-1.5">Dados extraídos do novo PDF:</p>
                     {reuploadExtracted.razaoSocial && (

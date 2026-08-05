@@ -93,10 +93,30 @@ function CliPendenciasCard({
   const [uploadBase64, setUploadBase64] = React.useState("");
   const [uploadExtracted, setUploadExtracted] = React.useState<any>(null);
   const [uploadStep, setUploadStep] = React.useState<"select" | "review" | "done">("select");
+  const [uploadPdfUrl, setUploadPdfUrl] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const parsePdfMutation = trpc.importacao.parsePdf.useMutation({
-    onSuccess: (data) => { setUploadExtracted(data); setUploadStep("review"); },
+    onSuccess: async (data) => {
+      // Fazer upload do PDF ao storage S3
+      try {
+        const resp = await fetch("/api/upload-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileBase64: uploadBase64, fileName: uploadFile?.name ?? "cli.pdf" }),
+        });
+        if (resp.ok) {
+          const { key, url } = await resp.json();
+          setUploadPdfUrl(url);
+          setUploadExtracted({ ...data, arquivoPdfKey: key, arquivoPdfUrl: url });
+        } else {
+          setUploadExtracted(data);
+        }
+      } catch {
+        setUploadExtracted(data);
+      }
+      setUploadStep("review");
+    },
     onError: (e) => toast.error("Erro ao ler PDF: " + e.message),
   });
 
@@ -108,6 +128,7 @@ function CliPendenciasCard({
       setUploadFile(null);
       setUploadBase64("");
       setUploadExtracted(null);
+      setUploadPdfUrl(null);
       onUpdated();
     },
     onError: (e) => toast.error("Erro ao salvar: " + e.message),
@@ -390,6 +411,16 @@ function CliPendenciasCard({
 
                 {uploadStep === "review" && uploadExtracted && (
                   <div className="space-y-3">
+                    {uploadPdfUrl && (
+                      <div className="flex items-center gap-2 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-xs text-emerald-700 flex-1">PDF salvo no storage</span>
+                        <a href={uploadPdfUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-medium text-emerald-700 underline hover:text-emerald-900">
+                          Visualizar
+                        </a>
+                      </div>
+                    )}
                     <div className="rounded-lg bg-white border border-blue-200 p-3 space-y-1.5 text-xs">
                       <p className="font-semibold text-blue-800 mb-2">Dados extraídos do PDF:</p>
                       {uploadExtracted.razaoSocial && (

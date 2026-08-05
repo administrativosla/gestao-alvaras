@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { alertasHeartbeatHandler } from "../handlers/alertasHeartbeat";
 import { relatorioHeartbeatHandler } from "../handlers/relatorioHeartbeat";
+import { storagePut } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -41,6 +42,25 @@ async function startServer() {
   // Scheduled heartbeat handlers
   app.post("/api/scheduled/alertas-vencimento", alertasHeartbeatHandler);
   app.post("/api/scheduled/relatorio-diario", relatorioHeartbeatHandler);
+
+  // Endpoint de upload de PDF para armazenamento persistente no storage S3
+  app.post("/api/upload-pdf", async (req, res) => {
+    try {
+      const { fileBase64, fileName } = req.body as { fileBase64: string; fileName: string };
+      if (!fileBase64 || !fileName) {
+        res.status(400).json({ error: "fileBase64 e fileName são obrigatórios" });
+        return;
+      }
+      const buffer = Buffer.from(fileBase64, "base64");
+      const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const key = `alvaras/${Date.now()}_${safeName}`;
+      const { url } = await storagePut(key, buffer, "application/pdf");
+      res.json({ key, url });
+    } catch (err: any) {
+      console.error("[upload-pdf] Erro:", err);
+      res.status(500).json({ error: err?.message ?? "Erro ao salvar PDF" });
+    }
+  });
 
   // tRPC API
   app.use(
