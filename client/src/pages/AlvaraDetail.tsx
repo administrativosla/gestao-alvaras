@@ -565,7 +565,23 @@ export default function AlvaraDetail({ id }: Props) {
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {(alvara as any).arquivoPdfUrl && (
+            <a
+              href={(alvara as any).arquivoPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
+              >
+                <Download className="h-3.5 w-3.5" /> Baixar PDF
+              </Button>
+            </a>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -746,8 +762,8 @@ export default function AlvaraDetail({ id }: Props) {
                 highlight={alertaAtivo}
               />
               {alvara.arquivoPdfUrl && (
-                <div className="flex items-center gap-2.5 pt-1">
-                  <div className="p-1.5 rounded bg-red-100">
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  <div className="p-1.5 rounded bg-red-100 shrink-0">
                     <FileText className="h-3.5 w-3.5 text-red-600" />
                   </div>
                   <a
@@ -756,7 +772,16 @@ export default function AlvaraDetail({ id }: Props) {
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
                   >
-                    Visualizar PDF do alvará <ExternalLink className="h-3 w-3" />
+                    Visualizar PDF <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <a
+                    href={alvara.arquivoPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="text-sm text-red-600 hover:underline flex items-center gap-1 font-medium"
+                  >
+                    <Download className="h-3 w-3" /> Baixar
                   </a>
                 </div>
               )}

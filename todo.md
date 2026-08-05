@@ -446,3 +446,7 @@
 - [x] Corrigir re-upload no AlvaraDetail: salvar PDF no storage antes de confirmarPdf
 - [x] Adicionar indicador "PDF salvo" com link "Visualizar" em todas as telas de revisão
 - [x] Confirmar que arquivoPdfUrl é persistido corretamente no banco após importação
+
+## V3.19 — Botão permanente de Baixar PDF no detalhe do alvará
+
+- [x] Adicionar botão "Baixar PDF" / "Visualizar PDF" permanente na tela de detalhe do alvará (AlvaraDetailPage), visível quando arquivoPdfUrl estiver preenchido
