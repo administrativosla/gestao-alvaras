@@ -317,6 +317,90 @@ export default function ClienteDetail({ id }: Props) {
         </Card>
       </div>
 
+      {/* PAINEL RÁPIDO DE ALVARÁS — logo após os dados principais */}
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Alvarás
+              {alvaras && alvaras.length > 0 && (
+                <Badge variant="secondary" className="text-xs h-5 px-1.5 ml-1">{alvaras.length}</Badge>
+              )}
+            </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setLocation(`/importar?clienteId=${id}`)}
+              className="gap-1.5 h-7 text-xs"
+            >
+              <Plus className="h-3 w-3" /> Importar PDF
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {!alvaras || alvaras.length === 0 ? (
+            <div className="flex items-center gap-3 py-4 text-muted-foreground">
+              <FileText className="h-4 w-4 shrink-0" />
+              <p className="text-sm">Nenhum alvará cadastrado</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {alvaras.map((a) => {
+                const dias = calcDiasParaVencimento(a.alvara.dataVencimento);
+                const info = dias !== null ? getAlertaInfo(dias) : null;
+                return (
+                  <div
+                    key={a.alvara.id}
+                    className="flex items-center justify-between gap-3 py-2.5 cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded transition-colors"
+                    onClick={() => setLocation(`/alvaras/${a.alvara.id}`)}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="shrink-0">
+                        <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {a.alvara.tipo}
+                          {a.alvara.numeroAlvara && (
+                            <span className="ml-1.5 text-xs text-muted-foreground font-normal font-mono">Nº {a.alvara.numeroAlvara}</span>
+                          )}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {a.alvara.orgaoEmissor && (
+                            <span className="text-xs text-muted-foreground truncate max-w-[180px]">{a.alvara.orgaoEmissor}</span>
+                          )}
+                          {a.alvara.dataVencimento && (
+                            <span className="text-xs text-muted-foreground">
+                              Venc. {formatDate(a.alvara.dataVencimento)}
+                              {dias !== null && info && (
+                                <span className={`ml-1 font-medium ${info.textColor}`}>({info.label})</span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {(a.alvara as any).arquivoPdfUrl && (
+                        <a
+                          href={(a.alvara as any).arquivoPdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3 w-3" /> PDF
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* BLOCO 3 — Atividades Econômicas (CNAEs) */}
       {(data.cnaePrincipal || cnaesSecundarios.length > 0) && (
         <Card className="border shadow-sm">
