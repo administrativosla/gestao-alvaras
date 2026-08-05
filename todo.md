@@ -450,3 +450,12 @@
 ## V3.19 — Botão permanente de Baixar PDF no detalhe do alvará
 
 - [x] Adicionar botão "Baixar PDF" / "Visualizar PDF" permanente na tela de detalhe do alvará (AlvaraDetailPage), visível quando arquivoPdfUrl estiver preenchido
+
+## V3.20 — Ícone PDF na listagem + Histórico de versões + Pré-visualização inline
+
+- [x] Adicionar ícone/badge de PDF na tabela de listagem de alvarás (AlvarasPage) quando arquivoPdfUrl estiver preenchido
+- [x] Criar tabela alvara_pdfs no banco (id, alvaraId, fileName, pdfKey, pdfUrl, uploadedAt, uploadedBy)
+- [x] Criar procedures: alvaras.listPdfs e alvaras.addPdf
+- [x] Integrar gravação no histórico de PDFs em todos os fluxos de upload (importação unitária, lote, re-upload)
+- [x] Exibir histórico de versões de PDFs na tela de detalhes do alvará com acesso a versões anteriores
+- [x] Implementar pré-visualização inline do PDF (iframe embed) na tela de detalhes

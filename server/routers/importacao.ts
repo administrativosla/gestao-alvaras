@@ -3,6 +3,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import JSZip from "jszip";
 import {
+  addAlvaraPdf,
   addHistorico,
   createAlvara,
   createCliente,
@@ -545,6 +546,16 @@ Se não encontrar um campo, use null.`,
               observacao: `Atualizado via re-upload de PDF: ${input.fileName}. Situação CLI: ${_situacaoCli ?? "não informada"}.${_statusPdf === "Em Vigência" ? ` Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : " Vencimento próximo."}`,
               colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
             });
+            // Registrar no histórico de PDFs
+            if (dados.arquivoPdfKey && dados.arquivoPdfUrl) {
+              await addAlvaraPdf({
+                alvaraId: alvaraExistente.id,
+                fileName: input.fileName,
+                pdfKey: dados.arquivoPdfKey,
+                pdfUrl: dados.arquivoPdfUrl,
+                uploadedBy: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+              }).catch(() => {/* não bloquear */});
+            }
           } else {
             // INSERT: criar novo alvará
             alvaraId = await createAlvara({
@@ -572,6 +583,16 @@ Se não encontrar um campo, use null.`,
               observacao: `Importado via PDF: ${input.fileName}${_statusPdf === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
               colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
             });
+            // Registrar no histórico de PDFs
+            if (dados.arquivoPdfKey && dados.arquivoPdfUrl) {
+              await addAlvaraPdf({
+                alvaraId,
+                fileName: input.fileName,
+                pdfKey: dados.arquivoPdfKey,
+                pdfUrl: dados.arquivoPdfUrl,
+                uploadedBy: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+              }).catch(() => {/* não bloquear */});
+            }
           }
         }
       }
@@ -927,6 +948,15 @@ Se não encontrar um campo, use null.`,
                   observacao: `Atualizado via re-upload em lote: ${reg.fileName}. Situação CLI: ${_situacaoCliLote ?? "não informada"}.${status === "Em Vigência" ? ` Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : " Vencimento próximo."}`,
                   colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
                 });
+                if (reg.arquivoPdfKey && reg.arquivoPdfUrl) {
+                  await addAlvaraPdf({
+                    alvaraId: alvaraExistenteLote.id,
+                    fileName: reg.fileName,
+                    pdfKey: reg.arquivoPdfKey,
+                    pdfUrl: reg.arquivoPdfUrl,
+                    uploadedBy: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+                  }).catch(() => {});
+                }
                 alvaraIdLote = alvaraExistenteLote.id;
                 atualizados++;
               } else {
@@ -956,6 +986,15 @@ Se não encontrar um campo, use null.`,
                   observacao: `Importado em lote via PDF: ${reg.fileName}${status === "Em Vigência" ? `. Em vigência até ${dataVencimento.toLocaleDateString("pt-BR")}.` : ". Vencimento próximo."}`,
                   colaborador: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
                 });
+                if (reg.arquivoPdfKey && reg.arquivoPdfUrl) {
+                  await addAlvaraPdf({
+                    alvaraId: novoAlvaraId,
+                    fileName: reg.fileName,
+                    pdfKey: reg.arquivoPdfKey,
+                    pdfUrl: reg.arquivoPdfUrl,
+                    uploadedBy: input.colaborador ?? (ctx as any).user?.name ?? "Sistema",
+                  }).catch(() => {});
+                }
                 alvaraIdLote = novoAlvaraId;
                 importados++;
               }

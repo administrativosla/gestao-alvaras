@@ -131,6 +131,7 @@ export default function AlvarasList() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vencimento</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Prazo</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                  <TableHead className="w-10 hidden sm:table-cell" title="PDF anexado" />
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
@@ -185,6 +186,23 @@ export default function AlvarasList() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={a.alvara.status} dataVencimento={a.alvara.dataVencimento} />
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+                        {(a.alvara as any).arquivoPdfUrl ? (
+                          <a
+                            href={(a.alvara as any).arquivoPdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="PDF disponível — clique para visualizar"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
+                          >
+                            <FileText className="h-3.5 w-3.5 text-red-600" />
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted/40" title="Sem PDF anexado">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground/30" />
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>

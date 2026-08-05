@@ -3,12 +3,14 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { publicProcedure, router } from "../_core/trpc";
 import {
+  addAlvaraPdf,
   addHistorico,
   createAlvara,
   deleteAlvara,
   getAlvaraById,
   getDb,
   getHistoricoByAlvara,
+  listAlvaraPdfs,
   listAlvaras,
   updateAlvara,
 } from "../db";
@@ -511,5 +513,31 @@ export const alvarasRouter = router({
       });
 
       return { success: true };
+    }),
+
+  // Listar histórico de PDFs de um alvará
+  listPdfs: publicProcedure
+    .input(z.object({ alvaraId: z.number() }))
+    .query(async ({ input }) => {
+      return listAlvaraPdfs(input.alvaraId);
+    }),
+
+  // Registrar um PDF no histórico (chamado internamente após upload)
+  addPdf: publicProcedure
+    .input(z.object({
+      alvaraId: z.number(),
+      fileName: z.string(),
+      pdfKey: z.string(),
+      pdfUrl: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const id = await addAlvaraPdf({
+        alvaraId: input.alvaraId,
+        fileName: input.fileName,
+        pdfKey: input.pdfKey,
+        pdfUrl: input.pdfUrl,
+        uploadedBy: (ctx as any).user?.name ?? "Sistema",
+      });
+      return { id };
     }),
 });

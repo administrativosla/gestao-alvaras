@@ -278,6 +278,20 @@ export const negociacoesHistorico = mysqlTable("negociacoes_historico", {
 export type NegociacaoHistorico = typeof negociacoesHistorico.$inferSelect;
 export type InsertNegociacaoHistorico = typeof negociacoesHistorico.$inferInsert;
 
+// ─── Histórico de PDFs por Alvará ─────────────────────────────────────────────
+export const alvaraPdfs = mysqlTable("alvara_pdfs", {
+  id: int("id").autoincrement().primaryKey(),
+  alvaraId: int("alvaraId").notNull(),
+  fileName: varchar("fileName", { length: 500 }).notNull(),
+  pdfKey: varchar("pdfKey", { length: 500 }).notNull(),
+  pdfUrl: varchar("pdfUrl", { length: 500 }).notNull(),
+  uploadedBy: varchar("uploadedBy", { length: 255 }),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+});
+
+export type AlvaraPdf = typeof alvaraPdfs.$inferSelect;
+export type InsertAlvaraPdf = typeof alvaraPdfs.$inferInsert;
+
 // ─── Log de Importações ─────────────────────────────────────────────────────────
 export const importacoes = mysqlTable("importacoes", {
   id: int("id").autoincrement().primaryKey(),

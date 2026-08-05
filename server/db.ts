@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   alvaraHistorico,
+  alvaraPdfs,
   alvaras,
   clientes,
   emailsAlerta,
@@ -522,4 +523,22 @@ export async function updateImportacao(id: number, data: Partial<typeof importac
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   await db.update(importacoes).set(data).where(eq(importacoes.id, id));
+}
+
+// ─── Histórico de PDFs por Alvará ─────────────────────────────────────────────
+export async function addAlvaraPdf(data: typeof alvaraPdfs.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const [result] = await db.insert(alvaraPdfs).values(data);
+  return result.insertId as number;
+}
+
+export async function listAlvaraPdfs(alvaraId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(alvaraPdfs)
+    .where(eq(alvaraPdfs.alvaraId, alvaraId))
+    .orderBy(desc(alvaraPdfs.uploadedAt));
 }
