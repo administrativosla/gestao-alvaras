@@ -1,0 +1,1 @@
+ALTER TABLE `alvaras` ADD `cliMunicipioEmissor` varchar(100);

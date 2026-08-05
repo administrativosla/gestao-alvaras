@@ -117,46 +117,14 @@ function validarSituacaoCadastral(cliente: DadosCliente): DimensaoValidacao {
   };
 }
 
-// ─── Mapa de prefixos CLI → Município emissor ────────────────────────────────
-// Prefixos conhecidos do CLI de SP (VRE/REDESIM):
-// SPM = São Paulo (Município) | SPP = São Paulo (Prefeitura, sinônimo)
-// Outros municípios SP: CAM = Campinas, SBC = São Bernardo do Campo,
-// SCS = São Caetano do Sul, GRU = Guarulhos, OSA = Osasco,
-// SJC = São José dos Campos, RIB = Ribeirão Preto, etc.
-const PREFIXO_CLI_MUNICIPIO: Record<string, string> = {
-  SPM: "sao paulo",
-  SPP: "sao paulo",
-  CAM: "campinas",
-  SBC: "sao bernardo do campo",
-  SCS: "sao caetano do sul",
-  GRU: "guarulhos",
-  OSA: "osasco",
-  SJC: "sao jose dos campos",
-  RIB: "ribeirao preto",
-  STO: "santos",
-  SAN: "santo andre",
-  MCI: "mogi das cruzes",
-  JAU: "jau",
-  BAU: "bauru",
-  PIR: "piracicaba",
-  LIM: "limeira",
-  ARA: "araçatuba",
-  MAR: "marilia",
-  PRE: "presidente prudente",
-  SOC: "sorocaba",
-  TAU: "taubate",
-  VOL: "volta redonda",
-};
-
-/**
- * Extrai o prefixo de jurisdição de um número de CLI.
- * Ex: "SPM2530011930" → "SPM", "SPP2430512122" → "SPP"
- */
-function extrairPrefixoCli(numeroAlvara: string | null | undefined): string | null {
-  if (!numeroAlvara) return null;
-  const match = numeroAlvara.trim().toUpperCase().match(/^([A-Z]{2,4})\d/);
-  return match ? match[1] : null;
-}
+// ─── Nota sobre prefixos CLI do VRE/REDESIM SP ────────────────────────────────
+// IMPORTANTE: Os prefixos SPM e SPP no número do CLI NÃO indicam o município emissor.
+// Eles identificam o TIPO DE PROTOCOLO do sistema VRE/REDESIM:
+//   SPP = Protocolo de abertura/alteração de empresa (Solicitação de Pessoa Jurídica)
+//   SPM = Protocolo de regularização de empresa (Evento 999)
+// O município emissor real está EXPLICITAMENTE no corpo do documento:
+//   Ex: "Prefeitura do Município de Barueri", "Prefeitura do Município de São Paulo"
+// A validação de jurisdição deve usar o campo cliMunicipioEmissor extraído pelo LLM.
 
 // ─── Validação de Endereço ────────────────────────────────────────────────────
 
@@ -181,37 +149,32 @@ function validarEndereco(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidaca
   const correspondencias: string[] = [];
 
   // ── Verificação de jurisdição para CLI (PRIORIDADE MÁXIMA) ───────────────────
-  // O prefixo do número do CLI identifica o município emissor.
-  // Se o CNPJ está cadastrado em outro município, há divergência de jurisdição.
-  if (pdf.tipo === "CLI" && pdf.orgaoEmissor) {
-    const prefixo = extrairPrefixoCli(pdf.orgaoEmissor);
-    if (prefixo && PREFIXO_CLI_MUNICIPIO[prefixo]) {
-      const municipioCliNorm = normalizarTexto(PREFIXO_CLI_MUNICIPIO[prefixo]);
-      const municipioClienteNorm = normalizarTexto(cliente.cidade);
-      if (municipioClienteNorm && municipioCliNorm !== municipioClienteNorm &&
-          !municipioClienteNorm.includes(municipioCliNorm) && !municipioCliNorm.includes(municipioClienteNorm)) {
-        return {
-          resultado: "divergente",
-          detalhe: `Divergência de jurisdição: o CLI (prefixo "${prefixo}") foi emitido pelo município de "${PREFIXO_CLI_MUNICIPIO[prefixo].replace(/\b\w/g, (c) => c.toUpperCase())}" (VRE/REDESIM), mas o CNPJ está cadastrado na Receita Federal com endereço em "${cliente.cidade}". Verifique se o estabelecimento correto foi licenciado.`,
-        };
-      }
+  // O município emissor do CLI está EXPLICITAMENTE no corpo do documento:
+  //   Ex: "Prefeitura do Município de Barueri", "Prefeitura do Município de São Paulo"
+  // NOTA: os prefixos SPM/SPP no número do CLI identificam o TIPO DE PROTOCOLO
+  // do sistema VRE/REDESIM (SPP = abertura, SPM = regularização), NÃO o município.
+  // O campo cliMunicipioEmissor deve ser extraído pelo LLM diretamente do documento.
+  const cliMunicipioEmissor = (pdf as any).cliMunicipioEmissor as string | null | undefined;
+  if (pdf.tipo === "CLI" && cliMunicipioEmissor) {
+    const municipioCliNorm = normalizarTexto(cliMunicipioEmissor);
+    const municipioClienteNorm = normalizarTexto(cliente.cidade);
+    if (municipioClienteNorm && municipioCliNorm &&
+        municipioCliNorm !== municipioClienteNorm &&
+        !municipioClienteNorm.includes(municipioCliNorm) &&
+        !municipioCliNorm.includes(municipioClienteNorm)) {
+      return {
+        resultado: "divergente",
+        detalhe: `Divergência de jurisdição: o CLI foi emitido pela Prefeitura de "${cliMunicipioEmissor}" (conforme consta no documento), mas o CNPJ está cadastrado na Receita Federal com endereço em "${cliente.cidade}". Verifique se o estabelecimento correto foi licenciado no município competente.`,
+      };
     }
-  }
-
-  // ── Verificação de jurisdição via número do CLI (quando orgaoEmissor não tem prefixo) ──
-  // Tenta extrair o prefixo do campo numeroAlvara se o orgaoEmissor não foi suficiente
-  if (pdf.tipo === "CLI" && (pdf as any).numeroAlvara) {
-    const prefixo = extrairPrefixoCli((pdf as any).numeroAlvara);
-    if (prefixo && PREFIXO_CLI_MUNICIPIO[prefixo]) {
-      const municipioCliNorm = normalizarTexto(PREFIXO_CLI_MUNICIPIO[prefixo]);
-      const municipioClienteNorm = normalizarTexto(cliente.cidade);
-      if (municipioClienteNorm && municipioCliNorm !== municipioClienteNorm &&
-          !municipioClienteNorm.includes(municipioCliNorm) && !municipioCliNorm.includes(municipioClienteNorm)) {
-        return {
-          resultado: "divergente",
-          detalhe: `Divergência de jurisdição: o CLI nº "${(pdf as any).numeroAlvara}" (prefixo "${prefixo}") foi emitido pelo município de "${PREFIXO_CLI_MUNICIPIO[prefixo].replace(/\b\w/g, (c) => c.toUpperCase())}" (VRE/REDESIM), mas o CNPJ está cadastrado na Receita Federal com endereço em "${cliente.cidade}". Verifique se o estabelecimento correto foi licenciado.`,
-        };
-      }
+    if (municipioClienteNorm && municipioCliNorm &&
+        (municipioCliNorm === municipioClienteNorm ||
+         municipioClienteNorm.includes(municipioCliNorm) ||
+         municipioCliNorm.includes(municipioClienteNorm))) {
+      return {
+        resultado: "ok",
+        detalhe: `Jurisdição confirmada: CLI emitido pela Prefeitura de "${cliMunicipioEmissor}", compatível com o município do CNPJ na Receita Federal ("${cliente.cidade}").`,
+      };
     }
   }
 

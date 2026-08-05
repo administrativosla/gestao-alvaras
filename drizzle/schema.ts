@@ -166,6 +166,7 @@ export const alvaras = mysqlTable("alvaras", {
   cliNumeroSolicitacao: varchar("cliNumeroSolicitacao", { length: 50 }), // ex.: 3728974
   cliDataSolicitacao: date("cliDataSolicitacao"),
   // Bloco "Dados da Empresa" do CLI
+  cliMunicipioEmissor: varchar("cliMunicipioEmissor", { length: 100 }),  // ex.: "Barueri", "São Paulo" — extraído do cabeçalho "Prefeitura do Município de X"
   cliInscricaoMunicipal: varchar("cliInscricaoMunicipal", { length: 50 }),
   cliNaturezaJuridica: varchar("cliNaturezaJuridica", { length: 100 }),
   cliFormaAtuacao: varchar("cliFormaAtuacao", { length: 255 }),

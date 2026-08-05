@@ -318,6 +318,7 @@ Campos a extrair:
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 - cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
 - cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento. Procure em DUAS seções do documento: (1) seção "ATIVIDADES ECONÔMICAS LICENCIADAS" que lista no formato "6203100 - Descrição"; (2) seção "PARECER DA PREFEITURA" que lista no formato "CNAE: 6203-1/00-Descrição". Extraia apenas o código numérico sem formatação (ex: "62031", "62023", "62040"). Use a seção com mais entradas. Para documentos que não são CLI, retorne null.
+- cliMunicipioEmissor: SOMENTE para documentos CLI. Extraia o nome do município emissor do cabeçalho do documento, que aparece explicitamente como "Prefeitura do Município de [NOME]" ou "Prefeitura de [NOME]". Exemplos: "Barueri", "São Paulo", "Campinas". IMPORTANTE: o prefixo SPM ou SPP no número do protocolo NÃO indica o município — ele identifica apenas o tipo de protocolo do sistema VRE/REDESIM. Use sempre o nome textual do município no documento. Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
           },
           {
@@ -379,6 +380,7 @@ Se não encontrar um campo, use null.`,
                   type: ["array", "null"],
                   items: { type: "string" },
                 },
+                cliMunicipioEmissor: { type: ["string", "null"] },
               },
               required: [
                 "cnpj",
@@ -400,6 +402,7 @@ Se não encontrar um campo, use null.`,
                 "situacaoCli",
                 "cliOrgaosPendentes",
                 "cliCnaesLicenciados",
+                "cliMunicipioEmissor",
               ],
               additionalProperties: false,
             },
@@ -455,6 +458,7 @@ Se não encontrar um campo, use null.`,
             observacao: z.string().optional().nullable(),
           })).optional().nullable(),
           cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
+          cliMunicipioEmissor: z.string().optional().nullable(),
         }),
         colaborador: z.string().optional(),
       })
@@ -537,6 +541,7 @@ Se não encontrar um campo, use null.`,
               cliCnaesLicenciados: dados.cliCnaesLicenciados && dados.cliCnaesLicenciados.length > 0
                 ? JSON.stringify(dados.cliCnaesLicenciados)
                 : null,
+              cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
               status: _statusPdf,
             });
             await addHistorico({
@@ -574,6 +579,7 @@ Se não encontrar um campo, use null.`,
               cliCnaesLicenciados: dados.cliCnaesLicenciados && dados.cliCnaesLicenciados.length > 0
                 ? JSON.stringify(dados.cliCnaesLicenciados)
                 : null,
+              cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
               status: _statusPdf,
             });
             await addHistorico({
@@ -613,7 +619,9 @@ Se não encontrar um campo, use null.`,
                 tipo: dados.tipo,
                 orgaoEmissor: dados.orgaoEmissor,
                 cliCnaesLicenciados: dados.cliCnaesLicenciados ?? null,
-              },
+                // cliMunicipioEmissor é usado para verificar jurisdição no validation.ts
+                ...({ cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null } as any),
+              } as any,
               {
                 situacaoCadastral: clienteData.situacaoCadastral,
                 logradouro: clienteData.logradouro,
@@ -693,6 +701,7 @@ Campos a extrair:
 - situacaoCli: para documentos CLI, retorne "parcial" se o documento contiver qualquer uma das expressões: "documento parcial", "pendente de finalização", "não produz os efeitos legais", "PENDENTE DE FINALIZAÇÃO" (tarja d'água), "finalizar as licenças dos órgãos integrados". Caso contrário, retorne "completo". Para documentos que não são CLI, retorne null.
 - cliOrgaosPendentes: SOMENTE para CLI com situacaoCli="parcial". Array de objetos com os órgãos integrados que ainda estão PENDENTES de emitir manifestação definitiva. Para cada órgão listado no documento que ainda não possui manifestação definitiva (ex: aparece como "Protocolo", "Indeterminado", sem número de documento final, ou com anotação de pendência), inclua: {"orgao": "nome do órgão", "tipoManifestacao": "tipo esperado (AVCB/CLCB/Licença/Protocolo/etc)", "status": "pendente"}. Para CLIs completos ou não-CLI, retorne null.
 - cliCnaesLicenciados: SOMENTE para documentos CLI. Array de strings com os códigos CNAE licenciados listados no documento. Procure em DUAS seções do documento: (1) seção "ATIVIDADES ECONÔMICAS LICENCIADAS" que lista no formato "6203100 - Descrição"; (2) seção "PARECER DA PREFEITURA" que lista no formato "CNAE: 6203-1/00-Descrição". Extraia apenas o código numérico sem formatação (ex: "62031", "62023", "62040"). Use a seção com mais entradas. Para documentos que não são CLI, retorne null.
+- cliMunicipioEmissor: SOMENTE para documentos CLI. Extraia o nome do município emissor do cabeçalho do documento, que aparece explicitamente como "Prefeitura do Município de [NOME]" ou "Prefeitura de [NOME]". Exemplos: "Barueri", "São Paulo", "Campinas". IMPORTANTE: o prefixo SPM ou SPP no número do protocolo NÃO indica o município — ele identifica apenas o tipo de protocolo do sistema VRE/REDESIM. Use sempre o nome textual do município no documento. Para documentos que não são CLI, retorne null.
 Se não encontrar um campo, use null.`,
               },
               {
@@ -748,8 +757,9 @@ Se não encontrar um campo, use null.`,
                   type: ["array", "null"],
                   items: { type: "string" },
                 },
+                cliMunicipioEmissor: { type: ["string", "null"] },
               },
-              required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes","cliCnaesLicenciados"],
+              required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes","cliCnaesLicenciados","cliMunicipioEmissor"],
               additionalProperties: false,
                 },
               },
@@ -842,6 +852,7 @@ Se não encontrar um campo, use null.`,
               observacao: z.string().optional().nullable(),
             })).optional().nullable(),
             cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
+            cliMunicipioEmissor: z.string().optional().nullable(),
             arquivoPdfKey: z.string().optional().nullable(),
             arquivoPdfUrl: z.string().optional().nullable(),
           })
@@ -937,6 +948,7 @@ Se não encontrar um campo, use null.`,
                   cliCnaesLicenciados: reg.cliCnaesLicenciados && reg.cliCnaesLicenciados.length > 0
                     ? JSON.stringify(reg.cliCnaesLicenciados)
                     : null,
+                  cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null,
                   status,
                   ...(reg.arquivoPdfKey ? { arquivoPdfKey: reg.arquivoPdfKey } : {}),
                   ...(reg.arquivoPdfUrl ? { arquivoPdfUrl: reg.arquivoPdfUrl } : {}),
@@ -975,6 +987,7 @@ Se não encontrar um campo, use null.`,
                   cliCnaesLicenciados: reg.cliCnaesLicenciados && reg.cliCnaesLicenciados.length > 0
                     ? JSON.stringify(reg.cliCnaesLicenciados)
                     : null,
+                  cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null,
                   status,
                   arquivoPdfKey: reg.arquivoPdfKey ?? null,
                   arquivoPdfUrl: reg.arquivoPdfUrl ?? null,
@@ -1014,7 +1027,9 @@ Se não encontrar um campo, use null.`,
                         cep: reg.cep,
                         tipo: reg.tipo,
                         orgaoEmissor: reg.orgaoEmissor,
-                      },
+                        // cliMunicipioEmissor é usado para verificar jurisdição no validation.ts
+                        ...({ cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null } as any),
+                      } as any,
                       {
                         situacaoCadastral: clienteDataLote.situacaoCadastral,
                         logradouro: clienteDataLote.logradouro,

@@ -493,3 +493,11 @@
 - [x] Adicionar verificação de jurisdição: se prefixo do CLI indica município diferente do CNPJ → "Divergente"
 - [x] Verificar via orgaoEmissor e via numeroAlvara (dois pontos de entrada)
 - [x] Passar numeroAlvara no payload de validação do procedure revalidar
+
+## V3.26 — Correção da validação de jurisdição CLI (prefixo SPM/SPP é do sistema, não do município)
+
+- [x] Remover a lógica de prefixo SPM/SPP como indicador de município (SPM = protocolo de regularização, SPP = protocolo de abertura — ambos são do sistema VRE/REDESIM, não do município)
+- [x] Corrigir o prompt LLM de extração do CLI para capturar o campo "Prefeitura do Município de X" explícito no cabeçalho do documento (parsePdf e parsePdfLote)
+- [x] Adicionar campo cliMunicipioEmissor no schema Drizzle e migration aplicada no banco
+- [x] Usar cliMunicipioEmissor na validação de jurisdição: comparar com o município do CNPJ na Receita Federal
+- [x] Atualizar confirmarPdf, confirmarLote e revalidar para passar cliMunicipioEmissor na validação
