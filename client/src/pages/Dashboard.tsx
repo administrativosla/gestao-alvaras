@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import DashboardGraficos from "@/components/DashboardGraficos";
 import {
   AlertTriangle,
@@ -18,6 +19,8 @@ import {
   ShieldCheck,
   UserX,
   ExternalLink,
+  TrendingUp,
+  Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -35,6 +38,7 @@ export default function Dashboard() {
   const { data: alertas, isLoading: loadingAlertas, refetch } = trpc.dashboard.alertas.useQuery();
   const { data: proximos, isLoading: loadingProximos, refetch: refetchProximos } = trpc.dashboard.proximosVencimentos.useQuery({ limite: 50 });
   const { data: clisParciais, isLoading: loadingCliParciais } = trpc.alvaras.listCliParciais.useQuery();
+
   const proximosFiltrados = (proximos ?? []).filter((p) =>
     !searchProximos ||
     p.cliente.razaoSocial.toLowerCase().includes(searchProximos.toLowerCase()) ||
@@ -56,13 +60,20 @@ export default function Dashboard() {
     return matchSearch && matchStatus && matchPrazo;
   });
 
-  const cards = [
+  const handleRefreshAll = () => {
+    refetch();
+    refetchProximos();
+  };
+
+  // KPIs compactos — 6 métricas em grid 2×3
+  const kpis = [
     {
-      title: "Total de Clientes",
+      title: "Clientes",
       value: resumo?.totalClientes ?? 0,
       icon: Building2,
       color: "text-primary",
       bg: "bg-primary/8",
+      link: "/clientes",
     },
     {
       title: "Alvarás Ativos",
@@ -70,20 +81,25 @@ export default function Dashboard() {
       icon: FileText,
       color: "text-emerald-600",
       bg: "bg-emerald-50",
+      link: "/alvaras",
     },
     {
-      title: "A Vencer em 30 dias",
+      title: "A Vencer (30d)",
       value: resumo?.aVencer30 ?? 0,
       icon: Clock,
       color: "text-amber-600",
       bg: "bg-amber-50",
+      link: "/alvaras",
+      urgent: (resumo?.aVencer30 ?? 0) > 0,
     },
     {
-      title: "Alvarás Vencidos",
+      title: "Vencidos",
       value: resumo?.alvarasVencidos ?? 0,
       icon: AlertTriangle,
       color: "text-red-600",
       bg: "bg-red-50",
+      link: "/alvaras",
+      urgent: (resumo?.alvarasVencidos ?? 0) > 0,
     },
     {
       title: "Sem Registro",
@@ -91,381 +107,350 @@ export default function Dashboard() {
       icon: UserX,
       color: "text-violet-600",
       bg: "bg-violet-50",
-      subtitle: "clientes sem alvará",
       link: "/clientes?cobertura=Sem+Registro",
+    },
+    {
+      title: "CLI Parcial",
+      value: clisParciais?.length ?? 0,
+      icon: Activity,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      link: "/alvaras?situacaoCli=parcial",
+      urgent: (clisParciais?.length ?? 0) > 0,
     },
   ];
 
-  const handleRefreshAll = () => {
-    refetch();
-    refetchProximos();
-  };
+  const totalAlertas = alertasFiltrados.length;
+  const totalVencidos = alertasFiltrados.filter((a) => a.diasParaVencimento < 0).length;
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
-      {/* Header */}
+    <div className="space-y-5 animate-fade-in-up">
+      {/* ── Cabeçalho compacto ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visão geral dos alvarás e alertas de vencimento
+          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Controle de alvarás e alertas de vencimento
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefreshAll} className="gap-2">
+        <Button variant="outline" size="sm" onClick={handleRefreshAll} className="gap-2 h-8 text-xs">
           <RefreshCw className="h-3.5 w-3.5" />
           Atualizar
         </Button>
       </div>
 
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {cards.map((card) => (
+      {/* ── KPIs compactos ─────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        {kpis.map((kpi) => (
           <Card
-            key={card.title}
-            className={`border shadow-sm hover:shadow-md transition-shadow ${'link' in card && card.link ? 'cursor-pointer' : ''}`}
-            onClick={'link' in card && card.link ? () => setLocation(card.link!) : undefined}
+            key={kpi.title}
+            className={`border shadow-sm hover:shadow-md transition-all cursor-pointer ${kpi.urgent ? "ring-1 ring-red-200" : ""}`}
+            onClick={() => setLocation(kpi.link)}
           >
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {card.title}
-                  </p>
-                  {loadingResumo ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <p className="text-3xl font-bold tracking-tight">{card.value}</p>
-                  )}
-                  {'subtitle' in card && card.subtitle && (
-                    <p className="text-xs text-muted-foreground">{card.subtitle}</p>
-                  )}
-                </div>
-                <div className={`p-2.5 rounded-xl ${card.bg}`}>
-                  <card.icon className={`h-5 w-5 ${card.color}`} />
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
+                  {kpi.title}
+                </p>
+                <div className={`p-1.5 rounded-lg ${kpi.bg}`}>
+                  <kpi.icon className={`h-3.5 w-3.5 ${kpi.color}`} />
                 </div>
               </div>
+              {loadingResumo || loadingCliParciais ? (
+                <Skeleton className="h-7 w-10" />
+              ) : (
+                <p className={`text-2xl font-bold tracking-tight ${kpi.urgent ? "text-red-600" : ""}`}>
+                  {kpi.value}
+                </p>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Gráficos analíticos */}
-      <DashboardGraficos />
+      {/* ── Layout de duas colunas: Alertas | Próximos ─────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
 
-      {/* Painel de Alertas */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Atenção Imediata
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Alvarás vencidos e a vencer em até 30 dias — requerem ação urgente
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">
-            Ver todos <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-
-        {/* Filtros */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por razão social ou CNPJ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
-          </div>
-          <Select value={filtroPrazo} onValueChange={setFiltroPrazo}>
-            <SelectTrigger className="h-9 w-40 text-sm">
-              <SelectValue placeholder="Prazo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os prazos</SelectItem>
-              <SelectItem value="vencido">Vencidos</SelectItem>
-              <SelectItem value="7">Até 7 dias</SelectItem>
-              <SelectItem value="15">Até 15 dias</SelectItem>
-              <SelectItem value="30">Até 30 dias</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-            <SelectTrigger className="h-9 w-48 text-sm">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="Vencido">Vencido</SelectItem>
-              <SelectItem value="Contato Realizado">Contato Realizado</SelectItem>
-              <SelectItem value="Tratativa Comercial">Tratativa Comercial</SelectItem>
-              <SelectItem value="Documentação Solicitada">Documentação Solicitada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Lista de alertas */}
-        {loadingAlertas ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : alertasFiltrados.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="p-3 rounded-full bg-emerald-50">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Nenhum alerta ativo no momento
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2.5">
-            {alertasFiltrados.map((a) => {
-              const info = getAlertaInfo(a.diasParaVencimento);
-              const statusColors = getStatusColor(a.alvara.status);
-              return (
-                <AlertaCard
-                  key={a.alvara.id}
-                  alerta={a}
-                  info={info}
-                  statusColors={statusColors}
-                  onNavigate={() => setLocation(`/alvaras/${a.alvara.id}`)}
-                  onStatusUpdated={() => refetch()}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Próximos Vencimentos */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-              <CalendarClock className="h-5 w-5 text-green-600" />
-              Próximos Vencimentos
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Alvarás com mais de 30 dias para vencer, ordenados pelo mais próximo
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1.5 text-xs">
-            Ver todos <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-        {/* Campo de busca nos próximos vencimentos */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Buscar por razão social ou CNPJ..."
-            value={searchProximos}
-            onChange={(e) => setSearchProximos(e.target.value)}
-            className="pl-9 h-9 text-sm"
-          />
-        </div>
-
-        {loadingProximos ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-16 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : !proximos || proximos.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
-              <div className="p-3 rounded-full bg-green-50">
-                <ShieldCheck className="h-6 w-6 text-green-500" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Nenhum alvará ativo cadastrado
-              </p>
-            </CardContent>
-          </Card>
-        ) : proximosFiltrados.length === 0 && searchProximos ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
-              <div className="p-3 rounded-full bg-muted">
-                <Search className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Nenhum resultado para "{searchProximos}"</p>
-              <Button variant="ghost" size="sm" onClick={() => setSearchProximos("")} className="text-xs">
-                Limpar busca
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border shadow-sm overflow-hidden">
-            <CardHeader className="pb-0 pt-4 px-5">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-              {proximosFiltrados.length} alvará{proximosFiltrados.length !== 1 ? "s" : ""} ativo{proximosFiltrados.length !== 1 ? "s" : ""}{searchProximos && proximosFiltrados.length !== proximos!.length ? ` (de ${proximos!.length})` : ""}
-            </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {proximosFiltrados.map((p, idx) => {
-                  const prazoLabel = (() => {
-                    if (p.diasParaVencimento < 0) return `Vencido há ${Math.abs(p.diasParaVencimento)} dia${Math.abs(p.diasParaVencimento) !== 1 ? "s" : ""}`;
-                    if (p.diasParaVencimento === 0) return "Vence hoje";
-                    if (p.diasParaVencimento <= 30) return `${p.diasParaVencimento} dia${p.diasParaVencimento !== 1 ? "s" : ""}`;
-                    const meses = Math.floor(p.diasParaVencimento / 30);
-                    const diasRestantes = p.diasParaVencimento % 30;
-                    return meses > 0
-                      ? `${meses} mês${meses > 1 ? "es" : ""}${diasRestantes > 0 ? ` e ${diasRestantes} dia${diasRestantes > 1 ? "s" : ""}` : ""}`
-                      : `${p.diasParaVencimento} dias`;
-                  })();
-
-                  // Gradiente de cor conforme proximidade: verde → amarelo conforme se aproxima dos 30 dias
-                  const urgencyRatio = Math.max(0, Math.min(1, 1 - (p.diasParaVencimento - 31) / 335)); // 0=longe, 1=próximo
-                  const dotColor =
-                    p.diasParaVencimento < 0
-                      ? "bg-red-500"
-                      : p.diasParaVencimento <= 7
-                        ? "bg-red-400"
-                        : p.diasParaVencimento <= 15
-                          ? "bg-orange-400"
-                          : p.diasParaVencimento <= 30
-                            ? "bg-amber-400"
-                            : p.diasParaVencimento <= 90
-                              ? "bg-yellow-400"
-                              : p.diasParaVencimento <= 180
-                                ? "bg-teal-400"
-                                : p.diasParaVencimento <= 365
-                                  ? "bg-emerald-400"
-                                  : "bg-green-400";
-
-                  return (
-                    <button
-                      key={p.alvara.id}
-                      onClick={() => setLocation(`/alvaras/${p.alvara.id}`)}
-                      className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors text-left group"
-                    >
-                      {/* Posição */}
-                      <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-center">
-                        {idx + 1}
-                      </span>
-
-                      {/* Indicador de cor */}
-                      <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotColor}`} />
-
-                      {/* Dados principais */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                          {p.cliente.razaoSocial}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {p.cliente.cnpj} · {p.alvara.tipo}
-                          {p.alvara.numeroAlvara ? ` · Nº ${p.alvara.numeroAlvara}` : ""}
-                        </p>
-                      </div>
-
-                      {/* Data de vencimento */}
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-semibold tabular-nums">
-                          {formatDate(p.alvara.dataVencimento)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{prazoLabel}</p>
-                      </div>
-
-                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Seção CLI Parcial */}
-      {(loadingCliParciais || (clisParciais && clisParciais.length > 0)) && (
-        <div className="space-y-4">
+        {/* COLUNA ESQUERDA (3/5): Atenção Imediata */}
+        <div className="xl:col-span-3 space-y-4">
+          {/* Cabeçalho da seção */}
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                CLI Parcial — Pendentes de Regularização
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Certificados emitidos parcialmente que ainda não produzem efeitos legais completos
-              </p>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <h2 className="text-sm font-semibold tracking-tight">Atenção Imediata</h2>
+              {!loadingAlertas && totalAlertas > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="destructive" className="text-xs h-5 px-1.5">{totalAlertas}</Badge>
+                  {totalVencidos > 0 && (
+                    <Badge variant="outline" className="text-xs h-5 px-1.5 border-red-300 text-red-600">
+                      {totalVencidos} vencido{totalVencidos !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras?situacaoCli=parcial")} className="gap-1.5 text-xs">
-              Ver todos <ArrowRight className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1 text-xs h-7">
+              Ver todos <ArrowRight className="h-3 w-3" />
             </Button>
           </div>
 
-          {loadingCliParciais ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+          {/* Filtros compactos */}
+          <div className="flex flex-wrap gap-2">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
             </div>
+            <Select value={filtroPrazo} onValueChange={setFiltroPrazo}>
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <SelectValue placeholder="Prazo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os prazos</SelectItem>
+                <SelectItem value="vencido">Vencidos</SelectItem>
+                <SelectItem value="7">Até 7 dias</SelectItem>
+                <SelectItem value="15">Até 15 dias</SelectItem>
+                <SelectItem value="30">Até 30 dias</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+              <SelectTrigger className="h-8 w-44 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os status</SelectItem>
+                <SelectItem value="Vencido">Vencido</SelectItem>
+                <SelectItem value="Contato Realizado">Contato Realizado</SelectItem>
+                <SelectItem value="Tratativa Comercial">Tratativa Comercial</SelectItem>
+                <SelectItem value="Documentação Solicitada">Documentação Solicitada</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Lista de alertas */}
+          {loadingAlertas ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+            </div>
+          ) : alertasFiltrados.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="p-3 rounded-full bg-emerald-50">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Nenhum alerta ativo</p>
+              </CardContent>
+            </Card>
           ) : (
-            <Card className="border border-amber-200 bg-amber-50/50 shadow-sm overflow-hidden">
+            <div className="space-y-2">
+              {alertasFiltrados.map((a) => {
+                const info = getAlertaInfo(a.diasParaVencimento);
+                const statusColors = getStatusColor(a.alvara.status);
+                return (
+                  <AlertaCard
+                    key={a.alvara.id}
+                    alerta={a}
+                    info={info}
+                    statusColors={statusColors}
+                    onNavigate={() => setLocation(`/alvaras/${a.alvara.id}`)}
+                    onStatusUpdated={() => refetch()}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* CLI Parcial — abaixo dos alertas */}
+          {(loadingCliParciais || (clisParciais && clisParciais.length > 0)) && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <h2 className="text-sm font-semibold tracking-tight">CLI Parcial</h2>
+                  {!loadingCliParciais && clisParciais && (
+                    <Badge variant="outline" className="text-xs h-5 px-1.5 border-amber-300 text-amber-600">
+                      {clisParciais.length}
+                    </Badge>
+                  )}
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras?situacaoCli=parcial")} className="gap-1 text-xs h-7">
+                  Ver todos <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+              {loadingCliParciais ? (
+                <Skeleton className="h-16 w-full rounded-xl" />
+              ) : (
+                <Card className="border border-amber-200 bg-amber-50/50 shadow-sm overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-amber-100">
+                      {clisParciais!.map((cli) => (
+                        <button
+                          key={cli.id}
+                          onClick={() => setLocation(`/alvaras/${cli.id}`)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-100/60 transition-colors text-left group"
+                        >
+                          <div className="p-1.5 rounded-lg bg-amber-100 shrink-0">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate group-hover:text-amber-700 transition-colors">
+                              {cli.razaoSocial}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {cli.cnpj} · CLI{cli.numeroAlvara ? ` · Nº ${cli.numeroAlvara}` : ""}
+                              {cli.motivoPendenciaCli && ` · ${cli.motivoPendenciaCli}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {(cli as any).totalOrgaosPendentes > 0 && (
+                              <span className="text-xs font-semibold text-amber-700">
+                                {(cli as any).totalOrgaosPendentes} pend.
+                              </span>
+                            )}
+                            {(cli as any).arquivoPdfUrl && (
+                              <a
+                                href={(cli as any).arquivoPdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-2.5 w-2.5" /> PDF
+                              </a>
+                            )}
+                            <ArrowRight className="h-3 w-3 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* COLUNA DIREITA (2/5): Próximos Vencimentos */}
+        <div className="xl:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-green-600" />
+              <h2 className="text-sm font-semibold tracking-tight">Próximos Vencimentos</h2>
+              {!loadingProximos && proximosFiltrados.length > 0 && (
+                <Badge variant="secondary" className="text-xs h-5 px-1.5">{proximosFiltrados.length}</Badge>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setLocation("/alvaras")} className="gap-1 text-xs h-7">
+              Ver todos <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Buscar..."
+              value={searchProximos}
+              onChange={(e) => setSearchProximos(e.target.value)}
+              className="pl-8 h-8 text-xs"
+            />
+          </div>
+
+          {loadingProximos ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+            </div>
+          ) : !proximos || proximos.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="p-3 rounded-full bg-green-50">
+                  <ShieldCheck className="h-5 w-5 text-green-500" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Nenhum alvará ativo</p>
+              </CardContent>
+            </Card>
+          ) : proximosFiltrados.length === 0 && searchProximos ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
+                <Search className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Sem resultados</p>
+                <Button variant="ghost" size="sm" onClick={() => setSearchProximos("")} className="text-xs h-7">
+                  Limpar
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border shadow-sm overflow-hidden">
               <CardContent className="p-0">
-                <div className="divide-y divide-amber-100">
-                  {clisParciais!.map((cli) => (
-                    <button
-                      key={cli.id}
-                      onClick={() => setLocation(`/alvaras/${cli.id}`)}
-                      className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-amber-100/60 transition-colors text-left group"
-                    >
-                      <div className="p-2 rounded-lg bg-amber-100 shrink-0">
-                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-amber-700 transition-colors">
-                          {cli.razaoSocial}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {cli.cnpj} · CLI · {cli.numeroAlvara ?? "Sem número"}
-                        </p>
-                        {cli.motivoPendenciaCli && (
-                          <p className="text-xs text-amber-600 italic truncate mt-0.5">{cli.motivoPendenciaCli}</p>
-                        )}
-                      </div>
-                      <div className="text-right shrink-0 space-y-1">
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-200 text-amber-800 border border-amber-300">
-                          CLI Parcial
+                <div className="divide-y max-h-[600px] overflow-y-auto">
+                  {proximosFiltrados.map((p, idx) => {
+                    const prazoLabel = (() => {
+                      if (p.diasParaVencimento < 0) return `Vencido há ${Math.abs(p.diasParaVencimento)}d`;
+                      if (p.diasParaVencimento === 0) return "Vence hoje";
+                      if (p.diasParaVencimento <= 30) return `${p.diasParaVencimento}d`;
+                      const meses = Math.floor(p.diasParaVencimento / 30);
+                      const diasRestantes = p.diasParaVencimento % 30;
+                      return meses > 0
+                        ? `${meses}m${diasRestantes > 0 ? ` ${diasRestantes}d` : ""}`
+                        : `${p.diasParaVencimento}d`;
+                    })();
+
+                    const dotColor =
+                      p.diasParaVencimento < 0 ? "bg-red-500"
+                        : p.diasParaVencimento <= 7 ? "bg-red-400"
+                          : p.diasParaVencimento <= 15 ? "bg-orange-400"
+                            : p.diasParaVencimento <= 30 ? "bg-amber-400"
+                              : p.diasParaVencimento <= 90 ? "bg-yellow-400"
+                                : p.diasParaVencimento <= 180 ? "bg-teal-400"
+                                  : p.diasParaVencimento <= 365 ? "bg-emerald-400"
+                                    : "bg-green-400";
+
+                    return (
+                      <button
+                        key={p.alvara.id}
+                        onClick={() => setLocation(`/alvaras/${p.alvara.id}`)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left group"
+                      >
+                        <span className="text-[10px] font-mono text-muted-foreground w-4 shrink-0 text-center">
+                          {idx + 1}
                         </span>
-                        {(cli as any).totalOrgaosPendentes > 0 && (
-                          <p className="text-xs font-semibold text-amber-700">
-                            {(cli as any).totalOrgaosPendentes} órgão{(cli as any).totalOrgaosPendentes !== 1 ? "s" : ""} pendente{(cli as any).totalOrgaosPendentes !== 1 ? "s" : ""}
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">
+                            {p.cliente.razaoSocial}
                           </p>
-                        )}
-                        {cli.dataVencimento && (
-                          <p className="text-xs text-muted-foreground">
-                            Val. {formatDate(cli.dataVencimento)}
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {p.alvara.tipo}{p.alvara.numeroAlvara ? ` · Nº ${p.alvara.numeroAlvara}` : ""}
                           </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {(cli as any).arquivoPdfUrl && (
-                          <a
-                            href={(cli as any).arquivoPdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <ExternalLink className="h-3 w-3" /> PDF
-                          </a>
-                        )}
-                        <ArrowRight className="h-3.5 w-3.5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </button>
-                  ))}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-semibold tabular-nums">{formatDate(p.alvara.dataVencimento)}</p>
+                          <p className={`text-[10px] font-medium ${p.diasParaVencimento <= 30 ? "text-amber-600" : "text-muted-foreground"}`}>
+                            {prazoLabel}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
-      )}
+      </div>
+
+      {/* ── Gráficos analíticos ────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold tracking-tight">Análise Visual</h2>
+        </div>
+        <DashboardGraficos />
+      </div>
     </div>
   );
 }
@@ -484,14 +469,12 @@ function AlertaCard({
   onStatusUpdated: () => void;
 }) {
   return (
-    <Card
-      className={`border transition-all hover:shadow-md ${info.borderColor} ${info.bgColor}`}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          {/* Badge de urgência */}
-          <div className={`flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-xl ${info.color} ${info.pulse ? "alert-pulse" : ""}`}>
-            <span className="text-white text-xs font-bold leading-tight text-center px-1">
+    <Card className={`border transition-all hover:shadow-md ${info.borderColor} ${info.bgColor}`}>
+      <CardContent className="p-3.5">
+        <div className="flex items-start gap-3">
+          {/* Badge de urgência compacto */}
+          <div className={`flex-shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-lg ${info.color} ${info.pulse ? "alert-pulse" : ""}`}>
+            <span className="text-white text-[10px] font-bold leading-tight text-center px-1">
               {info.label}
             </span>
           </div>
@@ -506,26 +489,24 @@ function AlertaCard({
                 >
                   {alerta.cliente.razaoSocial}
                 </button>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-[10px] text-muted-foreground mt-0.5">
                   {alerta.cliente.cnpj} · {alerta.alvara.tipo}
                   {alerta.alvara.numeroAlvara && ` · Nº ${alerta.alvara.numeroAlvara}`}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}>
-                  {alerta.alvara.status}
-                </span>
-              </div>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium border shrink-0 ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}>
+                {alerta.alvara.status}
+              </span>
             </div>
 
-            {/* Barra de progresso de status */}
-            <div className="mt-3">
+            {/* Barra de progresso compacta */}
+            <div className="mt-2">
               <StatusProgressBar status={alerta.alvara.status} compact />
             </div>
 
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-muted-foreground">
-                Vencimento: <span className="font-medium">{formatDate(alerta.alvara.dataVencimento)}</span>
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-[10px] text-muted-foreground">
+                Venc. <span className="font-medium">{formatDate(alerta.alvara.dataVencimento)}</span>
               </p>
               <StatusUpdateDialog
                 alvaraId={alerta.alvara.id}
@@ -575,18 +556,12 @@ export function StatusProgressBar({
   const progress = currentIndex === -1 ? 0 : ((currentIndex + 1) / steps.length) * 100;
 
   const progressColor =
-    statusEfetivo === "Renovado"
-      ? "bg-emerald-500"
-      : statusEfetivo === "Em Renovação"
-        ? "bg-sky-500"
-        : statusEfetivo === "Em Vigência"
-          ? "bg-green-500"
-          : statusEfetivo === "Iniciar Renovação"
-            ? "bg-orange-500"
-            : currentIndex >= 5
-              ? "bg-violet-500"
-              : currentIndex >= 3
-                ? "bg-blue-500"
+    statusEfetivo === "Renovado" ? "bg-emerald-500"
+      : statusEfetivo === "Em Renovação" ? "bg-sky-500"
+        : statusEfetivo === "Em Vigência" ? "bg-green-500"
+          : statusEfetivo === "Iniciar Renovação" ? "bg-orange-500"
+            : currentIndex >= 5 ? "bg-violet-500"
+              : currentIndex >= 3 ? "bg-blue-500"
                 : "bg-slate-400";
 
   if (compact) {

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { publicProcedure, router } from "../_core/trpc";
+import { gestorProcedure, publicProcedure, router } from "../_core/trpc";
 import {
   addAlvaraPdf,
   addHistorico,
@@ -264,11 +264,15 @@ export const alvarasRouter = router({
       return { success: true };
     }),
 
-  delete: publicProcedure
+  delete: gestorProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Apenas GESTOR (nível 2) e MASTER (nível 3) podem excluir alvarás
+      // gestorProcedure já garante nível >= 2, mas registramos quem excluiu
+      const alvara = await getAlvaraById(input.id);
+      if (!alvara) throw new TRPCError({ code: "NOT_FOUND", message: "Alvará não encontrado" });
       await deleteAlvara(input.id);
-      return { success: true };
+      return { success: true, deletedBy: ctx.user.name };
     }),
 
   getHistorico: publicProcedure

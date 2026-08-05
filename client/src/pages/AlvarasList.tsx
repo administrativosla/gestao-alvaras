@@ -16,13 +16,29 @@ import { useLocation } from "wouter";
 import { calcDiasParaVencimento, formatDate, formatCnpj, getAlertaInfo, TIPOS_ALVARA, STATUS_RENOVACAO } from "@/lib/alvaras";
 import StatusBadge from "@/components/StatusBadge";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AlvarasList() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroCli, setFiltroCli] = useState<"todos" | "parcial" | "completo">("todos");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nome: string } | null>(null);
+
+  // Apenas GESTOR (nível 2) e MASTER (nível 3) podem excluir alvarás
+  const podeExcluir = user?.role === "gestor" || user?.role === "master";
 
   const { data: alvarasRaw, isLoading, refetch } = trpc.alvaras.list.useQuery({
     status: filtroStatus !== "todos" ? filtroStatus : undefined,
@@ -38,14 +54,19 @@ export default function AlvarasList() {
   });
 
   const deleteMutation = trpc.alvaras.delete.useMutation({
-    onSuccess: () => { toast.success("Alvará removido."); refetch(); },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onSuccess: () => {
+      toast.success("Alvará excluído com sucesso.");
+      setDeleteTarget(null);
+      refetch();
+    },
+    onError: (e) => {
+      toast.error("Erro ao excluir: " + e.message);
+      setDeleteTarget(null);
+    },
   });
 
-  const handleDelete = (id: number) => {
-    if (confirm("Deseja remover este alvará? Esta ação não pode ser desfeita.")) {
-      deleteMutation.mutate({ id });
-    }
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) deleteMutation.mutate({ id: deleteTarget.id });
   };
 
   return (
@@ -223,12 +244,14 @@ export default function AlvarasList() {
                                 <FileText className="mr-2 h-4 w-4 text-red-500" /> Ver PDF
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleDelete(a.alvara.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Remover
-                            </DropdownMenuItem>
+                            {podeExcluir && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setDeleteTarget({ id: a.alvara.id, nome: a.cliente.razaoSocial })}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir alvará
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -240,6 +263,29 @@ export default function AlvarasList() {
           )}
         </CardContent>
       </Card>
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir alvará?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir o alvará de{" "}
+              <span className="font-semibold">{deleteTarget?.nome}</span>.
+              Esta ação não pode ser desfeita e removerá também o histórico e PDFs vinculados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Sim, excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

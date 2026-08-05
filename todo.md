@@ -459,3 +459,13 @@
 - [x] Integrar gravação no histórico de PDFs em todos os fluxos de upload (importação unitária, lote, re-upload)
 - [x] Exibir histórico de versões de PDFs na tela de detalhes do alvará com acesso a versões anteriores
 - [x] Implementar pré-visualização inline do PDF (iframe embed) na tela de detalhes
+
+## V3.23 — Redesign Dashboard + Exclusão de Alvarás com Permissão
+
+- [x] Avaliar métricas e dados relevantes para o redesign da dashboard
+- [x] Redesenhar dashboard: KPIs compactos (grid 2×3), layout duas colunas (alertas | próximos vencimentos), gráficos ao final
+- [x] Adicionar seção de "Próximos vencimentos" com linha do tempo visual e código de cores por prazo
+- [x] Implementar exclusão de alvará na listagem com AlertDialog de confirmação
+- [x] Restringir exclusão a perfis GESTOR (nível 2) e MASTER (nível 3) — Operador não vê o botão
+- [x] Adicionar confirmação antes de excluir (AlertDialog com nome do cliente)
+- [x] Procedure delete atualizada para gestorProcedure (nível 2+) no backend
