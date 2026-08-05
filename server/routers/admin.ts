@@ -17,7 +17,7 @@ import { getDb, updateAlvara, getClienteById } from "../db";
 import { alvaras } from "../../drizzle/schema";
 import { isNull, or, eq } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
-import { storageGetSignedUrl } from "../storage";
+// storage helpers usados diretamente via Forge API (ver downloadPdfAsBase64)
 import { executarValidacao, validacaoParaCampos } from "../validation";
 import { ENV } from "../_core/env";
 
@@ -25,26 +25,48 @@ import { ENV } from "../_core/env";
 
 /**
  * Baixa um PDF do storage como base64.
- * Tenta primeiro via URL pública /manus-storage/, depois via presigned URL.
+ * Usa o endpoint presign/get do Forge para obter uma URL assinada e depois baixa o arquivo.
  */
 async function downloadPdfAsBase64(pdfUrl: string, pdfKey: string): Promise<string | null> {
   try {
-    // Tentar via presigned URL (mais confiável no servidor)
-    const signedUrl = await storageGetSignedUrl(pdfKey).catch(() => null);
-    const targetUrl = signedUrl ?? (
-      // Fallback: construir URL absoluta a partir da URL relativa
-      pdfUrl.startsWith("/manus-storage/")
-        ? `${ENV.forgeApiUrl.replace(/\/+$/, "")}/v1/storage/proxy/${pdfKey}`
-        : pdfUrl
-    );
+    // Extrair a chave real do storage da URL (/manus-storage/{key})
+    let storageKey = pdfKey;
+    if (!storageKey && pdfUrl.startsWith("/manus-storage/")) {
+      storageKey = pdfUrl.replace("/manus-storage/", "");
+    }
+    if (!storageKey) return null;
 
-    const resp = await fetch(targetUrl, {
-      headers: signedUrl ? {} : { Authorization: `Bearer ${ENV.forgeApiKey}` },
+    // Obter URL assinada via Forge API
+    const forgeUrl = ENV.forgeApiUrl.replace(/\/+$/, "");
+    const forgeKey = ENV.forgeApiKey;
+    if (!forgeUrl || !forgeKey) return null;
+
+    const presignUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
+    presignUrl.searchParams.set("path", storageKey);
+
+    const presignResp = await fetch(presignUrl.toString(), {
+      headers: { Authorization: `Bearer ${forgeKey}` },
     });
-    if (!resp.ok) return null;
-    const buffer = await resp.arrayBuffer();
+    if (!presignResp.ok) {
+      const msg = await presignResp.text().catch(() => presignResp.statusText);
+      console.error(`[Admin Varredura] presign/get falhou (${presignResp.status}): ${msg}`);
+      return null;
+    }
+
+    const { url: signedUrl } = (await presignResp.json()) as { url: string };
+    if (!signedUrl) return null;
+
+    // Baixar o arquivo via URL assinada
+    const fileResp = await fetch(signedUrl);
+    if (!fileResp.ok) {
+      console.error(`[Admin Varredura] download falhou (${fileResp.status}): ${storageKey}`);
+      return null;
+    }
+
+    const buffer = await fileResp.arrayBuffer();
     return Buffer.from(buffer).toString("base64");
-  } catch {
+  } catch (e) {
+    console.error(`[Admin Varredura] erro ao baixar PDF:`, e);
     return null;
   }
 }
