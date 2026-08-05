@@ -574,17 +574,19 @@ export default function AlvaraDetail({ id }: Props) {
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           {(alvara as any).arquivoPdfUrl && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                onClick={() => {
-                  setPreviewPdfUrl((alvara as any).arquivoPdfUrl);
-                  setShowPdfPreview(true);
-                }}
+              <a
+                href={(alvara as any).arquivoPdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <Eye className="h-3.5 w-3.5" /> Visualizar PDF
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
+                >
+                  <Eye className="h-3.5 w-3.5" /> Visualizar PDF
+                </Button>
+              </a>
               <a
                 href={(alvara as any).arquivoPdfUrl}
                 target="_blank"
@@ -901,123 +903,6 @@ export default function AlvaraDetail({ id }: Props) {
             </Card>
           )}
 
-          {/* Modal de pré-visualização inline do PDF */}
-          {showPdfPreview && previewPdfUrl && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-red-600" />
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Pré-visualização do PDF
-                    </CardTitle>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <a href={previewPdfUrl} target="_blank" rel="noopener noreferrer" download>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
-                        <Download className="h-3 w-3" /> Baixar
-                      </Button>
-                    </a>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => setShowPdfPreview(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <iframe
-                  src={previewPdfUrl}
-                  className="w-full rounded-b-lg"
-                  style={{ height: "70vh", border: "none" }}
-                  title="Pré-visualização do PDF do alvará"
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Histórico de versões de PDFs */}
-          {pdfHistorico && pdfHistorico.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Histórico de PDFs
-                  </CardTitle>
-                  <Badge variant="secondary" className="text-xs h-5 px-1.5">
-                    {pdfHistorico.length}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {pdfHistorico.map((pdf: any, idx: number) => {
-                    const dataUpload = new Date(pdf.uploadedAt);
-                    const isLatest = idx === 0;
-                    return (
-                      <div
-                        key={pdf.id}
-                        className={`flex items-center justify-between gap-3 p-2.5 rounded-lg border ${
-                          isLatest ? "bg-red-50 border-red-200" : "bg-muted/30 border-border"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`p-1.5 rounded ${isLatest ? "bg-red-100" : "bg-muted"}`}>
-                            <FileText className={`h-3.5 w-3.5 ${isLatest ? "text-red-600" : "text-muted-foreground"}`} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium truncate max-w-[200px]" title={pdf.fileName}>
-                              {pdf.fileName}
-                              {isLatest && (
-                                <span className="ml-1.5 text-[10px] font-semibold text-red-600 bg-red-100 px-1 py-0.5 rounded">atual</span>
-                              )}
-                            </p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Clock3 className="h-2.5 w-2.5 text-muted-foreground" />
-                              <span className="text-[11px] text-muted-foreground">
-                                {dataUpload.toLocaleDateString("pt-BR")} às {dataUpload.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                              </span>
-                              {pdf.uploadedBy && (
-                                <>
-                                  <span className="text-muted-foreground/40">·</span>
-                                  <span className="text-[11px] text-muted-foreground">{pdf.uploadedBy}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs gap-1"
-                            onClick={() => {
-                              setPreviewPdfUrl(pdf.pdfUrl);
-                              setShowPdfPreview(true);
-                              window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-                            }}
-                          >
-                            <Eye className="h-3 w-3" /> Ver
-                          </Button>
-                          <a href={pdf.pdfUrl} target="_blank" rel="noopener noreferrer" download>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                              <Download className="h-3 w-3" /> Baixar
-                            </Button>
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Histórico de movimentações — visual aprimorado */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-3">
@@ -1130,6 +1015,77 @@ export default function AlvaraDetail({ id }: Props) {
               )}
             </CardContent>
           </Card>
+
+          {/* Histórico de versões de PDFs */}
+          {pdfHistorico && pdfHistorico.length > 0 && (
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Histórico de PDFs
+                  </CardTitle>
+                  <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                    {pdfHistorico.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {pdfHistorico.map((pdf: any, idx: number) => {
+                    const dataUpload = new Date(pdf.uploadedAt);
+                    const isLatest = idx === 0;
+                    return (
+                      <div
+                        key={pdf.id}
+                        className={`flex items-center justify-between gap-3 p-2.5 rounded-lg border ${
+                          isLatest ? "bg-red-50 border-red-200" : "bg-muted/30 border-border"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`p-1.5 rounded ${isLatest ? "bg-red-100" : "bg-muted"}`}>
+                            <FileText className={`h-3.5 w-3.5 ${isLatest ? "text-red-600" : "text-muted-foreground"}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate max-w-[200px]" title={pdf.fileName}>
+                              {pdf.fileName}
+                              {isLatest && (
+                                <span className="ml-1.5 text-[10px] font-semibold text-red-600 bg-red-100 px-1 py-0.5 rounded">atual</span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Clock3 className="h-2.5 w-2.5 text-muted-foreground" />
+                              <span className="text-[11px] text-muted-foreground">
+                                {dataUpload.toLocaleDateString("pt-BR")} às {dataUpload.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                              {pdf.uploadedBy && (
+                                <>
+                                  <span className="text-muted-foreground/40">·</span>
+                                  <span className="text-[11px] text-muted-foreground">{pdf.uploadedBy}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a href={pdf.pdfUrl} target="_blank" rel="noopener noreferrer">
+                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                              <Eye className="h-3 w-3" /> Ver
+                            </Button>
+                          </a>
+                          <a href={pdf.pdfUrl} target="_blank" rel="noopener noreferrer" download>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                              <Download className="h-3 w-3" /> Baixar
+                            </Button>
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Coluna lateral */}
