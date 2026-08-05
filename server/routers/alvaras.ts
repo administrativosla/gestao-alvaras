@@ -451,8 +451,10 @@ export const alvarasRouter = router({
           cep: clienteData.cep ?? null,
           tipo: row.alvara.tipo ?? null,
           orgaoEmissor: row.alvara.orgaoEmissor ?? null,
+          // numeroAlvara é usado para detectar jurisdição pelo prefixo do CLI (ex: SPM, SPP, CAM)
+          numeroAlvara: row.alvara.numeroAlvara ?? null,
           cliCnaesLicenciados,
-        },
+        } as any,
         {
           situacaoCadastral: clienteData.situacaoCadastral,
           logradouro: clienteData.logradouro,

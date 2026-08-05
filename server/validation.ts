@@ -117,6 +117,47 @@ function validarSituacaoCadastral(cliente: DadosCliente): DimensaoValidacao {
   };
 }
 
+// ─── Mapa de prefixos CLI → Município emissor ────────────────────────────────
+// Prefixos conhecidos do CLI de SP (VRE/REDESIM):
+// SPM = São Paulo (Município) | SPP = São Paulo (Prefeitura, sinônimo)
+// Outros municípios SP: CAM = Campinas, SBC = São Bernardo do Campo,
+// SCS = São Caetano do Sul, GRU = Guarulhos, OSA = Osasco,
+// SJC = São José dos Campos, RIB = Ribeirão Preto, etc.
+const PREFIXO_CLI_MUNICIPIO: Record<string, string> = {
+  SPM: "sao paulo",
+  SPP: "sao paulo",
+  CAM: "campinas",
+  SBC: "sao bernardo do campo",
+  SCS: "sao caetano do sul",
+  GRU: "guarulhos",
+  OSA: "osasco",
+  SJC: "sao jose dos campos",
+  RIB: "ribeirao preto",
+  STO: "santos",
+  SAN: "santo andre",
+  MCI: "mogi das cruzes",
+  JAU: "jau",
+  BAU: "bauru",
+  PIR: "piracicaba",
+  LIM: "limeira",
+  ARA: "araçatuba",
+  MAR: "marilia",
+  PRE: "presidente prudente",
+  SOC: "sorocaba",
+  TAU: "taubate",
+  VOL: "volta redonda",
+};
+
+/**
+ * Extrai o prefixo de jurisdição de um número de CLI.
+ * Ex: "SPM2530011930" → "SPM", "SPP2430512122" → "SPP"
+ */
+function extrairPrefixoCli(numeroAlvara: string | null | undefined): string | null {
+  if (!numeroAlvara) return null;
+  const match = numeroAlvara.trim().toUpperCase().match(/^([A-Z]{2,4})\d/);
+  return match ? match[1] : null;
+}
+
 // ─── Validação de Endereço ────────────────────────────────────────────────────
 
 function validarEndereco(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidacao {
@@ -138,6 +179,41 @@ function validarEndereco(pdf: DadosPdf, cliente: DadosCliente): DimensaoValidaca
 
   const divergencias: string[] = [];
   const correspondencias: string[] = [];
+
+  // ── Verificação de jurisdição para CLI (PRIORIDADE MÁXIMA) ───────────────────
+  // O prefixo do número do CLI identifica o município emissor.
+  // Se o CNPJ está cadastrado em outro município, há divergência de jurisdição.
+  if (pdf.tipo === "CLI" && pdf.orgaoEmissor) {
+    const prefixo = extrairPrefixoCli(pdf.orgaoEmissor);
+    if (prefixo && PREFIXO_CLI_MUNICIPIO[prefixo]) {
+      const municipioCliNorm = normalizarTexto(PREFIXO_CLI_MUNICIPIO[prefixo]);
+      const municipioClienteNorm = normalizarTexto(cliente.cidade);
+      if (municipioClienteNorm && municipioCliNorm !== municipioClienteNorm &&
+          !municipioClienteNorm.includes(municipioCliNorm) && !municipioCliNorm.includes(municipioClienteNorm)) {
+        return {
+          resultado: "divergente",
+          detalhe: `Divergência de jurisdição: o CLI (prefixo "${prefixo}") foi emitido pelo município de "${PREFIXO_CLI_MUNICIPIO[prefixo].replace(/\b\w/g, (c) => c.toUpperCase())}" (VRE/REDESIM), mas o CNPJ está cadastrado na Receita Federal com endereço em "${cliente.cidade}". Verifique se o estabelecimento correto foi licenciado.`,
+        };
+      }
+    }
+  }
+
+  // ── Verificação de jurisdição via número do CLI (quando orgaoEmissor não tem prefixo) ──
+  // Tenta extrair o prefixo do campo numeroAlvara se o orgaoEmissor não foi suficiente
+  if (pdf.tipo === "CLI" && (pdf as any).numeroAlvara) {
+    const prefixo = extrairPrefixoCli((pdf as any).numeroAlvara);
+    if (prefixo && PREFIXO_CLI_MUNICIPIO[prefixo]) {
+      const municipioCliNorm = normalizarTexto(PREFIXO_CLI_MUNICIPIO[prefixo]);
+      const municipioClienteNorm = normalizarTexto(cliente.cidade);
+      if (municipioClienteNorm && municipioCliNorm !== municipioClienteNorm &&
+          !municipioClienteNorm.includes(municipioCliNorm) && !municipioCliNorm.includes(municipioClienteNorm)) {
+        return {
+          resultado: "divergente",
+          detalhe: `Divergência de jurisdição: o CLI nº "${(pdf as any).numeroAlvara}" (prefixo "${prefixo}") foi emitido pelo município de "${PREFIXO_CLI_MUNICIPIO[prefixo].replace(/\b\w/g, (c) => c.toUpperCase())}" (VRE/REDESIM), mas o CNPJ está cadastrado na Receita Federal com endereço em "${cliente.cidade}". Verifique se o estabelecimento correto foi licenciado.`,
+        };
+      }
+    }
+  }
 
   // Comparar CEP (mais confiável)
   const cepPdf = normalizarCep(pdf.cep);

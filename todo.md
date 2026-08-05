@@ -472,9 +472,9 @@
 
 ## V3.24 — Badge de cobertura clicável na listagem de clientes
 
-- [ ] Badge "Sem Registro" clicável: navega para /importar com CNPJ do cliente pré-preenchido
-- [ ] Badge "Sem Alvará" clicável: mesma ação (navega para /importar com CNPJ pré-preenchido)
-- [ ] Tooltip no badge explicando a ação ao passar o mouse
+- [x] Badge "Sem Registro" clicável: navega para /importar com CNPJ do cliente pré-preenchido
+- [x] Badge "Sem Alvará" clicável: mesma ação (navega para /importar com CNPJ pré-preenchido)
+- [x] Tooltip no badge explicando a ação ao passar o mouse (implementado via title no botão)
 
 ## V3.24 — Toggle Sem Registro inline + Unificação da tela de Importação
 
@@ -484,3 +484,12 @@
 - [x] Unificar ImportarPage e ImportacaoLotePage em uma única tela com abas (Importação Manual + Importação em Lote)
 - [x] Remover rota /importar/lote e item separado do menu lateral
 - [x] Atualizar menu lateral para ter apenas "Importar" apontando para a tela unificada
+
+## V3.25 — Correção da validação CLI x Receita Federal (divergência de jurisdição)
+
+- [x] Analisar o prompt de validação: identificado que o sistema comparava cliente consigo mesmo (endereço do PDF = endereço do cliente, sem dados próprios do CLI)
+- [x] Criar mapa PREFIXO_CLI_MUNICIPIO com 20+ prefixos conhecidos do VRE/REDESIM SP
+- [x] Criar função extrairPrefixoCli para extrair prefixo do número do CLI
+- [x] Adicionar verificação de jurisdição: se prefixo do CLI indica município diferente do CNPJ → "Divergente"
+- [x] Verificar via orgaoEmissor e via numeroAlvara (dois pontos de entrada)
+- [x] Passar numeroAlvara no payload de validação do procedure revalidar
