@@ -58,6 +58,7 @@ import { Copy, Check } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatCnpj } from "@/lib/alvaras";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
 
@@ -90,21 +91,37 @@ function CnpjCopyCell({ cnpj }: { cnpj: string }) {
   );
 }
 
-function CoberturaBadge({ cobertura, total }: { cobertura: CoberturaStatus; total: number }) {
+function CoberturaBadge({ cobertura, total, onToggleSemRegistro, canToggle, isLoading }: {
+  cobertura: CoberturaStatus;
+  total: number;
+  onToggleSemRegistro?: (value: boolean) => void;
+  canToggle?: boolean;
+  isLoading?: boolean;
+}) {
   if (cobertura === "Sem Registro") {
     return (
-      <Badge variant="outline" className="gap-1 text-xs border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30">
-        <ShieldOff className="h-3 w-3" />
+      <button
+        onClick={(e) => { e.stopPropagation(); if (canToggle) onToggleSemRegistro?.(false); }}
+        title={canToggle ? "Clique para desfazer \"Sem Registro\"" : "Sem Registro"}
+        disabled={isLoading}
+        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-violet-300 text-violet-600 bg-violet-50 dark:bg-violet-950/30 transition-all ${canToggle ? "hover:bg-violet-100 hover:border-violet-400 cursor-pointer" : "cursor-default"}`}
+      >
+        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldOff className="h-3 w-3" />}
         Sem Registro
-      </Badge>
+      </button>
     );
   }
   if (cobertura === "Sem Alvará") {
     return (
-      <Badge variant="outline" className="gap-1 text-xs border-gray-300 text-gray-500 bg-gray-50 dark:bg-gray-900/30">
-        <ShieldOff className="h-3 w-3" />
+      <button
+        onClick={(e) => { e.stopPropagation(); if (canToggle) onToggleSemRegistro?.(true); }}
+        title={canToggle ? "Marcar como \"Sem Registro\"" : "Sem Alvará"}
+        disabled={isLoading}
+        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-gray-300 text-gray-500 bg-gray-50 dark:bg-gray-900/30 transition-all ${canToggle ? "hover:bg-violet-50 hover:border-violet-300 hover:text-violet-600 cursor-pointer" : "cursor-default"}`}
+      >
+        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldOff className="h-3 w-3" />}
         Sem Alvará
-      </Badge>
+      </button>
     );
   }
   if (cobertura === "Parcial") {
@@ -155,6 +172,27 @@ export default function ClientesList() {
     },
     onError: (e) => toast.error("Erro ao remover: " + e.message),
   });
+
+  const { user } = useAuth();
+  const canToggle = user?.role === "gestor" || user?.role === "master";
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const toggleSemRegistroMutation = trpc.clientes.toggleSemRegistro.useMutation({
+    onSuccess: () => {
+      refetch();
+      setTogglingId(null);
+    },
+    onError: (e) => {
+      toast.error("Erro ao atualizar: " + e.message);
+      setTogglingId(null);
+    },
+  });
+
+  const handleToggleSemRegistro = (id: number, value: boolean) => {
+    setTogglingId(id);
+    toggleSemRegistroMutation.mutate({ id, semRegistro: value });
+    toast.success(value ? "Marcado como Sem Registro" : "Marcado como Sem Alvará");
+  };
 
   const importarMutation = trpc.clientes.importarPlanilha.useMutation({
     onSuccess: (data) => {
@@ -476,7 +514,13 @@ export default function ClientesList() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <CoberturaBadge cobertura={c.cobertura} total={c.totalAlvaras} />
+                        <CoberturaBadge
+                          cobertura={c.cobertura}
+                          total={c.totalAlvaras}
+                          canToggle={canToggle}
+                          isLoading={togglingId === c.id}
+                          onToggleSemRegistro={(value) => handleToggleSemRegistro(c.id, value)}
+                        />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
                         {c.nomeContato ?? "—"}

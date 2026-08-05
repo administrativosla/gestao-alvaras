@@ -469,3 +469,18 @@
 - [x] Restringir exclusão a perfis GESTOR (nível 2) e MASTER (nível 3) — Operador não vê o botão
 - [x] Adicionar confirmação antes de excluir (AlertDialog com nome do cliente)
 - [x] Procedure delete atualizada para gestorProcedure (nível 2+) no backend
+
+## V3.24 — Badge de cobertura clicável na listagem de clientes
+
+- [ ] Badge "Sem Registro" clicável: navega para /importar com CNPJ do cliente pré-preenchido
+- [ ] Badge "Sem Alvará" clicável: mesma ação (navega para /importar com CNPJ pré-preenchido)
+- [ ] Tooltip no badge explicando a ação ao passar o mouse
+
+## V3.24 — Toggle Sem Registro inline + Unificação da tela de Importação
+
+- [x] Adicionar procedure clientes.toggleSemRegistro no backend (gestorProcedure)
+- [x] Badge "Sem Alvará" clícavel na listagem: chama toggleSemRegistro e muda para "Sem Registro" com atualização otimista
+- [x] Badge "Sem Registro" clícavel: desfaz a marcação (volta para "Sem Alvará") com confirmação
+- [x] Unificar ImportarPage e ImportacaoLotePage em uma única tela com abas (Importação Manual + Importação em Lote)
+- [x] Remover rota /importar/lote e item separado do menu lateral
+- [x] Atualizar menu lateral para ter apenas "Importar" apontando para a tela unificada

@@ -328,4 +328,15 @@ export const clientesRouter = router({
       await enviarEmail(input.destinatarios, semRegistro);
       return { success: true, total: semRegistro.length };
     }),
+
+  // Toggle rápido de "Sem Registro" diretamente na listagem (GESTOR/MASTER)
+  toggleSemRegistro: gestorProcedure
+    .input(z.object({
+      id: z.number(),
+      semRegistro: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      await updateCliente(input.id, { semRegistro: input.semRegistro });
+      return { success: true };
+    }),
 });

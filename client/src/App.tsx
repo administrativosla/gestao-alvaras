@@ -15,7 +15,6 @@ import AlvarasList from "./pages/AlvarasList";
 import AlvaraForm from "./pages/AlvaraForm";
 import AlvaraDetail from "./pages/AlvaraDetail";
 import ImportarPage from "./pages/ImportarPage";
-import ImportacaoLotePage from "./pages/ImportacaoLotePage";
 import ExportarPage from "./pages/ExportarPage";
 import ConfiguracaoAlertas from "./pages/ConfiguracaoAlertas";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
@@ -43,7 +42,6 @@ function AppRoutes() {
           {(params) => <AlvaraDetail id={Number(params.id)} />}
         </Route>
         <Route path="/importar" component={ImportarPage} />
-        <Route path="/importar/lote" component={ImportacaoLotePage} />
         <Route path="/exportar" component={ExportarPage} />
         <Route path="/alertas" component={ConfiguracaoAlertas} />
         <Route path="/usuarios" component={GestaoUsuarios} />

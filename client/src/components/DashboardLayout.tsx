@@ -155,7 +155,6 @@ function DashboardLayoutContent({
     { icon: Users, label: "Clientes", path: "/clientes", minLevel: 1 },
     { icon: FileText, label: "Alvarás", path: "/alvaras", minLevel: 1 },
     { icon: Upload, label: "Importar", path: "/importar", minLevel: 1 },
-    { icon: PackageOpen, label: "Importar em Lote", path: "/importar/lote", minLevel: 1 },
     { icon: Download, label: "Exportar", path: "/exportar", minLevel: 2 },
     { icon: TrendingUp, label: "Pipeline Comercial", path: "/comercial", minLevel: 1 },
     { icon: Bell, label: "Alertas", path: "/alertas", minLevel: 3 },
