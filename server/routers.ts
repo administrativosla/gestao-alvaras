@@ -10,6 +10,7 @@ import { exportacaoRouter } from "./routers/exportacao";
 import { alertasRouter } from "./routers/alertas";
 import { usuariosRouter } from "./routers/usuarios";
 import { negociacoesRouter } from "./routers/negociacoes";
+import { adminRouter } from "./routers/admin";
 
 export const appRouter = router({
   system: systemRouter,
@@ -29,6 +30,7 @@ export const appRouter = router({
   alertas: alertasRouter,
   usuarios: usuariosRouter,
   negociacoes: negociacoesRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;

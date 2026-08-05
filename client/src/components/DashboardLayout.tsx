@@ -35,6 +35,7 @@ import {
   Shield,
   User as UserIcon,
   TrendingUp,
+  Wrench,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -159,6 +160,7 @@ function DashboardLayoutContent({
     { icon: TrendingUp, label: "Pipeline Comercial", path: "/comercial", minLevel: 1 },
     { icon: Bell, label: "Alertas", path: "/alertas", minLevel: 3 },
     { icon: UserCog, label: "Usuários", path: "/usuarios", minLevel: 3, badge: pendentes ?? 0 },
+    { icon: Wrench, label: "Manutenção", path: "/manutencao", minLevel: 3 },
   ].filter((item) => userLevel >= item.minLevel);
 
   const activeMenuItem = menuItems.find(

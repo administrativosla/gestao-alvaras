@@ -501,3 +501,14 @@
 - [x] Adicionar campo cliMunicipioEmissor no schema Drizzle e migration aplicada no banco
 - [x] Usar cliMunicipioEmissor na validação de jurisdição: comparar com o município do CNPJ na Receita Federal
 - [x] Atualizar confirmarPdf, confirmarLote e revalidar para passar cliMunicipioEmissor na validação
+
+## V3.27 — Rotina de Varredura e Enriquecimento Retroativo (skill permanente)
+
+- [x] Criar procedure `admin.reprocessarPdfs` no backend: varre alvarás com arquivoPdfUrl preenchido, rele o PDF via LLM, extrai campos faltantes (cliMunicipioEmissor, etc.) e atualiza o banco
+- [x] Criar procedure `admin.revalidarTodos` no backend: roda executarValidacao em todos os alvarás e atualiza os campos de validação
+- [x] Criar procedure `admin.statusVarredura` no backend: retorna estatísticas (total, processados, com erro, campos preenchidos)
+- [x] Criar painel de Manutenção acessível apenas para MASTER no menu lateral (/manutencao)
+- [x] Painel exibe: contagem de alvarás com PDF, sem cliMunicipioEmissor, sem validação, etc.
+- [x] Botão "Reprocessar PDFs" com log detalhado por alvará
+- [x] Botão "Revalidar Todos" para atualizar validações sem reler PDFs
+- [x] Log de execução exibido na tela com resultado por alvará
