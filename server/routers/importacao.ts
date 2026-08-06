@@ -304,12 +304,18 @@ Campos a extrair:
 - nomeFantasia: string ou null
 - inscricaoEstadual: string ou null
 - inscricaoMunicipal: string ou null (no CLI aparece como "INSCRIÇÃO MUNICIPAL")
-- logradouro: string ou null
-- numero: string ou null
-- bairro: string ou null
-- cidade: string ou null
-- uf: string (2 letras) ou null
-- cep: string ou null
+- logradouro: string ou null — para CLI, use o campo "ENDEREÇO DO ESTABELECIMENTO" na seção "DADOS DA EMPRESA"
+- numero: string ou null — número do endereço do estabelecimento
+- bairro: string ou null — bairro do estabelecimento
+- cidade: string ou null — município do estabelecimento
+- uf: string (2 letras) ou null — UF do estabelecimento
+- cep: string ou null — CEP do estabelecimento
+- cliLogradouro: SOMENTE para CLI. Logradouro do campo "ENDEREÇO DO ESTABELECIMENTO" na seção "DADOS DA EMPRESA". Para não-CLI, retorne null.
+- cliNumero: SOMENTE para CLI. Número do endereço do estabelecimento. Para não-CLI, retorne null.
+- cliBairro: SOMENTE para CLI. Bairro do estabelecimento. Para não-CLI, retorne null.
+- cliCidade: SOMENTE para CLI. Município do estabelecimento conforme consta no CLI. DEVE ser idêntico ao município da Receita Federal para o CNPJ ser válido. Para não-CLI, retorne null.
+- cliUf: SOMENTE para CLI. UF do estabelecimento. Para não-CLI, retorne null.
+- cliCep: SOMENTE para CLI. CEP do estabelecimento. Para não-CLI, retorne null.
 - numeroAlvara: string ou null (no CLI use o valor do campo "PROTOCOLO/NÚMERO", ex: SPM2430532320)
 - tipo: para CLI retorne exatamente "CLI", para outros retorne o tipo (ex: "Funcionamento", "Sanitário", "Bombeiros")
 - orgaoEmissor: string ou null (no CLI retorne "Prefeitura de [cidade] / VRE-SP")
@@ -381,6 +387,12 @@ Se não encontrar um campo, use null.`,
                   items: { type: "string" },
                 },
                 cliMunicipioEmissor: { type: ["string", "null"] },
+                cliLogradouro: { type: ["string", "null"] },
+                cliNumero: { type: ["string", "null"] },
+                cliBairro: { type: ["string", "null"] },
+                cliCidade: { type: ["string", "null"] },
+                cliUf: { type: ["string", "null"] },
+                cliCep: { type: ["string", "null"] },
               },
               required: [
                 "cnpj",
@@ -403,6 +415,12 @@ Se não encontrar um campo, use null.`,
                 "cliOrgaosPendentes",
                 "cliCnaesLicenciados",
                 "cliMunicipioEmissor",
+                "cliLogradouro",
+                "cliNumero",
+                "cliBairro",
+                "cliCidade",
+                "cliUf",
+                "cliCep",
               ],
               additionalProperties: false,
             },
@@ -459,6 +477,12 @@ Se não encontrar um campo, use null.`,
           })).optional().nullable(),
           cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
           cliMunicipioEmissor: z.string().optional().nullable(),
+          cliLogradouro: z.string().optional().nullable(),
+          cliNumero: z.string().optional().nullable(),
+          cliBairro: z.string().optional().nullable(),
+          cliCidade: z.string().optional().nullable(),
+          cliUf: z.string().optional().nullable(),
+          cliCep: z.string().optional().nullable(),
         }),
         colaborador: z.string().optional(),
       })
@@ -542,6 +566,12 @@ Se não encontrar um campo, use null.`,
                 ? JSON.stringify(dados.cliCnaesLicenciados)
                 : null,
               cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
+              cliLogradouro: dados.cliLogradouro ?? null,
+              cliNumero: dados.cliNumero ?? null,
+              cliBairro: dados.cliBairro ?? null,
+              cliCidade: dados.cliCidade ?? null,
+              cliUf: dados.cliUf ?? null,
+              cliCep: dados.cliCep ?? null,
               status: _statusPdf,
             });
             await addHistorico({
@@ -580,6 +610,12 @@ Se não encontrar um campo, use null.`,
                 ? JSON.stringify(dados.cliCnaesLicenciados)
                 : null,
               cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
+              cliLogradouro: dados.cliLogradouro ?? null,
+              cliNumero: dados.cliNumero ?? null,
+              cliBairro: dados.cliBairro ?? null,
+              cliCidade: dados.cliCidade ?? null,
+              cliUf: dados.cliUf ?? null,
+              cliCep: dados.cliCep ?? null,
               status: _statusPdf,
             });
             await addHistorico({
@@ -619,8 +655,16 @@ Se não encontrar um campo, use null.`,
                 tipo: dados.tipo,
                 orgaoEmissor: dados.orgaoEmissor,
                 cliCnaesLicenciados: dados.cliCnaesLicenciados ?? null,
-                // cliMunicipioEmissor é usado para verificar jurisdição no validation.ts
-                ...({ cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null } as any),
+                // Campos de endereço do estabelecimento (extraídos do CLI)
+                ...({ 
+                  cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
+                  cliLogradouro: dados.cliLogradouro ?? null,
+                  cliNumero: dados.cliNumero ?? null,
+                  cliBairro: dados.cliBairro ?? null,
+                  cliCidade: dados.cliCidade ?? null,
+                  cliUf: dados.cliUf ?? null,
+                  cliCep: dados.cliCep ?? null,
+                } as any),
               } as any,
               {
                 situacaoCadastral: clienteData.situacaoCadastral,
@@ -687,12 +731,18 @@ Campos a extrair:
 - nomeFantasia: string ou null
 - inscricaoEstadual: string ou null
 - inscricaoMunicipal: string ou null (no CLI aparece como "INSCRIÇÃO MUNICIPAL")
-- logradouro: string ou null
-- numero: string ou null
-- bairro: string ou null
-- cidade: string ou null
-- uf: string (2 letras) ou null
-- cep: string ou null
+- logradouro: string ou null — para CLI, use o campo "ENDEREÇO DO ESTABELECIMENTO" na seção "DADOS DA EMPRESA"
+- numero: string ou null — número do endereço do estabelecimento
+- bairro: string ou null — bairro do estabelecimento
+- cidade: string ou null — município do estabelecimento
+- uf: string (2 letras) ou null — UF do estabelecimento
+- cep: string ou null — CEP do estabelecimento
+- cliLogradouro: SOMENTE para CLI. Logradouro do campo "ENDEREÇO DO ESTABELECIMENTO" na seção "DADOS DA EMPRESA". Para não-CLI, retorne null.
+- cliNumero: SOMENTE para CLI. Número do endereço do estabelecimento. Para não-CLI, retorne null.
+- cliBairro: SOMENTE para CLI. Bairro do estabelecimento. Para não-CLI, retorne null.
+- cliCidade: SOMENTE para CLI. Município do estabelecimento conforme consta no CLI. DEVE ser idêntico ao município da Receita Federal para o CNPJ ser válido. Para não-CLI, retorne null.
+- cliUf: SOMENTE para CLI. UF do estabelecimento. Para não-CLI, retorne null.
+- cliCep: SOMENTE para CLI. CEP do estabelecimento. Para não-CLI, retorne null.
 - numeroAlvara: string ou null (no CLI use o valor do campo "PROTOCOLO/NÚMERO", ex: SPM2430532320)
 - tipo: para CLI retorne exatamente "CLI", para outros retorne o tipo (ex: "Funcionamento", "Sanitário", "Bombeiros")
 - orgaoEmissor: string ou null (no CLI retorne "Prefeitura de [cidade] / VRE-SP")
@@ -758,8 +808,14 @@ Se não encontrar um campo, use null.`,
                   items: { type: "string" },
                 },
                 cliMunicipioEmissor: { type: ["string", "null"] },
+                cliLogradouro: { type: ["string", "null"] },
+                cliNumero: { type: ["string", "null"] },
+                cliBairro: { type: ["string", "null"] },
+                cliCidade: { type: ["string", "null"] },
+                cliUf: { type: ["string", "null"] },
+                cliCep: { type: ["string", "null"] },
               },
-              required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes","cliCnaesLicenciados","cliMunicipioEmissor"],
+              required: ["cnpj","razaoSocial","nomeFantasia","inscricaoEstadual","inscricaoMunicipal","logradouro","numero","bairro","cidade","uf","cep","numeroAlvara","tipo","orgaoEmissor","dataEmissao","dataVencimento","situacaoCli","cliOrgaosPendentes","cliCnaesLicenciados","cliMunicipioEmissor","cliLogradouro","cliNumero","cliBairro","cliCidade","cliUf","cliCep"],
               additionalProperties: false,
                 },
               },
@@ -853,6 +909,12 @@ Se não encontrar um campo, use null.`,
             })).optional().nullable(),
             cliCnaesLicenciados: z.array(z.string()).optional().nullable(),
             cliMunicipioEmissor: z.string().optional().nullable(),
+            cliLogradouro: z.string().optional().nullable(),
+            cliNumero: z.string().optional().nullable(),
+            cliBairro: z.string().optional().nullable(),
+            cliCidade: z.string().optional().nullable(),
+            cliUf: z.string().optional().nullable(),
+            cliCep: z.string().optional().nullable(),
             arquivoPdfKey: z.string().optional().nullable(),
             arquivoPdfUrl: z.string().optional().nullable(),
           })
@@ -949,6 +1011,12 @@ Se não encontrar um campo, use null.`,
                     ? JSON.stringify(reg.cliCnaesLicenciados)
                     : null,
                   cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null,
+                  cliLogradouro: reg.cliLogradouro ?? null,
+                  cliNumero: reg.cliNumero ?? null,
+                  cliBairro: reg.cliBairro ?? null,
+                  cliCidade: reg.cliCidade ?? null,
+                  cliUf: reg.cliUf ?? null,
+                  cliCep: reg.cliCep ?? null,
                   status,
                   ...(reg.arquivoPdfKey ? { arquivoPdfKey: reg.arquivoPdfKey } : {}),
                   ...(reg.arquivoPdfUrl ? { arquivoPdfUrl: reg.arquivoPdfUrl } : {}),
@@ -988,6 +1056,12 @@ Se não encontrar um campo, use null.`,
                     ? JSON.stringify(reg.cliCnaesLicenciados)
                     : null,
                   cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null,
+                  cliLogradouro: reg.cliLogradouro ?? null,
+                  cliNumero: reg.cliNumero ?? null,
+                  cliBairro: reg.cliBairro ?? null,
+                  cliCidade: reg.cliCidade ?? null,
+                  cliUf: reg.cliUf ?? null,
+                  cliCep: reg.cliCep ?? null,
                   status,
                   arquivoPdfKey: reg.arquivoPdfKey ?? null,
                   arquivoPdfUrl: reg.arquivoPdfUrl ?? null,
@@ -1028,7 +1102,15 @@ Se não encontrar um campo, use null.`,
                         tipo: reg.tipo,
                         orgaoEmissor: reg.orgaoEmissor,
                         // cliMunicipioEmissor é usado para verificar jurisdição no validation.ts
-                        ...({ cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null } as any),
+                        ...({ 
+                          cliMunicipioEmissor: reg.cliMunicipioEmissor ?? null,
+                          cliLogradouro: reg.cliLogradouro ?? null,
+                          cliNumero: reg.cliNumero ?? null,
+                          cliBairro: reg.cliBairro ?? null,
+                          cliCidade: reg.cliCidade ?? null,
+                          cliUf: reg.cliUf ?? null,
+                          cliCep: reg.cliCep ?? null,
+                        } as any),
                       } as any,
                       {
                         situacaoCadastral: clienteDataLote.situacaoCadastral,

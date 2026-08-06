@@ -512,3 +512,13 @@
 - [x] Botão "Reprocessar PDFs" com log detalhado por alvará
 - [x] Botão "Revalidar Todos" para atualizar validações sem reler PDFs
 - [x] Log de execução exibido na tela com resultado por alvará
+
+## V3.28 — Motor de Validação Definitivo
+
+- [x] Limpar banco: alvaras, alvara_historico, alvara_pdfs, negociacoes, negociacoes_historico
+- [x] Adicionar colunas cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na tabela alvaras (migration aplicada)
+- [x] Atualizar prompt LLM parsePdf e parsePdfLote para extrair "ENDEREÇO DO ESTABELECIMENTO" dos "DADOS DA EMPRESA" do CLI
+- [x] Salvar cliLogradouro/cliNumero/cliBairro/cliCidade/cliUf/cliCep no banco em confirmarPdf e confirmarLote
+- [x] Reescrever motor de validação definitivo: 4 regras, verificação tripla de município, CNAE principal obrigatório
+- [x] Atualizar varredura retroativa (admin.reprocessarPdfs) para extrair e salvar os novos campos
+- [x] Atualizar revalidarTodos para usar os novos campos do alvará armazenados no banco

@@ -171,6 +171,14 @@ export const alvaras = mysqlTable("alvaras", {
   cliNaturezaJuridica: varchar("cliNaturezaJuridica", { length: 100 }),
   cliFormaAtuacao: varchar("cliFormaAtuacao", { length: 255 }),
   cliAreaEstabelecimento: varchar("cliAreaEstabelecimento", { length: 30 }),
+  // Endereço do ESTABELECIMENTO conforme consta no CLI (seção "Dados da Empresa")
+  // Estes campos são a fonte primária para validação contra a Receita Federal
+  cliLogradouro: varchar("cliLogradouro", { length: 255 }),
+  cliNumero: varchar("cliNumero", { length: 20 }),
+  cliBairro: varchar("cliBairro", { length: 100 }),
+  cliCidade: varchar("cliCidade", { length: 100 }),
+  cliUf: varchar("cliUf", { length: 2 }),
+  cliCep: varchar("cliCep", { length: 9 }),
   cliCnaesLicenciados: text("cliCnaesLicenciados"),              // JSON: string[]
   // Componentes por órgão (JSON): [{orgao, tipoManifestacao, numeroDocumento, dataEmissao, dataValidade, cnaes, restricoes}]
   cliComponentes: text("cliComponentes"),

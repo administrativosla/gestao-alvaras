@@ -84,6 +84,12 @@ async function extrairCamposDosPdf(fileBase64: string): Promise<{
   uf?: string | null;
   cliCnaesLicenciados?: string[] | null;
   situacaoCli?: string | null;
+  cliLogradouro?: string | null;
+  cliNumero?: string | null;
+  cliBairro?: string | null;
+  cliCidade?: string | null;
+  cliUf?: string | null;
+  cliCep?: string | null;
 } | null> {
   try {
     const fileUrl = `data:application/pdf;base64,${fileBase64}`;
@@ -135,8 +141,14 @@ Se não encontrar um campo, use null.`,
               cliMunicipioEmissor: { type: ["string", "null"] },
               cliCnaesLicenciados: { type: ["array", "null"], items: { type: "string" } },
               situacaoCli: { type: ["string", "null"] },
+              cliLogradouro: { type: ["string", "null"] },
+              cliNumero: { type: ["string", "null"] },
+              cliBairro: { type: ["string", "null"] },
+              cliCidade: { type: ["string", "null"] },
+              cliUf: { type: ["string", "null"] },
+              cliCep: { type: ["string", "null"] },
             },
-            required: ["tipo", "orgaoEmissor", "cidade", "cep", "uf", "cliMunicipioEmissor", "cliCnaesLicenciados", "situacaoCli"],
+            required: ["tipo", "orgaoEmissor", "cidade", "cep", "uf", "cliMunicipioEmissor", "cliCnaesLicenciados", "situacaoCli", "cliLogradouro", "cliNumero", "cliBairro", "cliCidade", "cliUf", "cliCep"],
             additionalProperties: false,
           },
         },
@@ -217,6 +229,12 @@ export const adminRouter = router({
         cliMunicipioEmissor: alvaras.cliMunicipioEmissor,
         cliCnaesLicenciados: alvaras.cliCnaesLicenciados,
         situacaoCli: alvaras.situacaoCli,
+        cliLogradouro: alvaras.cliLogradouro,
+        cliNumero: alvaras.cliNumero,
+        cliBairro: alvaras.cliBairro,
+        cliCidade: alvaras.cliCidade,
+        cliUf: alvaras.cliUf,
+        cliCep: alvaras.cliCep,
         orgaoEmissor: alvaras.orgaoEmissor,
       }).from(alvaras)
         .limit(input.limite);
@@ -273,8 +291,31 @@ export const adminRouter = router({
           updates.situacaoCli = campos.situacaoCli;
           camposAtualizados.push(`situacaoCli="${campos.situacaoCli}"`);
         }
-        // Nota: campos de endereço (cidade, cep, uf) ficam na tabela clientes, não em alvaras.
-        // Apenas campos específicos do CLI são atualizados aqui.
+        // Campos de endereço do estabelecimento CLI (novos campos — sempre atualizar se extraídos)
+        if (campos.cliLogradouro && !alvara.cliLogradouro) {
+          updates.cliLogradouro = campos.cliLogradouro;
+          camposAtualizados.push(`cliLogradouro="${campos.cliLogradouro}"`);
+        }
+        if (campos.cliNumero && !alvara.cliNumero) {
+          updates.cliNumero = campos.cliNumero;
+          camposAtualizados.push(`cliNumero="${campos.cliNumero}"`);
+        }
+        if (campos.cliBairro && !alvara.cliBairro) {
+          updates.cliBairro = campos.cliBairro;
+          camposAtualizados.push(`cliBairro="${campos.cliBairro}"`);
+        }
+        if (campos.cliCidade && !alvara.cliCidade) {
+          updates.cliCidade = campos.cliCidade;
+          camposAtualizados.push(`cliCidade="${campos.cliCidade}"`);
+        }
+        if (campos.cliUf && !alvara.cliUf) {
+          updates.cliUf = campos.cliUf;
+          camposAtualizados.push(`cliUf="${campos.cliUf}"`);
+        }
+        if (campos.cliCep && !alvara.cliCep) {
+          updates.cliCep = campos.cliCep;
+          camposAtualizados.push(`cliCep="${campos.cliCep}"`);
+        }
 
         if (Object.keys(updates).length === 0) {
           log.push({ alvaraId: alvara.id, status: "sem_mudanca", camposAtualizados: [], mensagem: "Nenhum campo novo encontrado" });
@@ -289,14 +330,17 @@ export const adminRouter = router({
           if (clienteData) {
             const validacao = executarValidacao(
               {
-                cidade: campos.cidade ?? undefined,
-                cep: campos.cep ?? undefined,
-                uf: campos.uf ?? undefined,
                 tipo: campos.tipo ?? alvara.tipo ?? undefined,
                 orgaoEmissor: campos.orgaoEmissor ?? undefined,
                 cliCnaesLicenciados: campos.cliCnaesLicenciados ?? null,
-                ...({ cliMunicipioEmissor: campos.cliMunicipioEmissor ?? null } as any),
-              } as any,
+                cliMunicipioEmissor: campos.cliMunicipioEmissor ?? null,
+                cliLogradouro: campos.cliLogradouro ?? null,
+                cliNumero: campos.cliNumero ?? null,
+                cliBairro: campos.cliBairro ?? null,
+                cliCidade: campos.cliCidade ?? null,
+                cliUf: campos.cliUf ?? null,
+                cliCep: campos.cliCep ?? null,
+              },
               {
                 situacaoCadastral: clienteData.situacaoCadastral,
                 logradouro: clienteData.logradouro,
@@ -353,6 +397,12 @@ export const adminRouter = router({
         tipo: alvaras.tipo,
         orgaoEmissor: alvaras.orgaoEmissor,
         cliMunicipioEmissor: alvaras.cliMunicipioEmissor,
+        cliLogradouro: alvaras.cliLogradouro,
+        cliNumero: alvaras.cliNumero,
+        cliBairro: alvaras.cliBairro,
+        cliCidade: alvaras.cliCidade,
+        cliUf: alvaras.cliUf,
+        cliCep: alvaras.cliCep,
         cliCnaesLicenciados: alvaras.cliCnaesLicenciados,
         validacaoEndereco: alvaras.validacaoEndereco,
       }).from(alvaras)
@@ -383,13 +433,17 @@ export const adminRouter = router({
 
           const validacao = executarValidacao(
             {
-              // Campos de endereço ficam no cliente, não no alvará
-              // Passamos apenas os campos CLI específicos do alvará
               tipo: alvara.tipo ?? undefined,
               orgaoEmissor: alvara.orgaoEmissor ?? undefined,
               cliCnaesLicenciados: cnaesLicenciados,
-              ...({ cliMunicipioEmissor: alvara.cliMunicipioEmissor ?? null } as any),
-            } as any,
+              cliMunicipioEmissor: alvara.cliMunicipioEmissor ?? null,
+              cliLogradouro: (alvara as any).cliLogradouro ?? null,
+              cliNumero: (alvara as any).cliNumero ?? null,
+              cliBairro: (alvara as any).cliBairro ?? null,
+              cliCidade: (alvara as any).cliCidade ?? null,
+              cliUf: (alvara as any).cliUf ?? null,
+              cliCep: (alvara as any).cliCep ?? null,
+            },
             {
               situacaoCadastral: clienteData.situacaoCadastral,
               logradouro: clienteData.logradouro,
