@@ -522,3 +522,12 @@
 - [x] Reescrever motor de validação definitivo: 4 regras, verificação tripla de município, CNAE principal obrigatório
 - [x] Atualizar varredura retroativa (admin.reprocessarPdfs) para extrair e salvar os novos campos
 - [x] Atualizar revalidarTodos para usar os novos campos do alvará armazenados no banco
+- [x] Atualizar revalidarTodos para usar os novos campos do alvará armazenados no banco
+
+## V3.29 — Endereço do Estabelecimento CLI no Detalhe do Alvará
+
+- [ ] Exibir cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na seção de dados do CLI no AlvaraDetail
+- [ ] Mostrar comparação visual lado a lado com o endereço da Receita Federal (cliente)
+- [x] Exibir cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na seção de dados do CLI no AlvaraDetail
+- [x] Mostrar comparação visual lado a lado com o endereço da Receita Federal (cliente)
+- [x] Indicador visual: verde (confere) / vermelho (município divergente) na coluna da Receita Federal

@@ -37,6 +37,7 @@ import {
   X,
   Clock3,
 } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   calcDiasParaVencimento,
@@ -819,13 +820,85 @@ export default function AlvaraDetail({ id }: Props) {
                     </div>
                   )}
                   {(alvara.cliInscricaoMunicipal || alvara.cliNaturezaJuridica || alvara.cliFormaAtuacao || alvara.cliAreaEstabelecimento) && (
+                   <div className="mt-2 pt-3 border-t space-y-2">
+                     <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Dados da Empresa</p>
+                     {alvara.cliInscricaoMunicipal && <InfoRow icon={Building2} label="Inscrição Municipal" value={alvara.cliInscricaoMunicipal} />}
+                     {alvara.cliNaturezaJuridica && <InfoRow icon={Building2} label="Natureza Jurídica" value={alvara.cliNaturezaJuridica} />}
+                     {alvara.cliFormaAtuacao && <InfoRow icon={Building2} label="Forma de Atuação" value={alvara.cliFormaAtuacao} />}
+                     {alvara.cliAreaEstabelecimento && <InfoRow icon={Building2} label="Área" value={alvara.cliAreaEstabelecimento} />}
+                     {alvara.cliCnaesLicenciados && <InfoRow icon={FileText} label="CNAEs Licenciados" value={alvara.cliCnaesLicenciados} />}
+                   </div>
+                 )}
+                  {/* Endereço do Estabelecimento CLI vs Receita Federal */}
+                  {(alvara.cliLogradouro || alvara.cliCidade || alvara.cliCep) && (
                     <div className="mt-2 pt-3 border-t space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Dados da Empresa</p>
-                      {alvara.cliInscricaoMunicipal && <InfoRow icon={Building2} label="Inscrição Municipal" value={alvara.cliInscricaoMunicipal} />}
-                      {alvara.cliNaturezaJuridica && <InfoRow icon={Building2} label="Natureza Jurídica" value={alvara.cliNaturezaJuridica} />}
-                      {alvara.cliFormaAtuacao && <InfoRow icon={Building2} label="Forma de Atuação" value={alvara.cliFormaAtuacao} />}
-                      {alvara.cliAreaEstabelecimento && <InfoRow icon={Building2} label="Área" value={alvara.cliAreaEstabelecimento} />}
-                      {alvara.cliCnaesLicenciados && <InfoRow icon={FileText} label="CNAEs Licenciados" value={alvara.cliCnaesLicenciados} />}
+                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5" />
+                        Endereço do Estabelecimento
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 mt-1">
+                        {/* Coluna CLI */}
+                        <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3 space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600">No CLI</p>
+                          {alvara.cliLogradouro && (
+                            <p className="text-xs text-foreground">
+                              {alvara.cliLogradouro}{(alvara as any).cliNumero ? `, ${(alvara as any).cliNumero}` : ""}
+                            </p>
+                          )}
+                          {(alvara as any).cliBairro && <p className="text-xs text-muted-foreground">{(alvara as any).cliBairro}</p>}
+                          {(alvara.cliCidade || (alvara as any).cliUf) && (
+                            <p className="text-xs text-foreground font-medium">
+                              {[alvara.cliCidade, (alvara as any).cliUf].filter(Boolean).join(" / ")}
+                            </p>
+                          )}
+                          {alvara.cliCep && <p className="text-xs font-mono text-muted-foreground">CEP {alvara.cliCep}</p>}
+                          {alvara.cliMunicipioEmissor && (
+                            <p className="text-[10px] text-blue-600 mt-1 pt-1 border-t border-blue-100">
+                              Prefeitura: <span className="font-semibold">{alvara.cliMunicipioEmissor}</span>
+                            </p>
+                          )}
+                        </div>
+                        {/* Coluna Receita Federal */}
+                        {(() => {
+                          const cidadeCli = (alvara.cliCidade || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                          const cidadeRfb = (cliente.cidade || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                          const cepCli = (alvara.cliCep || "").replace(/\D/g, "");
+                          const cepRfb = (cliente.cep || "").replace(/\D/g, "");
+                          const cidadeOk = cidadeCli && cidadeRfb && (cidadeCli === cidadeRfb || cidadeCli.includes(cidadeRfb) || cidadeRfb.includes(cidadeCli));
+                          const cepOk = cepCli && cepRfb && cepCli === cepRfb;
+                          const borderClass = cidadeOk && cepOk
+                            ? "border-green-200 bg-green-50/40"
+                            : (!cidadeOk && cidadeCli && cidadeRfb)
+                              ? "border-red-200 bg-red-50/40"
+                              : "border-muted bg-muted/20";
+                          return (
+                            <div className={`rounded-lg border p-3 space-y-1.5 ${borderClass}`}>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Na Receita Federal</p>
+                              {(cliente.logradouro || cliente.numero) && (
+                                <p className="text-xs text-foreground">
+                                  {cliente.logradouro}{cliente.numero ? `, ${cliente.numero}` : ""}
+                                </p>
+                              )}
+                              {cliente.bairro && <p className="text-xs text-muted-foreground">{cliente.bairro}</p>}
+                              {(cliente.cidade || cliente.uf) && (
+                                <p className="text-xs text-foreground font-medium">
+                                  {[cliente.cidade, cliente.uf].filter(Boolean).join(" / ")}
+                                </p>
+                              )}
+                              {cliente.cep && <p className="text-xs font-mono text-muted-foreground">CEP {cliente.cep}</p>}
+                              {cidadeOk && cepOk ? (
+                                <p className="text-[10px] text-green-600 mt-1 pt-1 border-t border-green-100 flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3" /> Endereço confere
+                                </p>
+                              ) : (!cidadeOk && cidadeCli && cidadeRfb) ? (
+                                <p className="text-[10px] text-red-600 mt-1 pt-1 border-t border-red-100 flex items-center gap-1">
+                                  <XCircle className="h-3 w-3" /> Município divergente
+                                </p>
+                              ) : null}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   )}
                   {alvara.cliComponentes && (() => {
