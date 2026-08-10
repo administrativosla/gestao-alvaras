@@ -54,9 +54,18 @@ export default function AlvarasList() {
     return true;
   })?.filter((a) => {
     if (filtroValidacao === "todos") return true;
-    const geral = (a.alvara as any).validacaoGeral as string | null;
-    if (filtroValidacao === "sem") return !geral;
-    return geral === filtroValidacao;
+    const end = (a.alvara as any).validacaoEndereco as string | null;
+    const cnae = (a.alvara as any).validacaoCnae as string | null;
+    const sit = (a.alvara as any).validacaoSituacao as string | null;
+    const temValidacao = end || cnae || sit;
+    if (filtroValidacao === "sem") return !temValidacao;
+    const isDivergente = end === "divergente" || cnae === "divergente" || sit === "divergente";
+    const isOk = temValidacao && end !== "divergente" && cnae !== "divergente" && sit !== "divergente" && (end === "ok" || cnae === "ok" || sit === "ok");
+    const isInconclusivo = temValidacao && !isDivergente && !isOk;
+    if (filtroValidacao === "divergente") return isDivergente;
+    if (filtroValidacao === "ok") return !!isOk;
+    if (filtroValidacao === "inconclusivo") return isInconclusivo;
+    return true;
   });
 
   const deleteMutation = trpc.alvaras.delete.useMutation({
@@ -244,12 +253,16 @@ export default function AlvarasList() {
                         )}
                         {/* Badge de validação RFB */}
                         {(() => {
-                          const geral = (a.alvara as any).validacaoGeral as string | null;
-                          if (!geral) return null;
-                          if (geral === "ok") return <span title="Conforme com a Receita Federal" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 ml-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /></span>;
-                          if (geral === "divergente") return <span title="Divergente da Receita Federal" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 ml-1"><ShieldAlert className="h-3 w-3 text-red-600" /></span>;
+                          const end2 = (a.alvara as any).validacaoEndereco as string | null;
+                          const cnae2 = (a.alvara as any).validacaoCnae as string | null;
+                          const sit2 = (a.alvara as any).validacaoSituacao as string | null;
+                          if (!end2 && !cnae2 && !sit2) return null;
+                          const div2 = end2 === "divergente" || cnae2 === "divergente" || sit2 === "divergente";
+                          const ok2 = !div2 && (end2 === "ok" || cnae2 === "ok" || sit2 === "ok");
+                          if (div2) return <span title="Divergente da Receita Federal" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 ml-1"><ShieldAlert className="h-3 w-3 text-red-600" /></span>;
+                          if (ok2) return <span title="Conforme com a Receita Federal" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 ml-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /></span>;
                           return <span title="Validação inconclusiva" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 ml-1"><ShieldQuestion className="h-3 w-3 text-amber-600" /></span>;
-                        })()}
+        })()}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
