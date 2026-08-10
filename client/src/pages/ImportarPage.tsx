@@ -947,7 +947,7 @@ export default function ImportarPage() {
                                       {reg.orgaoEmissor && <span className="text-xs text-muted-foreground">{reg.orgaoEmissor}</span>}
                                       {reg.cidade && reg.uf && <span className="text-xs text-muted-foreground">{reg.cidade}/{reg.uf}</span>}
                                     </div>
-                                    <p className="text-xs text-muted-foreground/60 mt-0.5">{reg.fileName}</p>
+                                    <p className="text-xs text-muted-foreground/60 mt-0.5 truncate" title={reg.fileName}>{reg.fileName}</p>
                                   </div>
                                   <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEditandoIdx(editandoIdx === idx ? null : idx)}>
                                     <Pencil className="h-3.5 w-3.5" />

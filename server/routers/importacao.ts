@@ -972,7 +972,7 @@ Se não encontrar um campo, use null.`,
 
           if (existing) {
             clienteId = existing.id;
-            atualizados++;
+            // atualizados contabilizado quando o alvara e atualizado
           } else {
             clienteId = await createCliente({
               cnpj,
