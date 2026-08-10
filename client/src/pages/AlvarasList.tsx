@@ -39,7 +39,8 @@ export default function AlvarasList() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; nome: string } | null>(null);
 
   // Apenas GESTOR (nível 2) e MASTER (nível 3) podem excluir alvarás
-  const podeExcluir = user?.role === "gestor" || user?.role === "master";
+  const podeExcluir = pode("alvaras", "excluir_alvara");
+  const podeImportar = pode("alvaras", "importar_pdf");
 
   const { data: alvarasRaw, isLoading, refetch } = trpc.alvaras.list.useQuery({
     status: filtroStatus !== "todos" ? filtroStatus : undefined,
@@ -92,7 +93,7 @@ export default function AlvarasList() {
           <p className="text-sm text-muted-foreground mt-1">Gerencie todos os alvarás cadastrados</p>
         </div>
         <Button onClick={() => setLocation("/importar")} className="gap-2">
-          <Plus className="h-4 w-4" /> Importar Alvará
+          <Plus className="h-4 w-4" /> {podeImportar ? "Importar Alvará" : "Importar Alvará"}
         </Button>
       </div>
 
@@ -328,3 +329,5 @@ export default function AlvarasList() {
     </div>
   );
 }
+import { usePermissoes } from "@/hooks/usePermissoes";
+  const { pode } = usePermissoes();

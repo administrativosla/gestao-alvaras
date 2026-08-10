@@ -317,3 +317,16 @@ export const importacoes = mysqlTable("importacoes", {
 
 export type Importacao = typeof importacoes.$inferSelect;
 export type InsertImportacao = typeof importacoes.$inferInsert;
+
+// ─── Permissões por Perfil ────────────────────────────────────────────────────
+export const permissoes = mysqlTable("permissoes", {
+  id: int("id").autoincrement().primaryKey(),
+  perfil: mysqlEnum("perfil", ["operator", "gestor", "master"]).notNull(),
+  modulo: varchar("modulo", { length: 64 }).notNull(),
+  acao: varchar("acao", { length: 128 }).notNull(),
+  permitido: boolean("permitido").default(false).notNull(),
+  fixo: boolean("fixo").default(false).notNull(), // true = não pode ser alterado
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Permissao = typeof permissoes.$inferSelect;
+export type InsertPermissao = typeof permissoes.$inferInsert;

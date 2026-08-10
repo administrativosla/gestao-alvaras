@@ -174,7 +174,8 @@ export default function ClientesList() {
   });
 
   const { user } = useAuth();
-  const canToggle = user?.role === "gestor" || user?.role === "master";
+  const { pode } = usePermissoes();
+  const canToggle = pode("clientes", "marcar_sem_registro");
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const toggleSemRegistroMutation = trpc.clientes.toggleSemRegistro.useMutation({
@@ -641,3 +642,4 @@ export default function ClientesList() {
     </div>
   );
 }
+import { usePermissoes } from "@/hooks/usePermissoes";

@@ -48,6 +48,7 @@ function AppRoutes() {
         <Route path="/usuarios" component={GestaoUsuarios} />
         <Route path="/comercial" component={PipelineComercial} />
         <Route path="/manutencao" component={ManutencaoPage} />
+        <Route path="/usuarios/permissoes" component={PermissoesPage} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
@@ -68,3 +69,4 @@ function App() {
 }
 
 export default App;
+import PermissoesPage from "./pages/PermissoesPage";

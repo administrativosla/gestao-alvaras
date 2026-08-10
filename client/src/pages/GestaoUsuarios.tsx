@@ -29,6 +29,7 @@ import {
   Send, Ban, RotateCcw, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 
 type UserRole = "operator" | "gestor" | "master";
@@ -79,6 +80,7 @@ const CONVITE_STATUS_COLORS: Record<ConviteStatus, string> = {
 
 export default function GestaoUsuarios() {
   const { user: me } = useAuth();
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
   // Queries
@@ -179,11 +181,17 @@ export default function GestaoUsuarios() {
   return (
     <div className="space-y-8 max-w-4xl animate-fade-in-up">
       {/* Cabeçalho */}
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h1 className="text-2xl font-semibold tracking-tight">Gestão de Usuários</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Convide novos usuários, aprove acessos e gerencie os níveis de permissão da equipe
         </p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={() => setLocation("/usuarios/permissoes")}>
+          <ShieldCheck className="h-4 w-4" />
+          Gerenciar Permissões
+        </Button>
       </div>
 
       {/* Resumo */}

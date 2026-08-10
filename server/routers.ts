@@ -31,6 +31,8 @@ export const appRouter = router({
   usuarios: usuariosRouter,
   negociacoes: negociacoesRouter,
   admin: adminRouter,
+  permissoes: permissoesRouter,
 });
 
 export type AppRouter = typeof appRouter;
+import { permissoesRouter } from "./routers/permissoes";

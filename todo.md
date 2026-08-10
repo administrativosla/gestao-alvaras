@@ -531,3 +531,16 @@
 - [x] Exibir cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na seção de dados do CLI no AlvaraDetail
 - [x] Mostrar comparação visual lado a lado com o endereço da Receita Federal (cliente)
 - [x] Indicador visual: verde (confere) / vermelho (município divergente) na coluna da Receita Federal
+
+## V3.33 — Gestão de Permissões por Perfil
+
+- [x] Criar tabela `permissoes` no schema Drizzle (perfil, modulo, acao, permitido, fixo)
+- [x] Aplicar migration no banco
+- [x] Seed com valores padrão para os 3 perfis e todos os módulos/ações
+- [x] Criar procedures: permissoes.listar, permissoes.atualizar (masterProcedure + gestorProcedure restrito)
+- [x] Criar subpágina PermissoesPage com matriz visual por módulo
+- [x] Toggles: Master pode alterar Operador e Gestor; Gestor pode alterar apenas Operador
+- [x] Permissões Master são sempre fixas (não editáveis)
+- [x] Integrar verificação de permissões nas procedures do backend
+- [x] Integrar verificação de permissões no frontend (ocultar botões/ações)
+- [x] Adicionar botão "Gerenciar Permissões" na página de Usuários
