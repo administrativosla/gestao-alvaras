@@ -17,6 +17,7 @@ import { calcDiasParaVencimento, formatDate, formatCnpj, getAlertaInfo, TIPOS_AL
 import StatusBadge from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ import {
 export default function AlvarasList() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { pode } = usePermissoes();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -329,5 +331,3 @@ export default function AlvarasList() {
     </div>
   );
 }
-import { usePermissoes } from "@/hooks/usePermissoes";
-  const { pode } = usePermissoes();
