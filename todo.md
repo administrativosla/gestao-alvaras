@@ -526,8 +526,8 @@
 
 ## V3.29 — Endereço do Estabelecimento CLI no Detalhe do Alvará
 
-- [ ] Exibir cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na seção de dados do CLI no AlvaraDetail
-- [ ] Mostrar comparação visual lado a lado com o endereço da Receita Federal (cliente)
+- [x] Exibir cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na seção de dados do CLI no AlvaraDetail
+- [x] Mostrar comparação visual lado a lado com o endereço da Receita Federal (cliente)
 - [x] Exibir cliLogradouro, cliNumero, cliBairro, cliCidade, cliUf, cliCep na seção de dados do CLI no AlvaraDetail
 - [x] Mostrar comparação visual lado a lado com o endereço da Receita Federal (cliente)
 - [x] Indicador visual: verde (confere) / vermelho (município divergente) na coluna da Receita Federal

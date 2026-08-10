@@ -20,6 +20,38 @@ import { parseDate } from "../utils/parseDate";
 import { executarValidacao, validacaoParaCampos } from "../validation";
 import { getClienteById } from "../db";
 
+/**
+ * Sanitiza texto extraído de PDFs com encoding corrompido.
+ * Corrige sequências como %c → Ã, %C → Ã (ISO-8859-1 mal interpretado),
+ * e outras variações comuns em PDFs brasileiros.
+ */
+function sanitizarTexto(s: string | null | undefined): string | null {
+  if (!s) return s ?? null;
+  // Tenta decodificar como URI component (ex: %C3%A3 → ã)
+  try {
+    const decoded = decodeURIComponent(s.replace(/%(?![0-9A-Fa-f]{2})/g, "%25"));
+    if (decoded !== s) return decoded;
+  } catch { /* ignorar */ }
+  // Corrigir padrões específicos de corrupção de encoding de PDFs brasileiros
+  return s
+    .replace(/%c0/gi, "À").replace(/%c1/gi, "Á").replace(/%c2/gi, "Â")
+    .replace(/%c3/gi, "Ã").replace(/%c4/gi, "Ä").replace(/%c5/gi, "Å")
+    .replace(/%c7/gi, "Ç").replace(/%c8/gi, "È").replace(/%c9/gi, "É")
+    .replace(/%ca/gi, "Ê").replace(/%cb/gi, "Ë").replace(/%cd/gi, "Í")
+    .replace(/%ce/gi, "Î").replace(/%d3/gi, "Ó").replace(/%d4/gi, "Ô")
+    .replace(/%d5/gi, "Õ").replace(/%d6/gi, "Ö").replace(/%da/gi, "Ú")
+    .replace(/%db/gi, "Û").replace(/%dc/gi, "Ü").replace(/%e0/gi, "à")
+    .replace(/%e1/gi, "á").replace(/%e2/gi, "â").replace(/%e3/gi, "ã")
+    .replace(/%e4/gi, "ä").replace(/%e5/gi, "å").replace(/%e7/gi, "ç")
+    .replace(/%e8/gi, "è").replace(/%e9/gi, "é").replace(/%ea/gi, "ê")
+    .replace(/%ed/gi, "í").replace(/%ee/gi, "î").replace(/%f3/gi, "ó")
+    .replace(/%f4/gi, "ô").replace(/%f5/gi, "õ").replace(/%f6/gi, "ö")
+    .replace(/%fa/gi, "ú").replace(/%fb/gi, "û").replace(/%fc/gi, "ü")
+    // Padrão específico encontrado: %c seguido de letra → Ã + letra
+    .replace(/%c([a-zA-Z])/g, "Ã$1")
+    .replace(/%C([a-zA-Z])/g, "Ã$1");
+}
+
 // Campos disponíveis para mapeamento
 export const CAMPOS_MAPEAMENTO = [
   { key: "cnpj", label: "CNPJ" },
@@ -565,12 +597,12 @@ Se não encontrar um campo, use null.`,
               cliCnaesLicenciados: dados.cliCnaesLicenciados && dados.cliCnaesLicenciados.length > 0
                 ? JSON.stringify(dados.cliCnaesLicenciados)
                 : null,
-              cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
-              cliLogradouro: dados.cliLogradouro ?? null,
-              cliNumero: dados.cliNumero ?? null,
-              cliBairro: dados.cliBairro ?? null,
-              cliCidade: dados.cliCidade ?? null,
-              cliUf: dados.cliUf ?? null,
+              cliMunicipioEmissor: sanitizarTexto(dados.cliMunicipioEmissor) ?? null,
+              cliLogradouro: sanitizarTexto(dados.cliLogradouro) ?? null,
+              cliNumero: sanitizarTexto(dados.cliNumero) ?? null,
+              cliBairro: sanitizarTexto(dados.cliBairro) ?? null,
+              cliCidade: sanitizarTexto(dados.cliCidade) ?? null,
+              cliUf: sanitizarTexto(dados.cliUf) ?? null,
               cliCep: dados.cliCep ?? null,
               status: _statusPdf,
             });
@@ -609,12 +641,12 @@ Se não encontrar um campo, use null.`,
               cliCnaesLicenciados: dados.cliCnaesLicenciados && dados.cliCnaesLicenciados.length > 0
                 ? JSON.stringify(dados.cliCnaesLicenciados)
                 : null,
-              cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
-              cliLogradouro: dados.cliLogradouro ?? null,
-              cliNumero: dados.cliNumero ?? null,
-              cliBairro: dados.cliBairro ?? null,
-              cliCidade: dados.cliCidade ?? null,
-              cliUf: dados.cliUf ?? null,
+              cliMunicipioEmissor: sanitizarTexto(dados.cliMunicipioEmissor) ?? null,
+              cliLogradouro: sanitizarTexto(dados.cliLogradouro) ?? null,
+              cliNumero: sanitizarTexto(dados.cliNumero) ?? null,
+              cliBairro: sanitizarTexto(dados.cliBairro) ?? null,
+              cliCidade: sanitizarTexto(dados.cliCidade) ?? null,
+              cliUf: sanitizarTexto(dados.cliUf) ?? null,
               cliCep: dados.cliCep ?? null,
               status: _statusPdf,
             });
@@ -657,12 +689,12 @@ Se não encontrar um campo, use null.`,
                 cliCnaesLicenciados: dados.cliCnaesLicenciados ?? null,
                 // Campos de endereço do estabelecimento (extraídos do CLI)
                 ...({ 
-                  cliMunicipioEmissor: dados.cliMunicipioEmissor ?? null,
-                  cliLogradouro: dados.cliLogradouro ?? null,
-                  cliNumero: dados.cliNumero ?? null,
-                  cliBairro: dados.cliBairro ?? null,
-                  cliCidade: dados.cliCidade ?? null,
-                  cliUf: dados.cliUf ?? null,
+                  cliMunicipioEmissor: sanitizarTexto(dados.cliMunicipioEmissor) ?? null,
+                  cliLogradouro: sanitizarTexto(dados.cliLogradouro) ?? null,
+                  cliNumero: sanitizarTexto(dados.cliNumero) ?? null,
+                  cliBairro: sanitizarTexto(dados.cliBairro) ?? null,
+                  cliCidade: sanitizarTexto(dados.cliCidade) ?? null,
+                  cliUf: sanitizarTexto(dados.cliUf) ?? null,
                   cliCep: dados.cliCep ?? null,
                 } as any),
               } as any,

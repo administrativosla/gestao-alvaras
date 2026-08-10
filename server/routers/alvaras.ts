@@ -442,19 +442,18 @@ export const alvarasRouter = router({
 
       const validacao = executarValidacao(
         {
-          // Endereço vem do cliente (alvarás não armazenam endereço próprio)
-          logradouro: clienteData.logradouro ?? null,
-          numero: clienteData.numero ?? null,
-          bairro: clienteData.bairro ?? null,
-          cidade: clienteData.cidade ?? null,
-          uf: clienteData.uf ?? null,
-          cep: clienteData.cep ?? null,
           tipo: row.alvara.tipo ?? null,
           orgaoEmissor: row.alvara.orgaoEmissor ?? null,
-          // numeroAlvara é usado para detectar jurisdição pelo prefixo do CLI (ex: SPM, SPP, CAM)
-          numeroAlvara: row.alvara.numeroAlvara ?? null,
           cliCnaesLicenciados,
-        } as any,
+          // Endereço do estabelecimento extraído do CLI e armazenado no banco
+          cliLogradouro: (row.alvara as any).cliLogradouro ?? null,
+          cliNumero: (row.alvara as any).cliNumero ?? null,
+          cliBairro: (row.alvara as any).cliBairro ?? null,
+          cliCidade: (row.alvara as any).cliCidade ?? null,
+          cliUf: (row.alvara as any).cliUf ?? null,
+          cliCep: (row.alvara as any).cliCep ?? null,
+          cliMunicipioEmissor: (row.alvara as any).cliMunicipioEmissor ?? null,
+        },
         {
           situacaoCadastral: clienteData.situacaoCadastral,
           logradouro: clienteData.logradouro,

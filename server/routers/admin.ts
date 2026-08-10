@@ -21,6 +21,22 @@ import { invokeLLM } from "../_core/llm";
 import { executarValidacao, validacaoParaCampos } from "../validation";
 import { ENV } from "../_core/env";
 
+function sanitizarTexto(s: string | null | undefined): string | null {
+  if (!s) return s ?? null;
+  try {
+    const decoded = decodeURIComponent(s.replace(/%(?![0-9A-Fa-f]{2})/g, "%25"));
+    if (decoded !== s) return decoded;
+  } catch { /* ignorar */ }
+  return s
+    .replace(/%c3/gi, "Ã").replace(/%c7/gi, "Ç").replace(/%e3/gi, "ã")
+    .replace(/%e7/gi, "ç").replace(/%e9/gi, "é").replace(/%ea/gi, "ê")
+    .replace(/%f3/gi, "ó").replace(/%f4/gi, "ô").replace(/%f5/gi, "õ")
+    .replace(/%fa/gi, "ú").replace(/%e1/gi, "á").replace(/%e2/gi, "â")
+    .replace(/%ed/gi, "í").replace(/%c([a-zA-Z])/g, "Ã$1")
+    .replace(/%C([a-zA-Z])/g, "Ã$1");
+}
+
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -280,7 +296,7 @@ export const adminRouter = router({
         const camposAtualizados: string[] = [];
 
         if (campos.cliMunicipioEmissor && !alvara.cliMunicipioEmissor) {
-          updates.cliMunicipioEmissor = campos.cliMunicipioEmissor;
+          updates.cliMunicipioEmissor = sanitizarTexto(campos.cliMunicipioEmissor);
           camposAtualizados.push(`cliMunicipioEmissor="${campos.cliMunicipioEmissor}"`);
         }
         if (campos.cliCnaesLicenciados && campos.cliCnaesLicenciados.length > 0 && !alvara.cliCnaesLicenciados) {
@@ -293,23 +309,23 @@ export const adminRouter = router({
         }
         // Campos de endereço do estabelecimento CLI (novos campos — sempre atualizar se extraídos)
         if (campos.cliLogradouro && !alvara.cliLogradouro) {
-          updates.cliLogradouro = campos.cliLogradouro;
+          updates.cliLogradouro = sanitizarTexto(campos.cliLogradouro);
           camposAtualizados.push(`cliLogradouro="${campos.cliLogradouro}"`);
         }
         if (campos.cliNumero && !alvara.cliNumero) {
-          updates.cliNumero = campos.cliNumero;
+          updates.cliNumero = sanitizarTexto(campos.cliNumero);
           camposAtualizados.push(`cliNumero="${campos.cliNumero}"`);
         }
         if (campos.cliBairro && !alvara.cliBairro) {
-          updates.cliBairro = campos.cliBairro;
+          updates.cliBairro = sanitizarTexto(campos.cliBairro);
           camposAtualizados.push(`cliBairro="${campos.cliBairro}"`);
         }
         if (campos.cliCidade && !alvara.cliCidade) {
-          updates.cliCidade = campos.cliCidade;
+          updates.cliCidade = sanitizarTexto(campos.cliCidade);
           camposAtualizados.push(`cliCidade="${campos.cliCidade}"`);
         }
         if (campos.cliUf && !alvara.cliUf) {
-          updates.cliUf = campos.cliUf;
+          updates.cliUf = sanitizarTexto(campos.cliUf);
           camposAtualizados.push(`cliUf="${campos.cliUf}"`);
         }
         if (campos.cliCep && !alvara.cliCep) {
