@@ -10,7 +10,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, AlertTriangle, Download } from "lucide-react";
+import { FileText, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, AlertTriangle, Download, ShieldCheck, ShieldAlert, ShieldQuestion } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { calcDiasParaVencimento, formatDate, formatCnpj, getAlertaInfo, TIPOS_ALVARA, STATUS_RENOVACAO } from "@/lib/alvaras";
@@ -35,6 +35,7 @@ export default function AlvarasList() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroCli, setFiltroCli] = useState<"todos" | "parcial" | "completo">("todos");
+  const [filtroValidacao, setFiltroValidacao] = useState<"todos" | "ok" | "divergente" | "inconclusivo" | "sem">("todos");
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; nome: string } | null>(null);
 
   // Apenas GESTOR (nível 2) e MASTER (nível 3) podem excluir alvarás
@@ -51,6 +52,11 @@ export default function AlvarasList() {
     if (filtroCli === "parcial") return (a.alvara as any).situacaoCli === "parcial";
     if (filtroCli === "completo") return (a.alvara as any).situacaoCli === "completo" || (a.alvara as any).situacaoCli == null;
     return true;
+  })?.filter((a) => {
+    if (filtroValidacao === "todos") return true;
+    const geral = (a.alvara as any).validacaoGeral as string | null;
+    if (filtroValidacao === "sem") return !geral;
+    return geral === filtroValidacao;
   });
 
   const deleteMutation = trpc.alvaras.delete.useMutation({
@@ -124,6 +130,18 @@ export default function AlvarasList() {
             <SelectItem value="completo">✅ CLI Completo</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filtroValidacao} onValueChange={(v) => setFiltroValidacao(v as any)}>
+          <SelectTrigger className="h-9 w-52 text-sm">
+            <SelectValue placeholder="Validação RFB" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as validações</SelectItem>
+            <SelectItem value="ok">✅ Conforme</SelectItem>
+            <SelectItem value="divergente">❌ Divergente</SelectItem>
+            <SelectItem value="inconclusivo">⚠️ Inconclusivo</SelectItem>
+            <SelectItem value="sem">— Sem validação</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card className="border shadow-sm">
@@ -151,9 +169,9 @@ export default function AlvarasList() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Nº Alvará</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vencimento</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Prazo</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                  <TableHead className="w-10 hidden sm:table-cell" title="PDF anexado" />
-                  <TableHead className="w-12" />
+          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+          <TableHead className="w-10 hidden sm:table-cell" title="PDF anexado / Validação RFB" />
+          <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -224,6 +242,14 @@ export default function AlvarasList() {
                             <FileText className="h-3.5 w-3.5 text-muted-foreground/30" />
                           </span>
                         )}
+                        {/* Badge de validação RFB */}
+                        {(() => {
+                          const geral = (a.alvara as any).validacaoGeral as string | null;
+                          if (!geral) return null;
+                          if (geral === "ok") return <span title="Conforme com a Receita Federal" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 ml-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /></span>;
+                          if (geral === "divergente") return <span title="Divergente da Receita Federal" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 ml-1"><ShieldAlert className="h-3 w-3 text-red-600" /></span>;
+                          return <span title="Validação inconclusiva" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 ml-1"><ShieldQuestion className="h-3 w-3 text-amber-600" /></span>;
+                        })()}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
