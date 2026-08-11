@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { getResumo, listAlvaras } from "../db";
 
 export const dashboardRouter = router({
-  resumo: publicProcedure.query(async () => {
+  resumo: protectedProcedure.query(async () => {
     return getResumo();
   }),
 
-  alertas: publicProcedure.query(async () => {
+  alertas: protectedProcedure.query(async () => {
     const STATUS_SEM_ALERTA = ["Em Renovação", "Renovado", "Cancelado", "Em Vigência"];
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -41,7 +41,7 @@ export const dashboardRouter = router({
    * ordenados crescentemente por data de vencimento.
    * Parâmetro `limite` controla quantos registros retornar (padrão: 50).
    */
-  proximosVencimentos: publicProcedure
+  proximosVencimentos: protectedProcedure
     .input(z.object({ limite: z.number().min(1).max(100).optional() }).optional())
     .query(async ({ input }) => {
       const limite = input?.limite ?? 50;
@@ -69,7 +69,7 @@ export const dashboardRouter = router({
    * Dados agregados para os gráficos do dashboard.
    * Retorna contagens por status, por tipo e vencimentos por mês (próximos 12 meses).
    */
-  graficos: publicProcedure.query(async () => {
+  graficos: protectedProcedure.query(async () => {
     const todos = await listAlvaras();
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);

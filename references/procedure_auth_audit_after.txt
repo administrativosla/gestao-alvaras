@@ -1,0 +1,78 @@
+server/routers/alertas.ts:13:  listarEmails: protectedProcedure
+server/routers/alertas.ts:21:  adicionarEmail: masterProcedure
+server/routers/alertas.ts:30:  removerEmail: masterProcedure
+server/routers/alertas.ts:41:  listarEmailsGlobais: protectedProcedure.query(async () => {
+server/routers/alertas.ts:47:  adicionarEmailGlobal: masterProcedure
+server/routers/alertas.ts:63:  removerEmailGlobal: masterProcedure
+server/routers/alertas.ts:72:  toggleEmailGlobal: masterProcedure
+server/routers/alertas.ts:83:  testarEmail: masterProcedure
+server/routers/alertas.ts:97:  dispararAlertas: masterProcedure.mutation(async () => {
+server/routers/alertas.ts:162:  dispararRelatorio: masterProcedure.mutation(async () => {
+server/routers/alertas.ts:224:  exportarRelatorioAVencer: gestorProcedure.mutation(async () => {
+server/routers/alertas.ts:281:  enviarEmailConsolidadoAVencer: gestorProcedure.mutation(async () => {
+server/routers/alertas.ts:341:  statusAlertas: protectedProcedure.query(async () => {
+server/routers/alvaras.ts:54:  list: protectedProcedure
+server/routers/alvaras.ts:70:  get: protectedProcedure
+server/routers/alvaras.ts:79:  create: protectedProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
+server/routers/alvaras.ts:108:  update: protectedProcedure
+server/routers/alvaras.ts:175:  updateStatus: protectedProcedure
+server/routers/alvaras.ts:267:  delete: gestorProcedure.use(requirePermissao("alvaras", "excluir_alvara"))
+server/routers/alvaras.ts:278:  getHistorico: protectedProcedure
+server/routers/alvaras.ts:284:  listCliParciais: protectedProcedure.query(async () => {
+server/routers/alvaras.ts:322:  resolverPendenciaOrgao: protectedProcedure
+server/routers/alvaras.ts:375:  revalidar: protectedProcedure.use(requirePermissao("alvaras", "revalidar_rfb"))
+server/routers/alvaras.ts:476:  desfazerResolucaoOrgao: protectedProcedure
+server/routers/alvaras.ts:524:  listPdfs: protectedProcedure
+server/routers/alvaras.ts:531:  addPdf: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
+server/routers/clientes.ts:53:  list: protectedProcedure
+server/routers/clientes.ts:67:  listComCobertura: protectedProcedure
+server/routers/clientes.ts:82:  listarEstados: protectedProcedure.query(async () => {
+server/routers/clientes.ts:86:  listarMunicipios: protectedProcedure
+server/routers/clientes.ts:92:  importarPlanilha: gestorProcedure
+server/routers/clientes.ts:180:  get: protectedProcedure
+server/routers/clientes.ts:189:  getByCnpj: protectedProcedure
+server/routers/clientes.ts:195:  create: protectedProcedure.input(clienteSchema).mutation(async ({ input }) => {
+server/routers/clientes.ts:211:  update: protectedProcedure
+server/routers/clientes.ts:226:  delete: gestorProcedure
+server/routers/clientes.ts:234:  reenriquecer: gestorProcedure.use(requirePermissao("clientes", "atualizar_receita"))
+server/routers/clientes.ts:284:  listSemRegistro: gestorProcedure
+server/routers/clientes.ts:291:  exportarSemRegistroXlsx: gestorProcedure
+server/routers/clientes.ts:316:  enviarEmailComercialSemRegistro: gestorProcedure
+server/routers/clientes.ts:333:  toggleSemRegistro: gestorProcedure.use(requirePermissao("clientes", "marcar_sem_registro"))
+server/routers/dashboard.ts:6:  resumo: protectedProcedure.query(async () => {
+server/routers/dashboard.ts:10:  alertas: protectedProcedure.query(async () => {
+server/routers/dashboard.ts:44:  proximosVencimentos: protectedProcedure
+server/routers/dashboard.ts:72:  graficos: protectedProcedure.query(async () => {
+server/routers/exportacao.ts:14:  alvaras: gestorProcedure
+server/routers/exportacao.ts:62:  historico: gestorProcedure
+server/routers/importacao.ts:89:  getCampos: publicProcedure.query(() => CAMPOS_MAPEAMENTO),
+server/routers/importacao.ts:92:  parseFile: protectedProcedure
+server/routers/importacao.ts:189:  confirmarImportacao: protectedProcedure
+server/routers/importacao.ts:311:  parsePdf: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
+server/routers/importacao.ts:477:  confirmarPdf: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
+server/routers/importacao.ts:733:  parsePdfLote: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
+server/routers/importacao.ts:874:  parseZip: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
+server/routers/importacao.ts:910:  confirmarLote: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
+server/routers/negociacoes.ts:25:  get: protectedProcedure
+server/routers/negociacoes.ts:41:  listarHistorico: protectedProcedure
+server/routers/negociacoes.ts:57:  list: protectedProcedure
+server/routers/negociacoes.ts:98:  resumoPorStatus: protectedProcedure.query(async () => {
+server/routers/negociacoes.ts:123:  criar: protectedProcedure
+server/routers/negociacoes.ts:193:  avancarStatus: protectedProcedure
+server/routers/negociacoes.ts:263:  encerrar: gestorProcedure
+server/routers/usuarios.ts:13:  listar: masterProcedure.query(async ({ ctx }) => {
+server/routers/usuarios.ts:32:  aprovar: masterProcedure
+server/routers/usuarios.ts:58:  alterarRole: masterProcedure
+server/routers/usuarios.ts:83:  alterarStatus: masterProcedure
+server/routers/usuarios.ts:107:  meuPerfil: protectedProcedure.query(async ({ ctx }) => {
+server/routers/usuarios.ts:119:  contarPendentes: masterProcedure.query(async () => {
+server/routers/usuarios.ts:130:  convidar: masterProcedure
+server/routers/usuarios.ts:174:  listarConvites: masterProcedure.query(async () => {
+server/routers/usuarios.ts:185:  cancelarConvite: masterProcedure
+server/routers/admin.ts:190:  statusVarredura: masterProcedure.query(async () => {
+server/routers/admin.ts:230:  reprocessarPdfs: masterProcedure
+server/routers/admin.ts:401:  revalidarTodos: masterProcedure
+server/routers/permissoes.ts:39:  listar: gestorProcedure.query(async () => {
+server/routers/permissoes.ts:47:  atualizar: masterProcedure
+server/routers/permissoes.ts:97:  atualizarOperador: gestorProcedure
+server/routers/permissoes.ts:141:  minhasPermissoes: protectedProcedure.query(async ({ ctx }) => {

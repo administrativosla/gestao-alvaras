@@ -544,3 +544,11 @@
 - [x] Integrar verificação de permissões nas procedures do backend
 - [x] Integrar verificação de permissões no frontend (ocultar botões/ações)
 - [x] Adicionar botão "Gerenciar Permissões" na página de Usuários
+
+## V3.35 — Auditoria e Reforço de Autorização tRPC
+
+- [x] Auditar todos os procedures exportados em `server/routers/*.ts` e registrar o nível de acesso atual
+- [x] Elevar `publicProcedure` para `protectedProcedure` em operações de negócio, preservando exceções públicas justificadas
+- [x] Criar helper `requirePermissao(modulo, acao)` no núcleo tRPC com consulta à tabela `permissoes`
+- [x] Aplicar `requirePermissao` às ações de importar PDF, excluir alvará, marcar Sem Registro, atualizar Receita e revalidar RFB
+- [x] Executar `pnpm check` e documentar procedures públicas remanescentes com justificativa

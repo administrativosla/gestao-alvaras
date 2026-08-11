@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { gestorProcedure, publicProcedure, router } from "../_core/trpc";
+import { gestorProcedure, protectedProcedure, requirePermissao, router } from "../_core/trpc";
 import {
   addAlvaraPdf,
   addHistorico,
@@ -51,7 +51,7 @@ const alvaraSchema = z.object({
 });
 
 export const alvarasRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -67,7 +67,7 @@ export const alvarasRouter = router({
       return listAlvaras(input);
     }),
 
-  get: publicProcedure
+  get: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const row = await getAlvaraById(input.id);
@@ -76,7 +76,7 @@ export const alvarasRouter = router({
       return { ...row, historico };
     }),
 
-  create: publicProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
+  create: protectedProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
     const { dataEmissao, dataVencimento, cliDataSolicitacao, ...rest } = input;
     const parsedVenc = parseDate(dataVencimento) ?? new Date(dataVencimento);
     // Determina status inicial: "Em Vigência" se vencer em mais de 30 dias, "Vencido" caso contrário
@@ -105,7 +105,7 @@ export const alvarasRouter = router({
     return { id };
   }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({ id: z.number(), data: alvaraSchema.partial() }))
     .mutation(async ({ input, ctx }) => {
       const { dataEmissao, dataVencimento, cliDataSolicitacao, ...rest } = input.data;
@@ -172,7 +172,7 @@ export const alvarasRouter = router({
       return { success: true };
     }),
 
-  updateStatus: publicProcedure
+  updateStatus: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -264,7 +264,7 @@ export const alvarasRouter = router({
       return { success: true };
     }),
 
-  delete: gestorProcedure
+  delete: gestorProcedure.use(requirePermissao("alvaras", "excluir_alvara"))
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       // Apenas GESTOR (nível 2) e MASTER (nível 3) podem excluir alvarás
@@ -275,13 +275,13 @@ export const alvarasRouter = router({
       return { success: true, deletedBy: ctx.user.name };
     }),
 
-  getHistorico: publicProcedure
+  getHistorico: protectedProcedure
     .input(z.object({ alvaraId: z.number() }))
     .query(async ({ input }) => {
       return getHistoricoByAlvara(input.alvaraId);
     }),
 
-  listCliParciais: publicProcedure.query(async () => {
+  listCliParciais: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
     const rows = await db
@@ -319,7 +319,7 @@ export const alvarasRouter = router({
   }),
 
   // Resolve uma pendência específica de órgão no CLI parcial
-  resolverPendenciaOrgao: publicProcedure
+  resolverPendenciaOrgao: protectedProcedure
     .input(z.object({
       alvaraId: z.number(),
       orgao: z.string(),
@@ -372,7 +372,7 @@ export const alvarasRouter = router({
     }),
 
   // Revalida um alvará cruzando com os dados atuais da Receita Federal
-  revalidar: publicProcedure
+  revalidar: protectedProcedure.use(requirePermissao("alvaras", "revalidar_rfb"))
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const row = await getAlvaraById(input.id);
@@ -473,7 +473,7 @@ export const alvarasRouter = router({
     }),
 
   // Desfaz a resolução de uma pendência de órgão (reverte para "pendente")
-  desfazerResolucaoOrgao: publicProcedure
+  desfazerResolucaoOrgao: protectedProcedure
     .input(z.object({
       alvaraId: z.number(),
       orgao: z.string(),
@@ -521,14 +521,14 @@ export const alvarasRouter = router({
     }),
 
   // Listar histórico de PDFs de um alvará
-  listPdfs: publicProcedure
+  listPdfs: protectedProcedure
     .input(z.object({ alvaraId: z.number() }))
     .query(async ({ input }) => {
       return listAlvaraPdfs(input.alvaraId);
     }),
 
   // Registrar um PDF no histórico (chamado internamente após upload)
-  addPdf: publicProcedure
+  addPdf: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
     .input(z.object({
       alvaraId: z.number(),
       fileName: z.string(),

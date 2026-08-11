@@ -2,7 +2,9 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
-import { ROLE_LEVEL } from "../../drizzle/schema";
+import { ROLE_LEVEL, permissoes } from "../../drizzle/schema";
+import { getDb } from "../db";
+import { and, eq } from "drizzle-orm";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -42,6 +44,48 @@ const requireUser = t.middleware(async opts => {
 
 /** Procedure que requer usuário ativo (qualquer nível: operator, gestor, master) */
 export const protectedProcedure = t.procedure.use(requireUser);
+
+/**
+ * Middleware de autorização por ação configurável na matriz de permissões.
+ * Deve ser encadeado após protectedProcedure, gestorProcedure ou masterProcedure.
+ */
+export const requirePermissao = (modulo: string, acao: string) =>
+  t.middleware(async ({ ctx, next }) => {
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    // Execuções internas agendadas não representam um usuário de negócio.
+    if ((ctx.user as any).isCron) {
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }
+
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Base de permissões indisponível." });
+    }
+
+    const [permissao] = await db
+      .select({ permitido: permissoes.permitido })
+      .from(permissoes)
+      .where(
+        and(
+          eq(permissoes.perfil, ctx.user.role),
+          eq(permissoes.modulo, modulo),
+          eq(permissoes.acao, acao)
+        )
+      )
+      .limit(1);
+
+    if (!permissao?.permitido) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Você não tem permissão para executar esta ação.",
+      });
+    }
+
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  });
 
 // ─── Middleware de nível mínimo ───────────────────────────────────────────────
 const requireLevel = (minLevel: number) =>

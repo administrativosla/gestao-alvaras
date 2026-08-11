@@ -1,0 +1,89 @@
+admin.ts
+alertas.ts
+alvaras.ts
+clientes.ts
+dashboard.ts
+exportacao.ts
+importacao.ts
+negociacoes.ts
+permissoes.ts
+usuarios.ts
+
+server/routers/alertas.ts:13:  listarEmails: publicProcedure
+server/routers/alertas.ts:21:  adicionarEmail: masterProcedure
+server/routers/alertas.ts:30:  removerEmail: masterProcedure
+server/routers/alertas.ts:41:  listarEmailsGlobais: publicProcedure.query(async () => {
+server/routers/alertas.ts:47:  adicionarEmailGlobal: masterProcedure
+server/routers/alertas.ts:63:  removerEmailGlobal: masterProcedure
+server/routers/alertas.ts:72:  toggleEmailGlobal: masterProcedure
+server/routers/alertas.ts:83:  testarEmail: masterProcedure
+server/routers/alertas.ts:97:  dispararAlertas: masterProcedure.mutation(async () => {
+server/routers/alertas.ts:162:  dispararRelatorio: masterProcedure.mutation(async () => {
+server/routers/alertas.ts:224:  exportarRelatorioAVencer: gestorProcedure.mutation(async () => {
+server/routers/alertas.ts:281:  enviarEmailConsolidadoAVencer: gestorProcedure.mutation(async () => {
+server/routers/alertas.ts:341:  statusAlertas: publicProcedure.query(async () => {
+server/routers/alvaras.ts:54:  list: publicProcedure
+server/routers/alvaras.ts:70:  get: publicProcedure
+server/routers/alvaras.ts:79:  create: publicProcedure.input(alvaraSchema).mutation(async ({ input, ctx }) => {
+server/routers/alvaras.ts:108:  update: publicProcedure
+server/routers/alvaras.ts:175:  updateStatus: publicProcedure
+server/routers/alvaras.ts:267:  delete: gestorProcedure
+server/routers/alvaras.ts:278:  getHistorico: publicProcedure
+server/routers/alvaras.ts:284:  listCliParciais: publicProcedure.query(async () => {
+server/routers/alvaras.ts:322:  resolverPendenciaOrgao: publicProcedure
+server/routers/alvaras.ts:375:  revalidar: publicProcedure
+server/routers/alvaras.ts:476:  desfazerResolucaoOrgao: publicProcedure
+server/routers/alvaras.ts:524:  listPdfs: publicProcedure
+server/routers/alvaras.ts:531:  addPdf: publicProcedure
+server/routers/clientes.ts:53:  list: publicProcedure
+server/routers/clientes.ts:67:  listComCobertura: publicProcedure
+server/routers/clientes.ts:82:  listarEstados: publicProcedure.query(async () => {
+server/routers/clientes.ts:86:  listarMunicipios: publicProcedure
+server/routers/clientes.ts:92:  importarPlanilha: gestorProcedure
+server/routers/clientes.ts:180:  get: publicProcedure
+server/routers/clientes.ts:189:  getByCnpj: publicProcedure
+server/routers/clientes.ts:195:  create: publicProcedure.input(clienteSchema).mutation(async ({ input }) => {
+server/routers/clientes.ts:211:  update: publicProcedure
+server/routers/clientes.ts:226:  delete: publicProcedure
+server/routers/clientes.ts:234:  reenriquecer: gestorProcedure
+server/routers/clientes.ts:284:  listSemRegistro: gestorProcedure
+server/routers/clientes.ts:291:  exportarSemRegistroXlsx: gestorProcedure
+server/routers/clientes.ts:316:  enviarEmailComercialSemRegistro: gestorProcedure
+server/routers/clientes.ts:333:  toggleSemRegistro: gestorProcedure
+server/routers/dashboard.ts:6:  resumo: publicProcedure.query(async () => {
+server/routers/dashboard.ts:10:  alertas: publicProcedure.query(async () => {
+server/routers/dashboard.ts:44:  proximosVencimentos: publicProcedure
+server/routers/dashboard.ts:72:  graficos: publicProcedure.query(async () => {
+server/routers/exportacao.ts:14:  alvaras: gestorProcedure
+server/routers/exportacao.ts:62:  historico: gestorProcedure
+server/routers/importacao.ts:89:  getCampos: publicProcedure.query(() => CAMPOS_MAPEAMENTO),
+server/routers/importacao.ts:92:  parseFile: publicProcedure
+server/routers/importacao.ts:189:  confirmarImportacao: publicProcedure
+server/routers/importacao.ts:311:  parsePdf: publicProcedure
+server/routers/importacao.ts:477:  confirmarPdf: publicProcedure
+server/routers/importacao.ts:733:  parsePdfLote: publicProcedure
+server/routers/importacao.ts:874:  parseZip: publicProcedure
+server/routers/importacao.ts:910:  confirmarLote: publicProcedure
+server/routers/negociacoes.ts:25:  get: protectedProcedure
+server/routers/negociacoes.ts:41:  listarHistorico: protectedProcedure
+server/routers/negociacoes.ts:57:  list: protectedProcedure
+server/routers/negociacoes.ts:98:  resumoPorStatus: protectedProcedure.query(async () => {
+server/routers/negociacoes.ts:123:  criar: protectedProcedure
+server/routers/negociacoes.ts:193:  avancarStatus: protectedProcedure
+server/routers/negociacoes.ts:263:  encerrar: gestorProcedure
+server/routers/usuarios.ts:13:  listar: masterProcedure.query(async ({ ctx }) => {
+server/routers/usuarios.ts:32:  aprovar: masterProcedure
+server/routers/usuarios.ts:58:  alterarRole: masterProcedure
+server/routers/usuarios.ts:83:  alterarStatus: masterProcedure
+server/routers/usuarios.ts:107:  meuPerfil: protectedProcedure.query(async ({ ctx }) => {
+server/routers/usuarios.ts:119:  contarPendentes: masterProcedure.query(async () => {
+server/routers/usuarios.ts:130:  convidar: masterProcedure
+server/routers/usuarios.ts:174:  listarConvites: masterProcedure.query(async () => {
+server/routers/usuarios.ts:185:  cancelarConvite: masterProcedure
+server/routers/admin.ts:190:  statusVarredura: masterProcedure.query(async () => {
+server/routers/admin.ts:230:  reprocessarPdfs: masterProcedure
+server/routers/admin.ts:401:  revalidarTodos: masterProcedure
+server/routers/permissoes.ts:39:  listar: gestorProcedure.query(async () => {
+server/routers/permissoes.ts:47:  atualizar: masterProcedure
+server/routers/permissoes.ts:97:  atualizarOperador: gestorProcedure
+server/routers/permissoes.ts:141:  minhasPermissoes: protectedProcedure.query(async ({ ctx }) => {

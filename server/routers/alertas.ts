@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { gestorProcedure, masterProcedure, publicProcedure, router } from "../_core/trpc";
+import { gestorProcedure, masterProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { alvaras, clientes, emailsAlerta, emailsGlobais, STATUS_SEM_ALERTA } from "../../drizzle/schema";
 import { eq, notInArray } from "drizzle-orm";
@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 export const alertasRouter = router({
   // ─── E-mails por Cliente ───────────────────────────────────────────────────
 
-  listarEmails: publicProcedure
+  listarEmails: protectedProcedure
     .input(z.object({ clienteId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -38,7 +38,7 @@ export const alertasRouter = router({
 
   // ─── E-mails Globais (recebem alertas de todos os clientes) ───────────────
 
-  listarEmailsGlobais: publicProcedure.query(async () => {
+  listarEmailsGlobais: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
     return db.select().from(emailsGlobais).orderBy(emailsGlobais.createdAt);
@@ -338,7 +338,7 @@ export const alertasRouter = router({
 
   // ─── Status Geral dos Alertas ─────────────────────────────────────────────
 
-  statusAlertas: publicProcedure.query(async () => {
+  statusAlertas: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { comEmail: 0, emailsGlobaisAtivos: 0 };
 

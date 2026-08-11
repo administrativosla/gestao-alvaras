@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, requirePermissao, router } from "../_core/trpc";
 import JSZip from "jszip";
 import {
   addAlvaraPdf,
@@ -89,7 +89,7 @@ export const importacaoRouter = router({
   getCampos: publicProcedure.query(() => CAMPOS_MAPEAMENTO),
 
   // Processa XLSX/CSV e retorna colunas + preview de linhas
-  parseFile: publicProcedure
+  parseFile: protectedProcedure
     .input(
       z.object({
         fileBase64: z.string(),
@@ -186,7 +186,7 @@ export const importacaoRouter = router({
     }),
 
   // Confirma importação com mapeamento definido
-  confirmarImportacao: publicProcedure
+  confirmarImportacao: protectedProcedure
     .input(
       z.object({
         fileBase64: z.string(),
@@ -308,7 +308,7 @@ export const importacaoRouter = router({
     }),
 
   // Extrai dados de PDF via LLM
-  parsePdf: publicProcedure
+  parsePdf: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
     .input(
       z.object({
         fileBase64: z.string(),
@@ -474,7 +474,7 @@ Se não encontrar um campo, use null.`,
     }),
 
   // Confirma importação de PDF após revisão
-  confirmarPdf: publicProcedure
+  confirmarPdf: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
     .input(
       z.object({
         fileName: z.string(),
@@ -730,7 +730,7 @@ Se não encontrar um campo, use null.`,
     }),
 
   // ── Extrai dados de múltiplos PDFs via LLM (processamento paralelo) ────────────────────────
-  parsePdfLote: publicProcedure
+  parsePdfLote: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
     .input(
       z.object({
         arquivos: z.array(
@@ -871,7 +871,7 @@ Se não encontrar um campo, use null.`,
     }),
 
   // ── Descompacta ZIP e extrai PDFs internos ───────────────────────────────────
-  parseZip: publicProcedure
+  parseZip: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
     .input(
       z.object({
         fileBase64: z.string(),
@@ -907,7 +907,7 @@ Se não encontrar um campo, use null.`,
     }),
 
   // ── Confirma importação em lote após revisão ─────────────────────────────────
-  confirmarLote: publicProcedure
+  confirmarLote: protectedProcedure.use(requirePermissao("alvaras", "importar_pdf"))
     .input(
       z.object({
         registros: z.array(

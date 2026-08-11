@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { publicProcedure, router, gestorProcedure } from "../_core/trpc";
+import { protectedProcedure, router, gestorProcedure, requirePermissao } from "../_core/trpc";
 import { parseDate } from "../utils/parseDate";
 import {
   CoberturaStatus,
@@ -50,7 +50,7 @@ const clienteSchema = z.object({
 });
 
 export const clientesRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -64,7 +64,7 @@ export const clientesRouter = router({
       return listClientes(input ?? undefined);
     }),
 
-  listComCobertura: publicProcedure
+  listComCobertura: protectedProcedure
     .input(
       z
         .object({
@@ -79,11 +79,11 @@ export const clientesRouter = router({
       return listClientesComCobertura(input ?? undefined);
     }),
 
-  listarEstados: publicProcedure.query(async () => {
+  listarEstados: protectedProcedure.query(async () => {
     return listarEstadosClientes();
   }),
 
-  listarMunicipios: publicProcedure
+  listarMunicipios: protectedProcedure
     .input(z.object({ estado: z.string().optional() }).optional())
     .query(async ({ input }) => {
       return listarMunicipiosClientes(input?.estado);
@@ -177,7 +177,7 @@ export const clientesRouter = router({
       return { criados, atualizados, erros, total: rows.length, detalhes };
     }),
 
-  get: publicProcedure
+  get: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const cliente = await getClienteById(input.id);
@@ -186,13 +186,13 @@ export const clientesRouter = router({
       return { ...cliente, emailsAlerta: emails.map((e) => e.email) };
     }),
 
-  getByCnpj: publicProcedure
+  getByCnpj: protectedProcedure
     .input(z.object({ cnpj: z.string() }))
     .query(async ({ input }) => {
       return getClienteByCnpj(input.cnpj);
     }),
 
-  create: publicProcedure.input(clienteSchema).mutation(async ({ input }) => {
+  create: protectedProcedure.input(clienteSchema).mutation(async ({ input }) => {
     const existing = await getClienteByCnpj(input.cnpj);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "CNPJ já cadastrado." });
 
@@ -208,7 +208,7 @@ export const clientesRouter = router({
     return { id };
   }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({ id: z.number(), data: clienteSchema.partial() }))
     .mutation(async ({ input }) => {
       const { emailsAlerta: emails, dataAbertura, semRegistro, ...rest } = input.data;
@@ -223,7 +223,7 @@ export const clientesRouter = router({
       return { success: true };
     }),
 
-  delete: publicProcedure
+  delete: gestorProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await deleteCliente(input.id);
@@ -231,7 +231,7 @@ export const clientesRouter = router({
     }),
 
   // ─── Reenriquecimento individual via BrasilAPI ─────────────────────────────
-  reenriquecer: gestorProcedure
+  reenriquecer: gestorProcedure.use(requirePermissao("clientes", "atualizar_receita"))
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const cliente = await getClienteById(input.id);
@@ -330,7 +330,7 @@ export const clientesRouter = router({
     }),
 
   // Toggle rápido de "Sem Registro" diretamente na listagem (GESTOR/MASTER)
-  toggleSemRegistro: gestorProcedure
+  toggleSemRegistro: gestorProcedure.use(requirePermissao("clientes", "marcar_sem_registro"))
     .input(z.object({
       id: z.number(),
       semRegistro: z.boolean(),
