@@ -13,6 +13,11 @@ export const PORTAL_AREAS = {
 
 export type PortalArea = keyof typeof PORTAL_AREAS;
 
+export function obterAreaAlternativa(areaAtual: PortalArea): { nome: string; rota: string } {
+  const destino = areaAtual === "alvaras" ? PORTAL_AREAS.certidoes : PORTAL_AREAS.alvaras;
+  return { nome: destino.nome, rota: destino.rota };
+}
+
 export function identificarAreaPortal(caminho: string): PortalArea | "hub" {
   if (caminho === "/") return "hub";
   if (caminho.startsWith(PORTAL_AREAS.certidoes.rota)) return "certidoes";

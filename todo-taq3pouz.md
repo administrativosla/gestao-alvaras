@@ -16,3 +16,13 @@
 - [x] Permitir retorno ao seletor do Portal Controller a partir dos dois gestores.
 - [x] Atualizar os testes de rotas e utilitários afetados pela nova arquitetura.
 - [x] Validar visualmente o hub e os dois acessos em desktop e celular.
+- [x] Remover textos introdutórios, indicadores e cards auxiliares da tela inicial do Portal Controller.
+- [x] Exibir somente o título “Escolha a ferramenta desejada” e os dois cards de gestores no hub autenticado.
+- [x] Adicionar alternador direto entre Gestor de Alvarás e Gestor de Certidões no layout interno.
+- [x] Garantir funcionamento do alternador com a barra lateral expandida, recolhida e no celular.
+- [x] Atualizar os testes da navegação entre gestores.
+- [x] Validar visualmente a versão simplificada em desktop e celular.
+- [x] Consolidar a análise dos cinco portais de certidões em relatório técnico.
+- [x] Classificar cada portal por viabilidade de automação, download e leitura de resultado.
+- [x] Documentar as medidas necessárias para CAPTCHA, Gov.br, bloqueio da CAIXA e API da PGE-SP.
+- [x] Entregar o relatório técnico junto com a versão publicada do Portal Controller.

@@ -37,6 +37,7 @@ import {
   TrendingUp,
   Wrench,
   PanelsTopLeft,
+  ArrowLeftRight,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -46,6 +47,7 @@ import { Badge } from "./ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import AcessoPendente from "@/pages/AcessoPendente";
+import { obterAreaAlternativa } from "@shared/portal";
 
 type UserRole = "operator" | "gestor" | "master";
 
@@ -146,6 +148,7 @@ function DashboardLayoutContent({
 
   const userRole = ((user as any)?.role ?? "operator") as UserRole;
   const userLevel = ROLE_LEVEL[userRole] ?? 1;
+  const areaAlternativa = obterAreaAlternativa(area);
 
   // Badge de usuários pendentes (somente master)
   const { data: pendentes } = trpc.usuarios.contarPendentes.useQuery(undefined, {
@@ -238,6 +241,16 @@ function DashboardLayoutContent({
 
           {/* Menu */}
           <SidebarContent className="gap-0 pt-2">
+            <div className="px-2 pb-2">
+              <SidebarMenuButton
+                onClick={() => setLocation(areaAlternativa.rota)}
+                tooltip={`Ir para ${areaAlternativa.nome}`}
+                className="h-10 border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                <ArrowLeftRight className="h-4 w-4 shrink-0 text-sidebar-primary" />
+                <span className="truncate">Ir para {areaAlternativa.nome.replace("Gestor de ", "")}</span>
+              </SidebarMenuButton>
+            </div>
             <SidebarMenu className="px-2 gap-0.5">
               {menuItems.map((item) => {
                 const isActive =
@@ -324,6 +337,16 @@ function DashboardLayoutContent({
               <SidebarTrigger className="h-9 w-9 rounded-lg" />
               <span className="font-medium text-sm">{activeMenuItem?.label ?? "Menu"}</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation(areaAlternativa.rota)}
+              className="h-8 gap-1.5 px-2.5 text-xs"
+              aria-label={`Ir para ${areaAlternativa.nome}`}
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+              {areaAlternativa.nome.replace("Gestor de ", "")}
+            </Button>
           </div>
         )}
         <main className="flex-1 p-6 lg:p-8 min-h-screen">{children}</main>
