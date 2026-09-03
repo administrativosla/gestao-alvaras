@@ -52,6 +52,9 @@ import {
   ShieldCheck,
   ShieldAlert,
   ShieldOff,
+  ClipboardCheck,
+  CircleGauge,
+  ListChecks,
 } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
@@ -59,8 +62,19 @@ import { useLocation } from "wouter";
 import { formatCnpj } from "@/lib/alvaras";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  CAMPOS_CADASTRO,
+  type CampoCadastro,
+  type CompletudeStatus,
+  type PendenciaCadastro,
+} from "@shared/completudeCadastro";
 
 type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
+
+interface ClientesListProps {
+  basePath?: string;
+  contexto?: "alvaras" | "certidoes";
+}
 
 function CnpjCopyCell({ cnpj }: { cnpj: string }) {
   const [copied, setCopied] = useState(false);
@@ -140,12 +154,44 @@ function CoberturaBadge({ cobertura, total, onToggleSemRegistro, canToggle, isLo
   );
 }
 
-export default function ClientesList() {
+function CompletudeBadge({ completude }: {
+  completude: { percentual: number; status: CompletudeStatus; pendencias: PendenciaCadastro[] };
+}) {
+  const estilos = completude.status === "Completo"
+    ? { barra: "bg-emerald-500", texto: "text-emerald-700", fundo: "bg-emerald-50" }
+    : completude.status === "Crítico"
+      ? { barra: "bg-red-500", texto: "text-red-700", fundo: "bg-red-50" }
+      : { barra: "bg-amber-500", texto: "text-amber-700", fundo: "bg-amber-50" };
+  const campos = completude.pendencias.map((item) => item.label).join(", ");
+
+  return (
+    <div className="min-w-32" title={campos ? `Pendências: ${campos}` : "Cadastro completo"}>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${estilos.fundo} ${estilos.texto}`}>
+          {completude.status}
+        </span>
+        <span className="text-xs font-semibold tabular-nums">{completude.percentual}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className={`h-full rounded-full ${estilos.barra}`} style={{ width: `${completude.percentual}%` }} />
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        {completude.pendencias.length === 0
+          ? "Sem pendências"
+          : `${completude.pendencias.length} campo${completude.pendencias.length > 1 ? "s" : ""} pendente${completude.pendencias.length > 1 ? "s" : ""}`}
+      </p>
+    </div>
+  );
+}
+
+export default function ClientesList({ basePath = "/clientes", contexto = "alvaras" }: ClientesListProps) {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState<string>("");
   const [municipioFiltro, setMunicipioFiltro] = useState<string>("");
   const [coberturaFiltro, setCoberturaFiltro] = useState<string>("");
+  const [completudeFiltro, setCompletudeFiltro] = useState<string>("");
+  const [pendenciaFiltro, setPendenciaFiltro] = useState<string>("");
 
   // Modal de importação
   const [importOpen, setImportOpen] = useState(false);
@@ -158,6 +204,8 @@ export default function ClientesList() {
     estado: estadoFiltro || undefined,
     municipio: municipioFiltro || undefined,
     cobertura: (coberturaFiltro as CoberturaStatus) || undefined,
+    completude: (completudeFiltro as CompletudeStatus) || undefined,
+    pendencia: (pendenciaFiltro as CampoCadastro) || undefined,
   });
 
   const { data: estados } = trpc.clientes.listarEstados.useQuery();
@@ -239,22 +287,32 @@ export default function ClientesList() {
     reader.readAsDataURL(importFile);
   };
 
-  const temFiltros = !!estadoFiltro || !!municipioFiltro || !!search || !!coberturaFiltro;
+  const temFiltros = !!estadoFiltro || !!municipioFiltro || !!search || !!coberturaFiltro || !!completudeFiltro || !!pendenciaFiltro;
 
   // Contadores de cobertura para exibição no topo
   const semAlvara = clientes?.filter((c) => c.cobertura === "Sem Alvará").length ?? 0;
   const semRegistro = clientes?.filter((c) => c.cobertura === "Sem Registro").length ?? 0;
   const parcial = clientes?.filter((c) => c.cobertura === "Parcial").length ?? 0;
   const coberto = clientes?.filter((c) => c.cobertura === "Coberto").length ?? 0;
+  const completos = clientes?.filter((c) => c.completude.status === "Completo").length ?? 0;
+  const emComplementacao = clientes?.filter((c) => c.completude.status === "Em complementação").length ?? 0;
+  const criticos = clientes?.filter((c) => c.completude.status === "Crítico").length ?? 0;
+  const mediaCompletude = clientes && clientes.length > 0
+    ? Math.round(clientes.reduce((total, c) => total + c.completude.percentual, 0) / clientes.length)
+    : 0;
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {contexto === "certidoes" ? "Cadastro empresarial" : "Clientes"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie os clientes e acompanhe a cobertura de alvarás
+            {contexto === "certidoes"
+              ? "Base única compartilhada com o Gestor de Alvarás"
+              : "Gerencie os clientes e acompanhe a cobertura de alvarás"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -262,15 +320,52 @@ export default function ClientesList() {
             <Upload className="h-4 w-4" />
             Importar Planilha
           </Button>
-          <Button onClick={() => setLocation("/clientes/novo")} className="gap-2">
+          <Button onClick={() => setLocation(`${basePath}/novo`)} className="gap-2">
             <Plus className="h-4 w-4" />
             Novo Cliente
           </Button>
         </div>
       </div>
 
-      {/* Cards de resumo de cobertura */}
+      {/* Mapeamento de qualidade do cadastro compartilhado */}
       {!isLoading && clientes && clientes.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4">
+            <div className="flex items-center gap-2 text-blue-700">
+              <CircleGauge className="h-4 w-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Completude média</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-blue-950">{mediaCompletude}%</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCompletudeFiltro(completudeFiltro === "Completo" ? "" : "Completo")}
+            className={`rounded-xl border p-4 text-left transition-colors ${completudeFiltro === "Completo" ? "border-emerald-400 bg-emerald-100" : "border-emerald-200 bg-emerald-50/70 hover:bg-emerald-50"}`}
+          >
+            <div className="flex items-center gap-2 text-emerald-700"><ClipboardCheck className="h-4 w-4" /><span className="text-xs font-semibold uppercase tracking-wide">Completos</span></div>
+            <p className="mt-2 text-2xl font-bold text-emerald-950">{completos}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCompletudeFiltro(completudeFiltro === "Em complementação" ? "" : "Em complementação")}
+            className={`rounded-xl border p-4 text-left transition-colors ${completudeFiltro === "Em complementação" ? "border-amber-400 bg-amber-100" : "border-amber-200 bg-amber-50/70 hover:bg-amber-50"}`}
+          >
+            <div className="flex items-center gap-2 text-amber-700"><ListChecks className="h-4 w-4" /><span className="text-xs font-semibold uppercase tracking-wide">Em complementação</span></div>
+            <p className="mt-2 text-2xl font-bold text-amber-950">{emComplementacao}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCompletudeFiltro(completudeFiltro === "Crítico" ? "" : "Crítico")}
+            className={`rounded-xl border p-4 text-left transition-colors ${completudeFiltro === "Crítico" ? "border-red-400 bg-red-100" : "border-red-200 bg-red-50/70 hover:bg-red-50"}`}
+          >
+            <div className="flex items-center gap-2 text-red-700"><AlertCircle className="h-4 w-4" /><span className="text-xs font-semibold uppercase tracking-wide">Críticos</span></div>
+            <p className="mt-2 text-2xl font-bold text-red-950">{criticos}</p>
+          </button>
+        </div>
+      )}
+
+      {/* Cards de resumo de cobertura */}
+      {contexto === "alvaras" && !isLoading && clientes && clientes.length > 0 && (
         <div className="grid grid-cols-4 gap-3">
           {/* Sem Alvará — automático, cinza */}
           <button
@@ -409,6 +504,36 @@ export default function ClientesList() {
           </Select>
         </div>
 
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <CircleGauge className="h-3 w-3" /> Completude
+          </Label>
+          <Select value={completudeFiltro || "all"} onValueChange={(v) => setCompletudeFiltro(v === "all" ? "" : v)}>
+            <SelectTrigger className="h-9 w-[180px] text-sm"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os níveis</SelectItem>
+              <SelectItem value="Completo">Completo</SelectItem>
+              <SelectItem value="Em complementação">Em complementação</SelectItem>
+              <SelectItem value="Crítico">Crítico</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <ListChecks className="h-3 w-3" /> Campo pendente
+          </Label>
+          <Select value={pendenciaFiltro || "all"} onValueChange={(v) => setPendenciaFiltro(v === "all" ? "" : v)}>
+            <SelectTrigger className="h-9 w-[200px] text-sm"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as pendências</SelectItem>
+              {CAMPOS_CADASTRO.map((item) => (
+                <SelectItem key={item.campo} value={item.campo}>{item.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {temFiltros && (
           <Button
             variant="ghost"
@@ -419,6 +544,8 @@ export default function ClientesList() {
               setEstadoFiltro("");
               setMunicipioFiltro("");
               setCoberturaFiltro("");
+              setCompletudeFiltro("");
+              setPendenciaFiltro("");
             }}
           >
             <X className="h-3.5 w-3.5" />
@@ -458,28 +585,33 @@ export default function ClientesList() {
                 {temFiltros ? "Nenhum cliente encontrado com os filtros aplicados" : "Nenhum cliente cadastrado"}
               </p>
               {!temFiltros && (
-                <Button variant="outline" size="sm" onClick={() => setLocation("/clientes/novo")}>
+                <Button variant="outline" size="sm" onClick={() => setLocation(`${basePath}/novo`)}>
                   Cadastrar primeiro cliente
                 </Button>
               )}
             </div>
           ) : (
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <TableHead className="w-[38%] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Razão Social
                   </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <TableHead className="w-[170px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cadastro
+                  </TableHead>
+                  <TableHead className="hidden w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
                     CNPJ
                   </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">
+                  <TableHead className="hidden w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
                     Município / Estado
                   </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Cobertura
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">
+                  {contexto === "alvaras" && (
+                    <TableHead className="hidden w-[130px] text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">
+                      Cobertura
+                    </TableHead>
+                  )}
+                  <TableHead className="hidden w-[140px] text-xs font-semibold uppercase tracking-wider text-muted-foreground 2xl:table-cell">
                     Contato
                   </TableHead>
                   <TableHead className="w-12" />
@@ -495,35 +627,38 @@ export default function ClientesList() {
                     <TableRow
                       key={c.id}
                       className="cursor-pointer hover:bg-muted/40 transition-colors"
-                      onClick={() => setLocation(`/clientes/${c.id}`)}
+                      onClick={() => setLocation(`${basePath}/${c.id}`)}
                     >
                       <TableCell>
-                        <div>
-                          <p className="text-sm font-medium">{c.razaoSocial}</p>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium" title={c.razaoSocial}>{c.razaoSocial}</p>
                           {c.nomeFantasia && (
-                            <p className="text-xs text-muted-foreground">{c.nomeFantasia}</p>
+                            <p className="truncate text-xs text-muted-foreground" title={c.nomeFantasia}>{c.nomeFantasia}</p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell><CompletudeBadge completude={c.completude} /></TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <CnpjCopyCell cnpj={c.cnpj} />
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
+                      <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
                         <div className="flex items-center gap-1">
                           {(mun || est) && <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/60" />}
-                          {localidade}
+                          <span className="truncate" title={localidade}>{localidade}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <CoberturaBadge
-                          cobertura={c.cobertura}
-                          total={c.totalAlvaras}
-                          canToggle={canToggle}
-                          isLoading={togglingId === c.id}
-                          onToggleSemRegistro={(value) => handleToggleSemRegistro(c.id, value)}
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
+                      {contexto === "alvaras" && (
+                        <TableCell className="hidden xl:table-cell">
+                          <CoberturaBadge
+                            cobertura={c.cobertura}
+                            total={c.totalAlvaras}
+                            canToggle={canToggle}
+                            isLoading={togglingId === c.id}
+                            onToggleSemRegistro={(value) => handleToggleSemRegistro(c.id, value)}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className="hidden text-sm text-muted-foreground 2xl:table-cell">
                         {c.nomeContato ?? "—"}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -534,11 +669,11 @@ export default function ClientesList() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setLocation(`/clientes/${c.id}`)}>
+                            <DropdownMenuItem onClick={() => setLocation(`${basePath}/${c.id}`)}>
                               <Eye className="mr-2 h-4 w-4" /> Ver detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLocation(`/clientes/${c.id}/editar`)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Editar
+                            <DropdownMenuItem onClick={() => setLocation(`${basePath}/${c.id}/editar`)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Completar cadastro
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"

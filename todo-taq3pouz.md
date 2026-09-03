@@ -26,3 +26,19 @@
 - [x] Classificar cada portal por viabilidade de automação, download e leitura de resultado.
 - [x] Documentar as medidas necessárias para CAPTCHA, Gov.br, bloqueio da CAIXA e API da PGE-SP.
 - [x] Entregar o relatório técnico junto com a versão publicada do Portal Controller.
+- [x] Auditar os campos, preenchimento e duplicidades da base atual de clientes sem expor dados sensíveis.
+- [x] Definir os campos obrigatórios e recomendados para Alvarás e Certidões.
+- [x] Criar uma regra única e testável de completude cadastral por empresa.
+- [x] Exibir na lista de clientes o percentual e os dados pendentes de cada cadastro.
+- [x] Adicionar filtros para cadastros completos, incompletos e por tipo de pendência.
+- [x] Criar uma visão de mapeamento com indicadores agregados de qualidade cadastral.
+- [x] Permitir editar e completar o cadastro a partir da fila de pendências.
+- [x] Disponibilizar o mesmo cadastro de empresas dentro do Gestor de Alvarás e do Gestor de Certidões.
+- [x] Preservar uma única fonte de dados, sem cópias divergentes entre os gestores.
+- [x] Atualizar os testes Vitest de regras de completude, filtros e navegação compartilhada.
+- [x] Validar as novas telas em desktop e celular.
+- [x] Investigar fontes oficiais para consulta de inscrição estadual por CNPJ.
+- [x] Investigar alternativas oficiais e assistidas para inscrição municipal por CNPJ.
+- [x] Classificar as fontes por cobertura, autenticação, CAPTCHA, custo e confiabilidade.
+- [x] Definir como registrar origem, data da consulta e confirmação humana dos dados enriquecidos.
+- [x] Documentar os caminhos recomendados para automatizar IE e IM sem depender de uma única fonte frágil.

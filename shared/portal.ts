@@ -13,6 +13,11 @@ export const PORTAL_AREAS = {
 
 export type PortalArea = keyof typeof PORTAL_AREAS;
 
+export const ROTAS_CADASTRO_EMPRESARIAL: Record<PortalArea, string> = {
+  alvaras: "/clientes",
+  certidoes: "/certidoes/clientes",
+};
+
 export function obterAreaAlternativa(areaAtual: PortalArea): { nome: string; rota: string } {
   const destino = areaAtual === "alvaras" ? PORTAL_AREAS.certidoes : PORTAL_AREAS.alvaras;
   return { nome: destino.nome, rota: destino.rota };

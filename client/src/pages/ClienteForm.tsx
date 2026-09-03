@@ -14,9 +14,10 @@ import { cnpjValido, formatarCnpj } from "@shared/cnpj";
 
 interface Props {
   id?: number;
+  basePath?: string;
 }
 
-export default function ClienteForm({ id }: Props) {
+export default function ClienteForm({ id, basePath = "/clientes" }: Props) {
   const [, setLocation] = useLocation();
   const isEditing = !!id;
 
@@ -77,7 +78,7 @@ export default function ClienteForm({ id }: Props) {
   const createMutation = trpc.clientes.create.useMutation({
     onSuccess: (data) => {
       toast.success("Cliente cadastrado com sucesso!");
-      setLocation(`/clientes/${data.id}`);
+      setLocation(`${basePath}/${data.id}`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -85,7 +86,7 @@ export default function ClienteForm({ id }: Props) {
   const updateMutation = trpc.clientes.update.useMutation({
     onSuccess: () => {
       toast.success("Cliente atualizado com sucesso!");
-      setLocation(`/clientes/${id}`);
+      setLocation(`${basePath}/${id}`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -141,7 +142,7 @@ export default function ClienteForm({ id }: Props) {
   return (
     <div className="space-y-6 max-w-3xl animate-fade-in-up">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/clientes")} className="h-9 w-9">
+        <Button variant="ghost" size="icon" onClick={() => setLocation(basePath)} className="h-9 w-9">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -364,7 +365,7 @@ export default function ClienteForm({ id }: Props) {
 
         {/* Ações */}
         <div className="flex gap-3 justify-end pb-8">
-          <Button type="button" variant="outline" onClick={() => setLocation("/clientes")}>
+          <Button type="button" variant="outline" onClick={() => setLocation(basePath)}>
             Cancelar
           </Button>
           <Button type="submit" disabled={isPending} className="min-w-28">

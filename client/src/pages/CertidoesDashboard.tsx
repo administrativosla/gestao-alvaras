@@ -34,7 +34,7 @@ export default function CertidoesDashboard() {
                 <p className="mt-1 text-xs leading-5 text-slate-400">CNPJ, IE e IM já ficam disponíveis como insumos dos conectores.</p>
               </div>
             </div>
-            <Button variant="secondary" className="mt-4 w-full" onClick={() => setLocation("/clientes")}>Abrir cadastro de empresas</Button>
+            <Button variant="secondary" className="mt-4 w-full" onClick={() => setLocation("/certidoes/clientes")}>Abrir cadastro de empresas</Button>
           </div>
         </div>
       </section>

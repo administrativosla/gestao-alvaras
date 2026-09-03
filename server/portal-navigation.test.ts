@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { identificarAreaPortal, obterAreaAlternativa, PORTAL_AREAS } from "../shared/portal";
+import { identificarAreaPortal, obterAreaAlternativa, PORTAL_AREAS, ROTAS_CADASTRO_EMPRESARIAL } from "../shared/portal";
 
 describe("navegação do Portal Controller", () => {
   it("mantém rotas iniciais distintas para os dois gestores", () => {
@@ -18,5 +18,10 @@ describe("navegação do Portal Controller", () => {
   it("alterna diretamente entre os dois gestores", () => {
     expect(obterAreaAlternativa("alvaras")).toEqual({ nome: "Gestor de Certidões", rota: "/certidoes" });
     expect(obterAreaAlternativa("certidoes")).toEqual({ nome: "Gestor de Alvarás", rota: "/gestor-alvaras" });
+  });
+
+  it("expõe o mesmo cadastro empresarial nos dois contextos de navegação", () => {
+    expect(ROTAS_CADASTRO_EMPRESARIAL.alvaras).toBe("/clientes");
+    expect(ROTAS_CADASTRO_EMPRESARIAL.certidoes).toBe("/certidoes/clientes");
   });
 });

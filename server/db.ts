@@ -11,6 +11,12 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import {
+  avaliarCompletudeCadastro,
+  correspondeAosFiltrosCompletude,
+  type CampoCadastro,
+  type CompletudeStatus,
+} from "../shared/completudeCadastro";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -102,7 +108,14 @@ export async function listClientes(filters?: { search?: string; estado?: string;
 export type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
 
 export async function listClientesComCobertura(
-  filters?: { search?: string; estado?: string; municipio?: string; cobertura?: CoberturaStatus }
+  filters?: {
+    search?: string;
+    estado?: string;
+    municipio?: string;
+    cobertura?: CoberturaStatus;
+    completude?: CompletudeStatus;
+    pendencia?: CampoCadastro;
+  }
 ) {
   const db = await getDb();
   if (!db) return [];
@@ -145,7 +158,12 @@ export async function listClientesComCobertura(
     } else {
       cobertura = "Parcial";
     }
-    return { ...c, cobertura, totalAlvaras: alvarasList.length };
+    return {
+      ...c,
+      cobertura,
+      totalAlvaras: alvarasList.length,
+      completude: avaliarCompletudeCadastro(c),
+    };
   });
 
   // Aplicar filtros
@@ -164,6 +182,12 @@ export async function listClientesComCobertura(
     );
   }
   if (filters?.cobertura) result = result.filter((c) => c.cobertura === filters!.cobertura);
+  if (filters?.completude || filters?.pendencia) {
+    result = result.filter((c) => correspondeAosFiltrosCompletude(c.completude, {
+      status: filters.completude,
+      pendencia: filters.pendencia,
+    }));
+  }
 
   return result;
 }

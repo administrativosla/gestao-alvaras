@@ -28,7 +28,7 @@ function AlvarasRoutes() {
     <DashboardLayout area="alvaras">
       <Switch>
         <Route path="/gestor-alvaras" component={Dashboard} />
-        <Route path="/clientes" component={ClientesList} />
+        <Route path="/clientes">{() => <ClientesList />}</Route>
         <Route path="/clientes/novo">{() => <ClienteForm />}</Route>
         <Route path="/clientes/:id/editar">
           {(params) => <ClienteForm id={Number(params.id)} />}
@@ -61,6 +61,18 @@ function AppRoutes() {
   return (
     <Switch>
       <Route path="/" component={PortalController} />
+      <Route path="/certidoes/clientes/novo">
+        {() => <DashboardLayout area="certidoes"><ClienteForm basePath="/certidoes/clientes" /></DashboardLayout>}
+      </Route>
+      <Route path="/certidoes/clientes/:id/editar">
+        {(params) => <DashboardLayout area="certidoes"><ClienteForm id={Number(params.id)} basePath="/certidoes/clientes" /></DashboardLayout>}
+      </Route>
+      <Route path="/certidoes/clientes/:id">
+        {(params) => <DashboardLayout area="certidoes"><ClienteDetail id={Number(params.id)} basePath="/certidoes/clientes" /></DashboardLayout>}
+      </Route>
+      <Route path="/certidoes/clientes">
+        {() => <DashboardLayout area="certidoes"><ClientesList basePath="/certidoes/clientes" contexto="certidoes" /></DashboardLayout>}
+      </Route>
       <Route path="/certidoes">
         {() => (
           <DashboardLayout area="certidoes">

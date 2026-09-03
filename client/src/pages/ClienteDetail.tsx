@@ -42,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   id: number;
+  basePath?: string;
 }
 
 // ─── Badge de Situação Cadastral ──────────────────────────────────────────────
@@ -107,7 +108,7 @@ function CoberturaBadge({ cobertura }: { cobertura: string }) {
   );
 }
 
-export default function ClienteDetail({ id }: Props) {
+export default function ClienteDetail({ id, basePath = "/clientes" }: Props) {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
@@ -165,7 +166,7 @@ export default function ClienteDetail({ id }: Props) {
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <AlertCircle className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">Cliente não encontrado</p>
-        <Button variant="outline" onClick={() => setLocation("/clientes")}>Voltar</Button>
+        <Button variant="outline" onClick={() => setLocation(basePath)}>Voltar</Button>
       </div>
     );
   }
@@ -194,7 +195,7 @@ export default function ClienteDetail({ id }: Props) {
       {/* ── CABEÇALHO ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/clientes")} className="h-9 w-9 mt-0.5">
+          <Button variant="ghost" size="icon" onClick={() => setLocation(basePath)} className="h-9 w-9 mt-0.5">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -229,7 +230,7 @@ export default function ClienteDetail({ id }: Props) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLocation(`/clientes/${id}/editar`)}
+            onClick={() => setLocation(`${basePath}/${id}/editar`)}
             className="gap-2"
           >
             <Pencil className="h-3.5 w-3.5" /> Editar

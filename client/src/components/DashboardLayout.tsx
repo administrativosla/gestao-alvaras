@@ -47,7 +47,7 @@ import { Badge } from "./ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import AcessoPendente from "@/pages/AcessoPendente";
-import { obterAreaAlternativa } from "@shared/portal";
+import { obterAreaAlternativa, ROTAS_CADASTRO_EMPRESARIAL } from "@shared/portal";
 
 type UserRole = "operator" | "gestor" | "master";
 
@@ -160,6 +160,7 @@ function DashboardLayoutContent({
   const menuItems = (area === "certidoes" ? [
     { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
     { icon: LayoutDashboard, label: "Visão geral", path: "/certidoes", minLevel: 1 },
+    { icon: Users, label: "Empresas", path: ROTAS_CADASTRO_EMPRESARIAL.certidoes, minLevel: 1 },
   ] : [
     { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
     { icon: LayoutDashboard, label: "Dashboard", path: "/gestor-alvaras", minLevel: 1 },

@@ -18,6 +18,7 @@ import {
 } from "../db";
 import * as XLSX from "xlsx";
 import { cnpjValido, formatarCnpj } from "../../shared/cnpj";
+import { CAMPOS_CADASTRO } from "../../shared/completudeCadastro";
 
 const cnpjSchema = z
   .string()
@@ -72,6 +73,11 @@ export const clientesRouter = router({
           estado: z.string().optional(),
           municipio: z.string().optional(),
           cobertura: z.enum(["Sem Registro", "Sem Alvará", "Parcial", "Coberto"]).optional(),
+          completude: z.enum(["Completo", "Em complementação", "Crítico"]).optional(),
+          pendencia: z.enum(CAMPOS_CADASTRO.map((item) => item.campo) as [
+            (typeof CAMPOS_CADASTRO)[number]["campo"],
+            ...(typeof CAMPOS_CADASTRO)[number]["campo"][],
+          ]).optional(),
         })
         .optional()
     )
