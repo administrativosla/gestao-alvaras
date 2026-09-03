@@ -17,16 +17,16 @@ import {
   updateCliente,
 } from "../db";
 import * as XLSX from "xlsx";
+import { cnpjValido, formatarCnpj } from "../../shared/cnpj";
 
-// Normaliza CNPJ para o formato XX.XXX.XXX/XXXX-XX
-function formatCnpj(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length !== 14) return raw.trim();
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
-}
+const cnpjSchema = z
+  .string()
+  .trim()
+  .refine(cnpjValido, "Informe um CNPJ válido.")
+  .transform(formatarCnpj);
 
-const clienteSchema = z.object({
-  cnpj: z.string().min(14).max(18),
+export const clienteSchema = z.object({
+  cnpj: cnpjSchema,
   razaoSocial: z.string().min(1).max(255),
   nomeFantasia: z.string().max(255).optional().nullable(),
   inscricaoEstadual: z.string().max(50).optional().nullable(),
@@ -124,7 +124,12 @@ export const clientesRouter = router({
           continue;
         }
 
-        const cnpj = formatCnpj(cnpjRaw);
+        if (!cnpjValido(cnpjRaw)) {
+          erros++;
+          detalhes.push(`Linha ignorada: CNPJ inválido (${cnpjRaw})`);
+          continue;
+        }
+        const cnpj = formatarCnpj(cnpjRaw);
         const municipio = getCol(row, "municipio", "município", "cidade", "city") || null;
         const estado =
           (getCol(row, "estado", "uf", "state", "UF") || "").slice(0, 2).toUpperCase() || null;
@@ -187,7 +192,7 @@ export const clientesRouter = router({
     }),
 
   getByCnpj: protectedProcedure
-    .input(z.object({ cnpj: z.string() }))
+    .input(z.object({ cnpj: cnpjSchema }))
     .query(async ({ input }) => {
       return getClienteByCnpj(input.cnpj);
     }),
@@ -296,7 +301,7 @@ export const clientesRouter = router({
       const rows = semRegistro.map((c, i) => ({
         "#": i + 1,
         "Razão Social": c.razaoSocial,
-        "CNPJ": formatCnpj(c.cnpj),
+        "CNPJ": formatarCnpj(c.cnpj),
         "Nome Fantasia": c.nomeFantasia ?? "",
         "Município": c.municipio ?? c.cidade ?? "",
         "Estado": c.estado ?? c.uf ?? "",

@@ -6,7 +6,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 
-// Pages
 import Dashboard from "./pages/Dashboard";
 import ClientesList from "./pages/ClientesList";
 import ClienteForm from "./pages/ClienteForm";
@@ -20,12 +19,15 @@ import ConfiguracaoAlertas from "./pages/ConfiguracaoAlertas";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
 import PipelineComercial from "./pages/PipelineComercial";
 import ManutencaoPage from "./pages/ManutencaoPage";
+import PermissoesPage from "./pages/PermissoesPage";
+import PortalController from "./pages/PortalController";
+import CertidoesDashboard from "./pages/CertidoesDashboard";
 
-function AppRoutes() {
+function AlvarasRoutes() {
   return (
-    <DashboardLayout>
+    <DashboardLayout area="alvaras">
       <Switch>
-        <Route path="/" component={Dashboard} />
+        <Route path="/gestor-alvaras" component={Dashboard} />
         <Route path="/clientes" component={ClientesList} />
         <Route path="/clientes/novo">{() => <ClienteForm />}</Route>
         <Route path="/clientes/:id/editar">
@@ -55,6 +57,22 @@ function AppRoutes() {
   );
 }
 
+function AppRoutes() {
+  return (
+    <Switch>
+      <Route path="/" component={PortalController} />
+      <Route path="/certidoes">
+        {() => (
+          <DashboardLayout area="certidoes">
+            <CertidoesDashboard />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route>{() => <AlvarasRoutes />}</Route>
+    </Switch>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -69,4 +87,3 @@ function App() {
 }
 
 export default App;
-import PermissoesPage from "./pages/PermissoesPage";

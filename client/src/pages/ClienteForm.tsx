@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, X, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { formatCnpj } from "@/lib/alvaras";
+import { cnpjValido, formatarCnpj } from "@shared/cnpj";
 
 interface Props {
   id?: number;
@@ -92,9 +92,16 @@ export default function ClienteForm({ id }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cnpjValido(form.cnpj)) {
+      toast.error("Informe um CNPJ válido antes de salvar.");
+      document.getElementById("cnpj")?.focus();
+      return;
+    }
     const payload = {
       ...form,
-      cnpj: form.cnpj.replace(/\D/g, "").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"),
+      cnpj: formatarCnpj(form.cnpj),
+      inscricaoEstadual: form.inscricaoEstadual.trim(),
+      inscricaoMunicipal: form.inscricaoMunicipal.trim(),
       dataAbertura: form.dataAbertura || null,
       emailsAlerta,
     };
@@ -148,12 +155,15 @@ export default function ClienteForm({ id }: Props) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Dados Principais */}
+        {/* Identificação empresarial */}
         <Card className="border shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Dados Principais
+              Identificação para consultas
             </CardTitle>
+            <p className="text-xs text-muted-foreground pt-1">
+              O CNPJ será usado nas consultas principais. As inscrições estadual e municipal ficam disponíveis para portais que as exigirem.
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -162,10 +172,13 @@ export default function ClienteForm({ id }: Props) {
                 <Input
                   id="cnpj"
                   value={form.cnpj}
-                  onChange={set("cnpj")}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cnpj: formatarCnpj(e.target.value) }))}
                   placeholder="00.000.000/0000-00"
                   required
                   disabled={isEditing}
+                  inputMode="numeric"
+                  maxLength={18}
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-1.5">
@@ -202,7 +215,9 @@ export default function ClienteForm({ id }: Props) {
                   id="inscricaoEstadual"
                   value={form.inscricaoEstadual}
                   onChange={set("inscricaoEstadual")}
-                  placeholder="IE"
+                  placeholder="Número ou ISENTO"
+                  maxLength={50}
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-1.5">
@@ -211,7 +226,9 @@ export default function ClienteForm({ id }: Props) {
                   id="inscricaoMunicipal"
                   value={form.inscricaoMunicipal}
                   onChange={set("inscricaoMunicipal")}
-                  placeholder="IM"
+                  placeholder="Número da inscrição municipal"
+                  maxLength={50}
+                  autoComplete="off"
                 />
               </div>
             </div>

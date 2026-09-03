@@ -36,6 +36,7 @@ import {
   User as UserIcon,
   TrendingUp,
   Wrench,
+  PanelsTopLeft,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -71,7 +72,7 @@ const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children, area = "alvaras" }: { children: React.ReactNode; area?: "alvaras" | "certidoes" }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
@@ -119,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}>
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} area={area}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -129,9 +130,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  area,
 }: {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  area: "alvaras" | "certidoes";
 }) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -151,8 +154,12 @@ function DashboardLayoutContent({
   });
 
   // Menu dinâmico por nível
-  const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/", minLevel: 1 },
+  const menuItems = (area === "certidoes" ? [
+    { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
+    { icon: LayoutDashboard, label: "Visão geral", path: "/certidoes", minLevel: 1 },
+  ] : [
+    { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/gestor-alvaras", minLevel: 1 },
     { icon: Users, label: "Clientes", path: "/clientes", minLevel: 1 },
     { icon: FileText, label: "Alvarás", path: "/alvaras", minLevel: 1 },
     { icon: Upload, label: "Importar", path: "/importar", minLevel: 1 },
@@ -161,7 +168,7 @@ function DashboardLayoutContent({
     { icon: Bell, label: "Alertas", path: "/alertas", minLevel: 3 },
     { icon: UserCog, label: "Usuários", path: "/usuarios", minLevel: 3, badge: pendentes ?? 0 },
     { icon: Wrench, label: "Manutenção", path: "/manutencao", minLevel: 3 },
-  ].filter((item) => userLevel >= item.minLevel);
+  ]).filter((item) => userLevel >= item.minLevel);
 
   const activeMenuItem = menuItems.find(
     (item) => item.path === location || (item.path !== "/" && location.startsWith(item.path))
@@ -215,7 +222,7 @@ function DashboardLayoutContent({
                     style={{ height: '55px', width: 'auto', objectFit: 'contain' }}
                   />
                   <span className="text-[10px] font-medium tracking-wide uppercase mt-0.5" style={{ color: '#ffffff', textAlign: 'center', width: '110px', display: 'block' }}>
-                    Gestor de Alvarás
+                    {area === "certidoes" ? "Gestor de Certidões" : "Gestor de Alvarás"}
                   </span>
                 </div>
               )}
@@ -234,9 +241,7 @@ function DashboardLayoutContent({
             <SidebarMenu className="px-2 gap-0.5">
               {menuItems.map((item) => {
                 const isActive =
-                  item.path === "/"
-                    ? location === "/"
-                    : location === item.path || location.startsWith(item.path + "/");
+                  location === item.path || (item.path !== "/" && location.startsWith(item.path + "/"));
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
