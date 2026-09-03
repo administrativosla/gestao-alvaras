@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { width: 310px; margin: 0; padding: 18px; color: #0f172a; background: #f8fafc; font: 14px/1.5 system-ui, sans-serif; }
+      h1 { margin: 0; font-size: 16px; }
+      p { color: #475569; }
+      .status { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: #fef3c7; color: #92400e; font-weight: 600; }
+      .status.ready { background: #d1fae5; color: #065f46; }
+      button { width: 100%; margin-top: 12px; padding: 9px 12px; border: 0; border-radius: 9px; background: #0f766e; color: white; font-weight: 700; cursor: pointer; }
+      small { display: block; margin-top: 12px; color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <h1>MJP Controller — CND Federal</h1>
+    <p>A extensão conecta o Portal Controller ao portal oficial da Receita.</p>
+    <div id="status" class="status">Ainda não vinculada</div>
+    <button id="bind" type="button">Vincular ao Portal Controller aberto</button>
+    <small>O hCaptcha nunca é contornado. Se houver desafio visível, conclua-o diretamente na Receita.</small>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -7,6 +7,8 @@ import {
   varchar,
   date,
   boolean,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 // ─── Usuários (auth) ──────────────────────────────────────────────────────────
@@ -100,6 +102,79 @@ export const clientes = mysqlTable("clientes", {
 
 export type Cliente = typeof clientes.$inferSelect;
 export type InsertCliente = typeof clientes.$inferInsert;
+
+// ─── Consultas de Certidões ──────────────────────────────────────────────────
+// Cada execução gera um registro imutável de auditoria; novas consultas nunca
+// sobrescrevem versões anteriores.
+export const certidaoConsultas = mysqlTable("certidao_consultas", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  fonte: varchar("fonte", { length: 50 }).default("receita_federal").notNull(),
+  origem: mysqlEnum("origem", ["consulta_anterior", "nova_emissao_assistida"]).notNull(),
+  status: mysqlEnum("status", [
+    "iniciada",
+    "aguardando_emissao",
+    "aguardando_registro",
+    "concluida",
+    "indisponivel",
+    "erro",
+  ]).default("iniciada").notNull(),
+  resultado: mysqlEnum("resultado", [
+    "nao_classificado",
+    "negativa",
+    "positiva",
+    "positiva_efeito_negativa",
+    "sem_certidao_valida",
+    "indisponivel",
+    "erro",
+  ]).default("nao_classificado").notNull(),
+  urlFonte: varchar("urlFonte", { length: 1000 }).notNull(),
+  mensagemCapturada: text("mensagemCapturada"),
+  observacoes: text("observacoes"),
+  operadorId: int("operadorId").notNull(),
+  operadorNome: varchar("operadorNome", { length: 255 }).notNull(),
+  finalizadoPorId: int("finalizadoPorId"),
+  finalizadoPorNome: varchar("finalizadoPorNome", { length: 255 }),
+  consultadoEm: timestamp("consultadoEm").defaultNow().notNull(),
+  finalizadoEm: timestamp("finalizadoEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  clienteIdx: index("certidao_consultas_cliente_idx").on(table.clienteId),
+  fonteDataIdx: index("certidao_consultas_fonte_data_idx").on(table.fonte, table.consultadoEm),
+}));
+
+export type CertidaoConsulta = typeof certidaoConsultas.$inferSelect;
+export type InsertCertidaoConsulta = typeof certidaoConsultas.$inferInsert;
+
+// ─── Versões Captadas de Certidões ───────────────────────────────────────────
+// PDFs, imagens e evidências textuais ficam vinculados à consulta. Os bytes são
+// armazenados no S3; esta tabela guarda somente metadados e referências.
+export const certidaoVersoes = mysqlTable("certidao_versoes", {
+  id: int("id").autoincrement().primaryKey(),
+  consultaId: int("consultaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  versao: int("versao").notNull(),
+  tipo: mysqlEnum("tipo", ["pdf", "imagem", "texto"]).notNull(),
+  fileName: varchar("fileName", { length: 500 }),
+  fileKey: varchar("fileKey", { length: 500 }),
+  fileUrl: varchar("fileUrl", { length: 1000 }),
+  mimeType: varchar("mimeType", { length: 100 }),
+  fileSize: int("fileSize"),
+  sha256: varchar("sha256", { length: 64 }),
+  textoCapturado: text("textoCapturado"),
+  validadeAte: date("validadeAte"),
+  capturadoPorId: int("capturadoPorId").notNull(),
+  capturadoPorNome: varchar("capturadoPorNome", { length: 255 }).notNull(),
+  capturadoEm: timestamp("capturadoEm").defaultNow().notNull(),
+}, (table) => ({
+  consultaIdx: index("certidao_versoes_consulta_idx").on(table.consultaId),
+  clienteIdx: index("certidao_versoes_cliente_idx").on(table.clienteId),
+  consultaVersaoUnique: uniqueIndex("certidao_versoes_consulta_versao_uq").on(table.consultaId, table.versao),
+}));
+
+export type CertidaoVersao = typeof certidaoVersoes.$inferSelect;
+export type InsertCertidaoVersao = typeof certidaoVersoes.$inferInsert;
 
 // ─── E-mails de Alerta por Cliente ───────────────────────────────────────────
 export const emailsAlerta = mysqlTable("emails_alerta", {

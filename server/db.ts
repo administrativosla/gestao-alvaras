@@ -5,6 +5,8 @@ import {
   alvaraHistorico,
   alvaraPdfs,
   alvaras,
+  certidaoConsultas,
+  certidaoVersoes,
   clientes,
   emailsAlerta,
   importacoes,
@@ -565,4 +567,79 @@ export async function listAlvaraPdfs(alvaraId: number) {
     .from(alvaraPdfs)
     .where(eq(alvaraPdfs.alvaraId, alvaraId))
     .orderBy(desc(alvaraPdfs.uploadedAt));
+}
+
+// ─── Consultas e versões de certidões ─────────────────────────────────────────
+export async function createCertidaoConsulta(data: typeof certidaoConsultas.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const [result] = await db.insert(certidaoConsultas).values(data);
+  return result.insertId as number;
+}
+
+export async function getCertidaoConsultaById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(certidaoConsultas).where(eq(certidaoConsultas.id, id)).limit(1);
+  return rows[0];
+}
+
+export async function updateCertidaoConsulta(
+  id: number,
+  data: Partial<typeof certidaoConsultas.$inferInsert>,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  await db.update(certidaoConsultas).set(data).where(eq(certidaoConsultas.id, id));
+}
+
+export async function listCertidaoConsultas(filters?: { clienteId?: number; fonte?: string; limit?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [];
+  if (filters?.clienteId) conditions.push(eq(certidaoConsultas.clienteId, filters.clienteId));
+  if (filters?.fonte) conditions.push(eq(certidaoConsultas.fonte, filters.fonte));
+
+  return db
+    .select({ consulta: certidaoConsultas, cliente: clientes })
+    .from(certidaoConsultas)
+    .innerJoin(clientes, eq(certidaoConsultas.clienteId, clientes.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(certidaoConsultas.consultadoEm))
+    .limit(Math.min(filters?.limit ?? 100, 500));
+}
+
+export async function listCertidaoVersoes(consultaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(certidaoVersoes)
+    .where(eq(certidaoVersoes.consultaId, consultaId))
+    .orderBy(desc(certidaoVersoes.versao));
+}
+
+export async function addCertidaoVersao(
+  data: Omit<typeof certidaoVersoes.$inferInsert, "versao">,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    const [atual] = await db
+      .select({ maiorVersao: sql<number>`COALESCE(MAX(${certidaoVersoes.versao}), 0)` })
+      .from(certidaoVersoes)
+      .where(eq(certidaoVersoes.consultaId, data.consultaId));
+    const versao = Number(atual?.maiorVersao ?? 0) + 1;
+
+    try {
+      const [result] = await db.insert(certidaoVersoes).values({ ...data, versao });
+      return { id: result.insertId as number, versao };
+    } catch (error) {
+      if (tentativa === 2) throw error;
+    }
+  }
+
+  throw new Error("Não foi possível registrar a versão da certidão");
 }

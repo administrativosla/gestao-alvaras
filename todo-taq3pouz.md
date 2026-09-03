@@ -42,3 +42,39 @@
 - [x] Classificar as fontes por cobertura, autenticação, CAPTCHA, custo e confiabilidade.
 - [x] Definir como registrar origem, data da consulta e confirmação humana dos dados enriquecidos.
 - [x] Documentar os caminhos recomendados para automatizar IE e IM sem depender de uma única fonte frágil.
+- [x] Confirmar que o Gestor de Certidões reutiliza o mesmo cadastro e CRUD de empresas do Gestor de Alvarás.
+- [x] Modelar consultas de certidões com empresa, fonte, status, resultado e timestamps em UTC.
+- [x] Registrar em cada consulta o operador responsável por meio do usuário autenticado.
+- [x] Preservar todas as versões captadas sem sobrescrever consultas anteriores.
+- [x] Armazenar PDF ou imagem de evidência em S3 e manter apenas metadados e referências no banco.
+- [x] Criar migração segura para o histórico de consultas e documentos.
+- [x] Implementar abertura assistida do portal oficial da CND Federal com o CNPJ preparado para cópia.
+- [x] Permitir registrar o resultado apresentado pela Receita como positiva, negativa, positiva com efeitos de negativa, indisponível ou erro.
+- [x] Permitir anexar o PDF ou a captura de tela resultante da consulta.
+- [x] Exibir a última data e hora de consulta por empresa e fonte.
+- [x] Exibir operador, resultado, observações e versão captada no histórico completo.
+- [x] Adicionar painel de consultas da CND Federal no Gestor de Certidões.
+- [x] Adicionar testes Vitest para auditoria, preservação de versões, permissões e validação dos anexos.
+- [ ] Validar o fluxo real em sessão autenticada, em desktop e celular, sem contornar o hCaptcha da Receita.
+- [x] Validar visualmente em desktop e celular o painel, o modal, o upload e a transição para emissão assistida sem persistir dados artificiais.
+- [ ] Remover a necessidade de o operador copiar e colar o CNPJ no fluxo normal da CND Federal.
+- [ ] Fazer a consulta de certidões anteriormente emitidas a partir de uma única ação no Portal Controller.
+- [ ] Capturar e armazenar automaticamente o PDF ou o resultado textual quando a consulta anterior permitir.
+- [ ] Detectar bloqueio, indisponibilidade ou exigência de hCaptcha e encaminhar somente esses casos para intervenção humana.
+- [ ] Definir a infraestrutura segura do executor de navegador sem depender de conectores pessoais do Manus em produção.
+- [x] Atualizar a interface para deixar explícito quando a operação foi automática ou assistida.
+- [x] Adicionar testes do orquestrador automático e dos estados de fallback.
+- [x] Definir mensagens identificadas por nonce e limitadas por origem entre o Portal Controller e a extensão Chrome.
+- [x] Criar extensão Manifest V3 restrita ao domínio do Portal Controller e ao portal de certidões da Receita.
+- [x] Receber o CNPJ diretamente do cadastro sem digitação ou cópia manual no fluxo automático.
+- [x] Preencher o formulário da Receita e acionar a consulta de certidões anteriores dentro do navegador do operador.
+- [x] Detectar hCaptcha visível, pausar a automação e orientar o operador a concluir somente o desafio.
+- [x] Identificar certidões válidas no resultado e solicitar a segunda via automaticamente.
+- [x] Enviar PDF, validade e resultado ao histórico da consulta correspondente no Portal Controller.
+- [x] Impedir que páginas não autorizadas enviem comandos à extensão.
+- [x] Empacotar a extensão para instalação local no Chrome e documentar a instalação única.
+- [ ] Validar que o fluxo manual atual continue disponível como contingência.
+- [x] Verificar no portal da Receita se a consulta de certidões anteriormente emitidas exige CAPTCHA.
+- [x] Implementar a recuperação prioritária de certidão federal já emitida e ainda válida.
+- [x] Registrar no histórico se a versão veio de consulta anterior ou de nova emissão.
+- [x] Encaminhar para emissão assistida somente quando não houver certidão válida recuperável.

@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "MJP Controller — CND Federal",
+  "version": "0.3.0",
+  "description": "Automação controlada da consulta de CND Federal para o Portal Controller.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://servicos.receitafederal.gov.br/servico/certidoes/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "MJP Controller — CND Federal",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.manus.space/*", "https://*.manus.computer/*"],
+      "js": ["protocol.js", "portal-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://servicos.receitafederal.gov.br/servico/certidoes/*"],
+      "js": ["rfb-interceptor.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://servicos.receitafederal.gov.br/servico/certidoes/*"],
+      "js": ["protocol.js", "rfb-automation.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
