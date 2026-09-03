@@ -74,6 +74,8 @@
 - [x] Impedir que páginas não autorizadas enviem comandos à extensão.
 - [x] Empacotar a extensão para instalação local no Chrome e documentar a instalação única.
 - [ ] Validar que o fluxo manual atual continue disponível como contingência.
+- [ ] Confirmar em teste real que o preenchimento caractere a caractere da extensão v0.4.0 satisfaz o validador interno da Receita.
+- [ ] Repetir o teste real após a correção e confirmar que a tela avança para consulta por período.
 - [x] Verificar no portal da Receita se a consulta de certidões anteriormente emitidas exige CAPTCHA.
 - [x] Implementar a recuperação prioritária de certidão federal já emitida e ainda válida.
 - [x] Registrar no histórico se a versão veio de consulta anterior ou de nova emissão.

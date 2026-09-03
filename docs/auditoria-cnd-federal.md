@@ -25,6 +25,12 @@ A análise dos módulos JavaScript públicos da aplicação confirmou que o bot�
 
 Após a validação, o serviço devolve um `idConsulta`. A aplicação envia CNPJ, tipo `PJ`, intervalo, tipo de pesquisa e esse identificador para `POST /api/consulta`. Quando existe segunda via, o PDF em base64 é obtido por `GET /api/consulta/seg-via/{idCertidao}`. Esse mapeamento confirma que a recuperação pode ser automatizada dentro de um navegador legítimo, mas não por uma chamada direta do servidor sem o token do hCaptcha e os cookies da sessão.
 
+### Teste real do preenchimento automático
+
+No teste autenticado de 3 de setembro de 2026, a extensão v0.3.0 abriu o portal oficial, inseriu o CNPJ da empresa selecionada e acionou a etapa inicial. A Receita exibiu o valor mascarado, porém seu componente interno retornou **“CNPJ inválido. Devem ser digitados 14 caracteres, sendo permitidos apenas letras e/ou números.”**. A evidência demonstrou que uma atribuição única de valor não reproduzia o ciclo de eventos esperado pelo componente oficial.
+
+A extensão v0.4.0 passou a inserir os 14 caracteres individualmente, emitir eventos de entrada e aguardar a validação antes de clicar em **Consultar Certidão**. A efetividade dessa correção depende de novo teste real após atualização da extensão no Chrome do operador.
+
 | Abordagem | Experiência | Limitações | Custo relativo | Complexidade |
 | --- | --- | --- | --- | --- |
 | Extensão controlada no Chrome do operador | Um clique no Portal Controller; o navegador preenche, consulta e devolve o PDF. Se surgir desafio visual, o operador resolve somente o hCaptcha. | Requer instalação inicial em cada computador autorizado e navegador aberto durante a consulta. | Baixo | Média |

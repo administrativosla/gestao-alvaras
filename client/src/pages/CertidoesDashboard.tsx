@@ -38,7 +38,7 @@ type OrigemConsulta = "consulta_anterior" | "nova_emissao_assistida";
 const EXTENSION_CHANNEL = "mjp-cnd-v1";
 const PORTAL_MESSAGE_SOURCE = "mjp-portal-controller";
 const EXTENSION_MESSAGE_SOURCE = "mjp-cnd-extension";
-const EXTENSION_DOWNLOAD_URL = "/manus-storage/mjp-controller-cnd-federal-extension-v0.3.0_84b64ba8.zip";
+const EXTENSION_DOWNLOAD_URL = "/manus-storage/mjp-controller-cnd-federal-extension-v0.4.0_8c83130f.zip";
 
 type ConsultaAtiva = {
   id: number;

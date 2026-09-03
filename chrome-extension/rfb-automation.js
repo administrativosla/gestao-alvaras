@@ -6,6 +6,8 @@ let submittedInitial = false;
 let submittedPeriod = false;
 let captchaNotified = false;
 let selectedCertificate = null;
+let cnpjFilled = false;
+let fillAttempts = 0;
 
 function notify(eventType, payload = {}) {
   if (!activeJob) return;
@@ -30,6 +32,29 @@ function setNativeValue(input, value) {
   input.dispatchEvent(new Event("blur", { bubbles: true, composed: true }));
 }
 
+function typeCharacters(input, value) {
+  input.focus();
+  input.select();
+  document.execCommand("delete");
+  let inserted = true;
+  for (const character of value) {
+    inserted = document.execCommand("insertText", false, character) && inserted;
+  }
+  if (!inserted || input.value.replace(/[^a-zA-Z0-9]/g, "").length !== value.length) {
+    const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
+    setter?.call(input, "");
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "deleteContentBackward" }));
+    for (const character of value) {
+      setter?.call(input, `${input.value}${character}`);
+      input.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, data: character, inputType: "insertText" }));
+      input.dispatchEvent(new KeyboardEvent("keyup", { key: character, bubbles: true, composed: true }));
+    }
+  }
+  input.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+  input.blur();
+}
+
 function findButton(label) {
   const normalized = normalizeText(label);
   return deepElements().find((element) => element instanceof HTMLButtonElement && normalizeText(element.textContent) === normalized);
@@ -38,8 +63,17 @@ function findButton(label) {
 function fillCnpj() {
   const input = deepElements().find((element) => element instanceof HTMLInputElement && element.name === "niContribuinte");
   if (!input) return false;
-  setNativeValue(input, activeJob.cnpj);
+  typeCharacters(input, activeJob.cnpj);
   return true;
+}
+
+function hasCnpjValidationError() {
+  return deepElements().some((element) => {
+    if (!(element instanceof HTMLElement)) return false;
+    const text = normalizeText(element.textContent);
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && text.startsWith("cnpj invalido");
+  });
 }
 
 function visibleCaptcha() {
@@ -60,7 +94,22 @@ function runStep() {
 
   const route = window.location.hash;
   if (/\/home\/cnpj\/?$/.test(route) && !submittedInitial) {
-    if (!fillCnpj()) return;
+    if (!cnpjFilled) {
+      if (!fillCnpj()) return;
+      cnpjFilled = true;
+      fillAttempts += 1;
+      notify("CND_PROGRESS", { message: "CNPJ preenchido automaticamente; aguardando validação da Receita." });
+      return;
+    }
+    if (hasCnpjValidationError()) {
+      if (fillAttempts < 2) {
+        cnpjFilled = false;
+        return;
+      }
+      notify("CND_ERROR", { message: "A Receita não aceitou o preenchimento automático do CNPJ." });
+      activeJob = null;
+      return;
+    }
     const action = activeJob.origem === "nova_emissao_assistida" ? "Emitir Certidão" : "Consultar Certidão";
     const button = findButton(action);
     if (!button) return;
@@ -128,6 +177,8 @@ chrome.runtime.onMessage.addListener((message) => {
     submittedPeriod = false;
     captchaNotified = false;
     selectedCertificate = null;
+    cnpjFilled = false;
+    fillAttempts = 0;
   }
   activeJob = message.job;
   runStep();

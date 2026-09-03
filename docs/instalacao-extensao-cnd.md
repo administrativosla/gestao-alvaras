@@ -1,6 +1,6 @@
 # Instalação da extensão CND Federal
 
-O Portal Controller disponibiliza o pacote `mjp-controller-cnd-federal-extension-v0.3.0.zip` no próprio painel da CND Federal. A instalação é feita uma única vez em cada computador autorizado.
+O Portal Controller disponibiliza o pacote `mjp-controller-cnd-federal-extension-v0.4.0.zip` no próprio painel da CND Federal. A instalação é feita uma única vez em cada computador autorizado.
 
 | Etapa | Ação |
 | --- | --- |
