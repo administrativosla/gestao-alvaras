@@ -76,6 +76,24 @@
 - [ ] Validar que o fluxo manual atual continue disponível como contingência.
 - [ ] Confirmar em teste real que o preenchimento caractere a caractere da extensão v0.4.0 satisfaz o validador interno da Receita.
 - [ ] Repetir o teste real após a correção e confirmar que a tela avança para consulta por período.
+- [x] Pausar a extensão Chrome como caminho principal até concluir a avaliação de APIs.
+- [x] Mapear APIs para CND Federal conjunta RFB/PGFN.
+- [x] Mapear APIs para certidão estadual tributária e dívida ativa por UF.
+- [x] Mapear APIs para CRF do FGTS e CNDT trabalhista.
+- [x] Mapear APIs para certidões municipais fiscais e mobiliárias por prioridade da carteira.
+- [x] Mapear serviços para certidões judiciais, falência, recuperação judicial, protestos e regularidade ambiental quando aplicáveis a empresas.
+- [x] Verificar se cada integração entrega PDF verificável, dados estruturados ou apenas status de consulta.
+- [x] Comparar cobertura geográfica, custo, franquia, SLA, autenticação, procuração e certificado digital.
+- [x] Identificar fornecedores que consolidam várias certidões em uma única API.
+- [x] Produzir matriz de prioridade para implantação no Portal Controller.
+- [x] Entregar relatório executivo sem contratar ou habilitar fornecedor antes da aprovação do usuário.
+- [x] Identificar módulos do SIEG relacionados a certidões, captura, armazenamento, validade e alertas.
+- [x] Verificar se o SIEG disponibiliza API, webhooks, exportação estruturada ou integração B2B documentada.
+- [x] Investigar como o SIEG trata CAPTCHA, indisponibilidade de órgãos e renovação automática.
+- [x] Comparar o fluxo do SIEG com fornecedores de API que mantenham o operador dentro do Portal Controller.
+- [x] Documentar quais características do SIEG devem ser reproduzidas e quais complexidades devem ser evitadas.
+- [x] Obter e documentar, para Serpro, Netrin e InfoSimples, SLA público ou informar formalmente sua indisponibilidade pública, franquia mínima, cobrança de falhas e limites operacionais.
+- [x] Classificar em matriz, por certidão prioritária e fornecedor, se o retorno documentado é PDF oficial, comprovante do fornecedor, URL de validação ou somente JSON/status.
 - [x] Verificar no portal da Receita se a consulta de certidões anteriormente emitidas exige CAPTCHA.
 - [x] Implementar a recuperação prioritária de certidão federal já emitida e ainda válida.
 - [x] Registrar no histórico se a versão veio de consulta anterior ou de nova emissão.
