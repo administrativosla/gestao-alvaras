@@ -34,6 +34,14 @@ describe("Quantificador DEC", () => {
     await caller.cancelarDestinacao({ id: 8, recebimentoId: 12 });
     expect(mocks.cancelarDestinacaoDec).toHaveBeenCalledWith({ id: 8, recebimentoId: 12 }, { id: 5, nome: "Operadora DEC" });
   });
+  it("permite classificar mensagens como enviadas a ativo ou arquivadas pelo operador", async () => {
+    const caller = decRouter.createCaller(contexto("operator"));
+    mocks.salvarDestinacaoDec.mockResolvedValue({ id: 9 });
+    await caller.salvarDestinacao({ recebimentoId: 12, tipo: "redirecionada_ativo", quantidade: 1, clienteId: 34 });
+    await caller.salvarDestinacao({ recebimentoId: 12, tipo: "arquivada_sem_acao", quantidade: 2 });
+    expect(mocks.salvarDestinacaoDec).toHaveBeenNthCalledWith(1, expect.objectContaining({ tipo: "redirecionada_ativo", clienteId: 34 }), { id: 5, nome: "Operadora DEC" });
+    expect(mocks.salvarDestinacaoDec).toHaveBeenNthCalledWith(2, expect.objectContaining({ tipo: "arquivada_sem_acao", quantidade: 2 }), { id: 5, nome: "Operadora DEC" });
+  });
   it("impede contagens negativas, fracionárias e datas inexistentes", async () => {
     const caller = decRouter.createCaller(contexto());
     await expect(caller.criarRecebimento({ categoriaId: 1, dia: "2026-02-30", quantidade: 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });

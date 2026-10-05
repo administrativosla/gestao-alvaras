@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { clientes, decAuditoria, decCategorias, decDestinacoes, decRecebimentos } from "../drizzle/schema";
 import { getDb } from "./db";
 
@@ -9,6 +9,11 @@ const indisponivel = () => new TRPCError({ code: "INTERNAL_SERVER_ERROR", messag
 const inexistente = (nome: string) => new TRPCError({ code: "NOT_FOUND", message: `${nome} não encontrado.` });
 const conflito = (mensagem: string) => new TRPCError({ code: "CONFLICT", message: mensagem });
 const data = (dia: string) => new Date(`${dia}T12:00:00Z`);
+export function filtroPeriodoRecebimentosDec(inicio: string, fim: string) {
+  // DATE no MySQL não tem hora. Usar meio-dia UTC nos limites excluía o primeiro
+  // dia, apesar de a data civil do recebimento estar salva corretamente.
+  return and(gte(decRecebimentos.dataRecebimento, sql`${inicio}`), lte(decRecebimentos.dataRecebimento, sql`${fim}`))!;
+}
 export function validarSaldoDec(total: number, jaDestinadas: number, novaQuantidade: number) {
   if (jaDestinadas + novaQuantidade > total) throw conflito(`Restam ${Math.max(0, total - jaDestinadas)} mensagens sem destinação neste lançamento.`);
 }
@@ -127,7 +132,7 @@ export async function listarClientesDec(pesquisa: string) {
 
 export async function listarRecebimentosDec(input: { inicio: string; fim: string; categoriaId?: number; operadorId?: number; clienteId?: number }) {
   const db = await getDb(); if (!db) throw indisponivel();
-  const condicoes = [gte(decRecebimentos.dataRecebimento, data(input.inicio)), lte(decRecebimentos.dataRecebimento, data(input.fim))];
+  const condicoes = [filtroPeriodoRecebimentosDec(input.inicio, input.fim)];
   if (input.categoriaId) condicoes.push(eq(decRecebimentos.categoriaId, input.categoriaId));
   if (input.operadorId) condicoes.push(eq(decRecebimentos.operadorId, input.operadorId));
   const recebimentos = await db.select({ lote: decRecebimentos, categoria: decCategorias.nome })
