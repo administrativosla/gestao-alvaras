@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowDownRight, ArrowUpRight, Archive, ClipboardList, Download, History, Inbox, Plus, Send, Tags, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import DecGraficosDestinacao from "@/components/DecGraficosDestinacao";
 
 type Tipo = "redirecionada_ativo" | "arquivada_sem_acao" | "arquivada_inativo";
 const tipos: Record<Tipo, string> = { redirecionada_ativo: "Redirecionada a cliente ativo", arquivada_sem_acao: "Arquivada sem encaminhamento", arquivada_inativo: "Arquivada — cliente inativo" };
@@ -112,6 +113,7 @@ export default function DecDashboard() {
         { label: "A classificar", value: somar(registros, "pendentes"), icon: ClipboardList, tone: "text-orange-700 bg-orange-50" },
       ]).map(item => <Card key={item.label}><CardContent className="p-5"><div className={`mb-4 inline-flex rounded-lg p-2 ${item.tone}`}><item.icon className="h-5 w-5" /></div><p className="text-sm text-muted-foreground">{item.label}</p><p className="mt-1 text-3xl font-semibold tabular-nums text-slate-950">{item.value.toLocaleString("pt-BR")}</p></CardContent></Card>)}
     </div>
+    {periodoValido && !error && <DecGraficosDestinacao registros={registros} carregando={isLoading} clienteFiltrado={!!clienteFiltro} />}
     <div className="grid gap-5 lg:grid-cols-3">
       <Card className="lg:col-span-2"><CardContent className="p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Volume por categoria</h2><Badge variant="outline">{porCategoria.length} categorias</Badge></div>{porCategoria.length ? <div className="space-y-4">{porCategoria.map(c => <div key={c.id}><div className="mb-1 flex justify-between text-sm"><span>{c.nome}</span><strong className="tabular-nums">{c.total}</strong></div><div className="h-2.5 rounded-full bg-slate-100"><div className="h-full rounded-full bg-teal-600" style={{ width: `${Math.max(2, c.total / Math.max(total, 1) * 100)}%` }} /></div></div>)}</div> : <p className="py-8 text-center text-sm text-muted-foreground">Nenhum recebimento neste período.</p>}</CardContent></Card>
       <Card><CardContent className="p-5"><h2 className="font-semibold">Comparativo do período</h2><p className="mt-5 text-xs text-muted-foreground">Período anterior ({dataLocal(passado.inicio).toLocaleDateString("pt-BR")} a {dataLocal(passado.fim).toLocaleDateString("pt-BR")})</p><p className="mt-1 text-3xl font-semibold tabular-nums">{totalAnterior}</p><p className="mt-3 flex items-center gap-1 text-sm">{diferenca === null ? "Sem base anterior para variação percentual" : <>{diferenca >= 0 ? <ArrowUpRight className="h-4 w-4 text-teal-700" /> : <ArrowDownRight className="h-4 w-4 text-orange-700" />}<strong>{diferenca > 0 ? "+" : ""}{diferenca}%</strong> em mensagens recebidas</>}</p></CardContent></Card>
