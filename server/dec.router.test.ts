@@ -28,6 +28,18 @@ describe("Quantificador DEC", () => {
     await caller.criarRecebimento({ categoriaId: 4, dia: "2026-10-05", quantidade: 10 });
     expect(mocks.criarRecebimentoDec).toHaveBeenCalledWith(expect.objectContaining({ quantidade: 10 }), { id: 5, nome: "Operadora DEC" });
   });
+  it("aceita classificações parciais no lançamento e recusa quantidade classificada acima do recebido", async () => {
+    const caller = decRouter.createCaller(contexto("operator"));
+    mocks.criarRecebimentoDec.mockResolvedValue({ id: 30 });
+    const input = { categoriaId: 4, dia: "2026-10-05", quantidade: 5, destinacoes: [
+      { tipo: "redirecionada_ativo" as const, quantidade: 2, clienteId: 34 },
+      { tipo: "encaminhada_time_interno" as const, quantidade: 1, observacao: "Equipe fiscal" },
+    ] };
+    await caller.criarRecebimento(input);
+    expect(mocks.criarRecebimentoDec).toHaveBeenCalledWith(input, { id: 5, nome: "Operadora DEC" });
+    await expect(caller.criarRecebimento({ ...input, quantidade: 2 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(mocks.criarRecebimentoDec).toHaveBeenCalledTimes(1);
+  });
   it("registra o responsável por cancelamentos em vez de apagar o histórico", async () => {
     const caller = decRouter.createCaller(contexto("operator"));
     mocks.cancelarDestinacaoDec.mockResolvedValue({ id: 8 });

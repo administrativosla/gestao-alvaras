@@ -23,6 +23,7 @@ import PermissoesPage from "./pages/PermissoesPage";
 import PortalController from "./pages/PortalController";
 import DecDashboard from "./pages/DecDashboard";
 import DecCategorias from "./pages/DecCategorias";
+import DecHistorico from "./pages/DecHistorico";
 
 function AlvarasRoutes() {
   return (
@@ -76,6 +77,9 @@ function AppRoutes() {
       </Route>
       <Route path="/dec/categorias">
         {() => <DashboardLayout area="dec"><DecCategorias /></DashboardLayout>}
+      </Route>
+      <Route path="/dec/historico">
+        {() => <DashboardLayout area="dec"><DecHistorico /></DashboardLayout>}
       </Route>
       <Route path="/dec">{() => <DashboardLayout area="dec"><DecDashboard /></DashboardLayout>}</Route>
       <Route path="/certidoes/:rest*">{() => <Redirect to="/dec" />}</Route>

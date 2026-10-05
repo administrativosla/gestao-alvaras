@@ -40,6 +40,7 @@ import {
   ArrowLeftRight,
   Inbox,
   Tags,
+  History,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -49,7 +50,7 @@ import { Badge } from "./ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import AcessoPendente from "@/pages/AcessoPendente";
-import { obterAreaAlternativa, ROTAS_CADASTRO_EMPRESARIAL } from "@shared/portal";
+import { obterAreaAlternativa, ROTA_HISTORICO_DEC, ROTAS_CADASTRO_EMPRESARIAL } from "@shared/portal";
 
 type UserRole = "operator" | "gestor" | "master";
 
@@ -162,6 +163,7 @@ function DashboardLayoutContent({
   const menuItems = (area === "dec" ? [
     { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
     { icon: Inbox, label: "Painel de mensagens", path: "/dec", minLevel: 1 },
+    { icon: History, label: "Histórico de lançamentos", path: ROTA_HISTORICO_DEC, minLevel: 1 },
     { icon: Tags, label: "Categorias", path: "/dec/categorias", minLevel: 2 },
     { icon: Users, label: "Empresas", path: ROTAS_CADASTRO_EMPRESARIAL.dec, minLevel: 1 },
   ] : [

@@ -10,6 +10,8 @@ const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data no formato
 const quantidade = z.number().int().positive().max(1_000_000);
 const id = z.number().int().positive();
 const obs = z.string().trim().max(1000).optional().nullable();
+const tipoDestino = z.enum(["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno"]);
+const novaDestinacao = z.object({ tipo: tipoDestino, quantidade, clienteId: id.optional().nullable(), observacao: obs });
 const operador = (user: { id: number; name: string | null }) => ({ id: user.id, nome: user.name || `Usuário ${user.id}` });
 
 export const decRouter = router({
@@ -23,13 +25,18 @@ export const decRouter = router({
       if (input.inicio > input.fim) throw new TRPCError({ code: "BAD_REQUEST", message: "Período inicial deve ser anterior ao final." });
       return listarRecebimentosDec(input);
     }),
-  criarRecebimento: protectedProcedure.input(z.object({ categoriaId: id, dia, quantidade, observacao: obs }))
+  criarRecebimento: protectedProcedure.input(z.object({ categoriaId: id, dia, quantidade, observacao: obs, destinacoes: z.array(novaDestinacao).max(100).optional() })
+    .superRefine((input, ctx) => {
+      if ((input.destinacoes ?? []).reduce((total, destino) => total + destino.quantidade, 0) > input.quantidade) {
+        ctx.addIssue({ code: "custom", message: "As destinações excedem o total de mensagens recebidas.", path: ["destinacoes"] });
+      }
+    }))
     .mutation(({ input, ctx }) => criarRecebimentoDec(input, operador(ctx.user))),
   corrigirRecebimento: protectedProcedure.input(z.object({ id, quantidade, observacao: obs }))
     .mutation(({ input, ctx }) => corrigirRecebimentoDec(input, operador(ctx.user))),
   salvarDestinacao: protectedProcedure.input(z.object({
     id: id.optional(), recebimentoId: id,
-    tipo: z.enum(["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno"]),
+    tipo: tipoDestino,
     quantidade, clienteId: id.optional().nullable(), observacao: obs,
   })).mutation(({ input, ctx }) => salvarDestinacaoDec(input, operador(ctx.user))),
   cancelarDestinacao: protectedProcedure.input(z.object({ id, recebimentoId: id }))

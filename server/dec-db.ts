@@ -4,6 +4,7 @@ import { clientes, decAuditoria, decCategorias, decDestinacoes, decRecebimentos 
 import { getDb } from "./db";
 
 export type TipoDestino = "redirecionada_ativo" | "arquivada_sem_acao" | "arquivada_inativo" | "encaminhada_time_interno";
+export type NovaDestinacaoDec = { tipo: TipoDestino; quantidade: number; clienteId?: number | null; observacao?: string | null };
 type Operador = { id: number; nome: string };
 const indisponivel = () => new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
 const inexistente = (nome: string) => new TRPCError({ code: "NOT_FOUND", message: `${nome} não encontrado.` });
@@ -62,14 +63,27 @@ export async function salvarCategoriaDec(input: { id?: number; nome: string; des
   });
 }
 
-export async function criarRecebimentoDec(input: { categoriaId: number; dia: string; quantidade: number; observacao?: string | null }, operador: Operador) {
+export async function criarRecebimentoDec(input: { categoriaId: number; dia: string; quantidade: number; observacao?: string | null; destinacoes?: NovaDestinacaoDec[] }, operador: Operador) {
   const db = await getDb(); if (!db) throw indisponivel();
   return db.transaction(async tx => {
     const [categoria] = await tx.select().from(decCategorias).where(eq(decCategorias.id, input.categoriaId)).limit(1);
     if (!categoria?.ativa) throw conflito("Selecione uma categoria ativa.");
+    const classificadas = (input.destinacoes ?? []).reduce((total, destino) => total + destino.quantidade, 0);
+    validarSaldoDec(input.quantidade, 0, classificadas);
+    // Confere todos os vínculos antes de gravar o lote; qualquer erro reverte a transação inteira.
+    const destinos = [];
+    for (const destino of input.destinacoes ?? []) {
+      const cliente = await validarCliente(tx, destino.tipo, destino.clienteId);
+      destinos.push({ ...destino, clienteId: cliente?.id ?? null, clienteNome: cliente?.razaoSocial ?? null });
+    }
     const valores = { categoriaId: input.categoriaId, dataRecebimento: data(input.dia), quantidade: input.quantidade, observacao: input.observacao ?? null, operadorId: operador.id, operadorNome: operador.nome };
     const [result] = await tx.insert(decRecebimentos).values(valores);
     await tx.insert(decAuditoria).values(auditor(operador, "recebimento", result.insertId, "criado", null, valores));
+    for (const destino of destinos) {
+      const valorDestino = { ...destino, observacao: destino.observacao ?? null, recebimentoId: result.insertId, operadorId: operador.id, operadorNome: operador.nome };
+      const [destinoResult] = await tx.insert(decDestinacoes).values(valorDestino);
+      await tx.insert(decAuditoria).values(auditor(operador, "destinacao", destinoResult.insertId, "criada", null, valorDestino));
+    }
     return { id: result.insertId };
   });
 }
@@ -91,6 +105,7 @@ export async function corrigirRecebimentoDec(input: { id: number; quantidade: nu
 
 async function validarCliente(tx: any, tipo: TipoDestino, clienteId?: number | null) {
   if (tipo === "redirecionada_ativo" && !clienteId) throw conflito("Indique o cliente ativo que recebeu a mensagem.");
+  if (tipo === "encaminhada_time_interno" && clienteId) throw conflito("Encaminhamento ao time interno não pode ser vinculado a um cliente.");
   if (!clienteId) return null;
   const [cliente] = await tx.select().from(clientes).where(eq(clientes.id, clienteId)).limit(1);
   if (!cliente) throw inexistente("Cliente");

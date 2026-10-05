@@ -13,6 +13,8 @@ export const PORTAL_AREAS = {
 
 export type PortalArea = keyof typeof PORTAL_AREAS;
 
+export const ROTA_HISTORICO_DEC = "/dec/historico";
+
 export const ROTAS_CADASTRO_EMPRESARIAL: Record<PortalArea, string> = {
   alvaras: "/clientes",
   dec: "/dec/clientes",
