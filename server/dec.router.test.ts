@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
-import { validarSaldoDec, validarStatusClienteDec } from "./dec-db";
+import { somarDestinacoesDec, validarSaldoDec, validarStatusClienteDec } from "./dec-db";
 
 const mocks = vi.hoisted(() => ({
   listarCategoriasDec: vi.fn(), salvarCategoriaDec: vi.fn(), listarClientesDec: vi.fn(),
@@ -42,6 +42,12 @@ describe("Quantificador DEC", () => {
     expect(mocks.salvarDestinacaoDec).toHaveBeenNthCalledWith(1, expect.objectContaining({ tipo: "redirecionada_ativo", clienteId: 34 }), { id: 5, nome: "Operadora DEC" });
     expect(mocks.salvarDestinacaoDec).toHaveBeenNthCalledWith(2, expect.objectContaining({ tipo: "arquivada_sem_acao", quantidade: 2 }), { id: 5, nome: "Operadora DEC" });
   });
+  it("permite encaminhar mensagem ao time interno sem exigir cliente", async () => {
+    const caller = decRouter.createCaller(contexto("operator"));
+    mocks.salvarDestinacaoDec.mockResolvedValue({ id: 10 });
+    await caller.salvarDestinacao({ recebimentoId: 12, tipo: "encaminhada_time_interno", quantidade: 3, observacao: "Equipe fiscal" });
+    expect(mocks.salvarDestinacaoDec).toHaveBeenCalledWith(expect.objectContaining({ tipo: "encaminhada_time_interno", quantidade: 3, observacao: "Equipe fiscal" }), { id: 5, nome: "Operadora DEC" });
+  });
   it("impede contagens negativas, fracionárias e datas inexistentes", async () => {
     const caller = decRouter.createCaller(contexto());
     await expect(caller.criarRecebimento({ categoriaId: 1, dia: "2026-02-30", quantidade: 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
@@ -59,5 +65,15 @@ describe("Quantificador DEC", () => {
     expect(() => validarStatusClienteDec("arquivada_inativo", { ativo: true })).toThrow(/inativo/);
     expect(() => validarStatusClienteDec("arquivada_inativo", { ativo: false })).not.toThrow();
     expect(() => validarStatusClienteDec("arquivada_inativo", null)).not.toThrow();
+    expect(() => validarStatusClienteDec("encaminhada_time_interno", null)).not.toThrow();
+    expect(() => validarStatusClienteDec("encaminhada_time_interno", { ativo: true })).toThrow(/não pode ser vinculado/);
+  });
+  it("conta encaminhamentos internos separadamente dos envios a clientes e dos arquivos", () => {
+    expect(somarDestinacoesDec([
+      { tipo: "encaminhada_time_interno", quantidade: 2 },
+      { tipo: "redirecionada_ativo", quantidade: 3 },
+      { tipo: "arquivada_sem_acao", quantidade: 4 },
+      { tipo: "arquivada_inativo", quantidade: 1 },
+    ])).toEqual({ redirecionadas: 3, internas: 2, semAcao: 4, inativos: 1 });
   });
 });

@@ -29,7 +29,7 @@ export const decRouter = router({
     .mutation(({ input, ctx }) => corrigirRecebimentoDec(input, operador(ctx.user))),
   salvarDestinacao: protectedProcedure.input(z.object({
     id: id.optional(), recebimentoId: id,
-    tipo: z.enum(["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo"]),
+    tipo: z.enum(["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno"]),
     quantidade, clienteId: id.optional().nullable(), observacao: obs,
   })).mutation(({ input, ctx }) => salvarDestinacaoDec(input, operador(ctx.user))),
   cancelarDestinacao: protectedProcedure.input(z.object({ id, recebimentoId: id }))

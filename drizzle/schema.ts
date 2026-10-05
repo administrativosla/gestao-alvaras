@@ -130,7 +130,7 @@ export const decRecebimentos = mysqlTable("dec_recebimentos", {
 export const decDestinacoes = mysqlTable("dec_destinacoes", {
   id: int("id").autoincrement().primaryKey(),
   recebimentoId: int("recebimentoId").notNull(),
-  tipo: mysqlEnum("tipo", ["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo"]).notNull(),
+  tipo: mysqlEnum("tipo", ["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno"]).notNull(),
   quantidade: int("quantidade").notNull(),
   clienteId: int("clienteId"),
   clienteNome: varchar("clienteNome", { length: 255 }),

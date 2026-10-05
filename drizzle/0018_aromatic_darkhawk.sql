@@ -1,0 +1,1 @@
+ALTER TABLE `dec_destinacoes` MODIFY COLUMN `tipo` enum('redirecionada_ativo','arquivada_sem_acao','arquivada_inativo','encaminhada_time_interno') NOT NULL;
