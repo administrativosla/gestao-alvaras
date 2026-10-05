@@ -55,13 +55,7 @@
 - [x] Exibir operador, resultado, observações e versão captada no histórico completo.
 - [x] Adicionar painel de consultas da CND Federal no Gestor de Certidões.
 - [x] Adicionar testes Vitest para auditoria, preservação de versões, permissões e validação dos anexos.
-- [ ] Validar o fluxo real em sessão autenticada, em desktop e celular, sem contornar o hCaptcha da Receita.
 - [x] Validar visualmente em desktop e celular o painel, o modal, o upload e a transição para emissão assistida sem persistir dados artificiais.
-- [ ] Remover a necessidade de o operador copiar e colar o CNPJ no fluxo normal da CND Federal.
-- [ ] Fazer a consulta de certidões anteriormente emitidas a partir de uma única ação no Portal Controller.
-- [ ] Capturar e armazenar automaticamente o PDF ou o resultado textual quando a consulta anterior permitir.
-- [ ] Detectar bloqueio, indisponibilidade ou exigência de hCaptcha e encaminhar somente esses casos para intervenção humana.
-- [ ] Definir a infraestrutura segura do executor de navegador sem depender de conectores pessoais do Manus em produção.
 - [x] Atualizar a interface para deixar explícito quando a operação foi automática ou assistida.
 - [x] Adicionar testes do orquestrador automático e dos estados de fallback.
 - [x] Definir mensagens identificadas por nonce e limitadas por origem entre o Portal Controller e a extensão Chrome.
@@ -73,9 +67,6 @@
 - [x] Enviar PDF, validade e resultado ao histórico da consulta correspondente no Portal Controller.
 - [x] Impedir que páginas não autorizadas enviem comandos à extensão.
 - [x] Empacotar a extensão para instalação local no Chrome e documentar a instalação única.
-- [ ] Validar que o fluxo manual atual continue disponível como contingência.
-- [ ] Confirmar em teste real que o preenchimento caractere a caractere da extensão v0.4.0 satisfaz o validador interno da Receita.
-- [ ] Repetir o teste real após a correção e confirmar que a tela avança para consulta por período.
 - [x] Pausar a extensão Chrome como caminho principal até concluir a avaliação de APIs.
 - [x] Mapear APIs para CND Federal conjunta RFB/PGFN.
 - [x] Mapear APIs para certidão estadual tributária e dívida ativa por UF.
@@ -98,3 +89,17 @@
 - [x] Implementar a recuperação prioritária de certidão federal já emitida e ainda válida.
 - [x] Registrar no histórico se a versão veio de consulta anterior ou de nova emissão.
 - [x] Encaminhar para emissão assistida somente quando não houver certidão válida recuperável.
+
+## Pendências arquivadas — Gestor de Certidões suspenso por decisão do usuário
+
+Estas nove atividades **não foram concluídas** e não fazem parte do escopo ativo do Quantificador DEC. Reabrir somente mediante novo pedido para retomar certidões:
+
+- Validar o fluxo real em sessão autenticada, em desktop e celular, sem contornar o hCaptcha da Receita.
+- Remover a necessidade de o operador copiar e colar o CNPJ no fluxo normal da CND Federal.
+- Fazer a consulta de certidões anteriormente emitidas a partir de uma única ação no Portal Controller.
+- Capturar e armazenar automaticamente o PDF ou o resultado textual quando a consulta anterior permitir.
+- Detectar bloqueio, indisponibilidade ou exigência de hCaptcha e encaminhar somente esses casos para intervenção humana.
+- Definir a infraestrutura segura do executor de navegador sem depender de conectores pessoais do Manus em produção.
+- Validar que o fluxo manual atual continue disponível como contingência.
+- Confirmar em teste real que o preenchimento caractere a caractere da extensão v0.4.0 satisfaz o validador interno da Receita.
+- Repetir o teste real após a correção e confirmar que a tela avança para consulta por período.
