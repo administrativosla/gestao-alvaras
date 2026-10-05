@@ -5,7 +5,7 @@ import { DashboardLayoutSkeleton } from "@/components/DashboardLayoutSkeleton";
 import { getLoginUrl } from "@/const";
 import AcessoPendente from "@/pages/AcessoPendente";
 import { PORTAL_AREAS } from "@shared/portal";
-import { ArrowRight, FileCheck2, Landmark, LogOut } from "lucide-react";
+import { ArrowRight, Inbox, Landmark, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 
 const areas = [
@@ -16,8 +16,8 @@ const areas = [
     iconClassName: "bg-blue-400/15 text-blue-200 ring-blue-300/20",
   },
   {
-    id: "certidoes" as const,
-    icon: FileCheck2,
+    id: "dec" as const,
+    icon: Inbox,
     className: "from-emerald-950 via-slate-900 to-teal-950",
     iconClassName: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/20",
   },

@@ -4,10 +4,10 @@ export const PORTAL_AREAS = {
     descricao: "Controle de licenças, vencimentos, renovações e conformidade cadastral.",
     rota: "/gestor-alvaras",
   },
-  certidoes: {
-    nome: "Gestor de Certidões",
-    descricao: "Consultas, documentos emitidos e resultados por empresa e esfera.",
-    rota: "/certidoes",
+  dec: {
+    nome: "Quantificador de Mensagens DEC",
+    descricao: "Mensagens recebidas, categorias e destinações aos clientes.",
+    rota: "/dec",
   },
 } as const;
 
@@ -15,16 +15,16 @@ export type PortalArea = keyof typeof PORTAL_AREAS;
 
 export const ROTAS_CADASTRO_EMPRESARIAL: Record<PortalArea, string> = {
   alvaras: "/clientes",
-  certidoes: "/certidoes/clientes",
+  dec: "/dec/clientes",
 };
 
 export function obterAreaAlternativa(areaAtual: PortalArea): { nome: string; rota: string } {
-  const destino = areaAtual === "alvaras" ? PORTAL_AREAS.certidoes : PORTAL_AREAS.alvaras;
+  const destino = areaAtual === "alvaras" ? PORTAL_AREAS.dec : PORTAL_AREAS.alvaras;
   return { nome: destino.nome, rota: destino.rota };
 }
 
 export function identificarAreaPortal(caminho: string): PortalArea | "hub" {
   if (caminho === "/") return "hub";
-  if (caminho.startsWith(PORTAL_AREAS.certidoes.rota)) return "certidoes";
+  if (caminho === PORTAL_AREAS.dec.rota || caminho.startsWith(`${PORTAL_AREAS.dec.rota}/`)) return "dec";
   return "alvaras";
 }

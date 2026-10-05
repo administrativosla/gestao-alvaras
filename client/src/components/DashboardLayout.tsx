@@ -38,6 +38,8 @@ import {
   Wrench,
   PanelsTopLeft,
   ArrowLeftRight,
+  Inbox,
+  Tags,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -74,7 +76,7 @@ const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
 
-export default function DashboardLayout({ children, area = "alvaras" }: { children: React.ReactNode; area?: "alvaras" | "certidoes" }) {
+export default function DashboardLayout({ children, area = "alvaras" }: { children: React.ReactNode; area?: "alvaras" | "dec" }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
@@ -97,9 +99,9 @@ export default function DashboardLayout({ children, area = "alvaras" }: { childr
               alt="MJP Controller"
               className="h-14 w-auto object-contain mb-1"
             />
-            <h1 className="text-xl font-semibold tracking-tight text-center">Gestor de Alvarás</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-center">{area === "dec" ? "Quantificador de Mensagens DEC" : "Gestor de Alvarás"}</h1>
             <p className="text-sm text-muted-foreground text-center">
-              Sistema de controle de alvarás de funcionamento. Faça login para continuar.
+              {area === "dec" ? "Acompanhe as mensagens recebidas e sua destinação. Faça login para continuar." : "Sistema de controle de alvarás de funcionamento. Faça login para continuar."}
             </p>
           </div>
           <Button
@@ -136,7 +138,7 @@ function DashboardLayoutContent({
 }: {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
-  area: "alvaras" | "certidoes";
+  area: "alvaras" | "dec";
 }) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -157,10 +159,11 @@ function DashboardLayoutContent({
   });
 
   // Menu dinâmico por nível
-  const menuItems = (area === "certidoes" ? [
+  const menuItems = (area === "dec" ? [
     { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
-    { icon: LayoutDashboard, label: "Visão geral", path: "/certidoes", minLevel: 1 },
-    { icon: Users, label: "Empresas", path: ROTAS_CADASTRO_EMPRESARIAL.certidoes, minLevel: 1 },
+    { icon: Inbox, label: "Painel de mensagens", path: "/dec", minLevel: 1 },
+    { icon: Tags, label: "Categorias", path: "/dec/categorias", minLevel: 2 },
+    { icon: Users, label: "Empresas", path: ROTAS_CADASTRO_EMPRESARIAL.dec, minLevel: 1 },
   ] : [
     { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
     { icon: LayoutDashboard, label: "Dashboard", path: "/gestor-alvaras", minLevel: 1 },
@@ -175,7 +178,7 @@ function DashboardLayoutContent({
   ]).filter((item) => userLevel >= item.minLevel);
 
   const activeMenuItem = menuItems.find(
-    (item) => item.path === location || (item.path !== "/" && location.startsWith(item.path))
+    (item) => item.path === location || (item.path !== "/" && item.path !== "/dec" && location.startsWith(item.path + "/"))
   );
 
   useEffect(() => {
@@ -226,7 +229,7 @@ function DashboardLayoutContent({
                     style={{ height: '55px', width: 'auto', objectFit: 'contain' }}
                   />
                   <span className="text-[10px] font-medium tracking-wide uppercase mt-0.5" style={{ color: '#ffffff', textAlign: 'center', width: '110px', display: 'block' }}>
-                    {area === "certidoes" ? "Gestor de Certidões" : "Gestor de Alvarás"}
+                    {area === "dec" ? "Quantificador DEC" : "Gestor de Alvarás"}
                   </span>
                 </div>
               )}
@@ -255,7 +258,7 @@ function DashboardLayoutContent({
             <SidebarMenu className="px-2 gap-0.5">
               {menuItems.map((item) => {
                 const isActive =
-                  location === item.path || (item.path !== "/" && location.startsWith(item.path + "/"));
+                  location === item.path || (item.path !== "/" && item.path !== "/dec" && location.startsWith(item.path + "/"));
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton

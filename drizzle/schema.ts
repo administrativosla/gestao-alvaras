@@ -103,6 +103,61 @@ export const clientes = mysqlTable("clientes", {
 export type Cliente = typeof clientes.$inferSelect;
 export type InsertCliente = typeof clientes.$inferInsert;
 
+// ─── Quantificador de mensagens recebidas via DEC ─────────────────────────────
+export const decCategorias = mysqlTable("dec_categorias", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 120 }).notNull().unique(),
+  descricao: varchar("descricao", { length: 500 }),
+  ativa: boolean("ativa").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const decRecebimentos = mysqlTable("dec_recebimentos", {
+  id: int("id").autoincrement().primaryKey(),
+  categoriaId: int("categoriaId").notNull(),
+  dataRecebimento: date("dataRecebimento").notNull(),
+  quantidade: int("quantidade").notNull(),
+  observacao: varchar("observacao", { length: 1000 }),
+  operadorId: int("operadorId").notNull(),
+  operadorNome: varchar("operadorNome", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  dataCategoriaIdx: index("dec_recebimentos_data_categoria_idx").on(table.dataRecebimento, table.categoriaId),
+}));
+
+export const decDestinacoes = mysqlTable("dec_destinacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  recebimentoId: int("recebimentoId").notNull(),
+  tipo: mysqlEnum("tipo", ["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo"]).notNull(),
+  quantidade: int("quantidade").notNull(),
+  clienteId: int("clienteId"),
+  clienteNome: varchar("clienteNome", { length: 255 }),
+  observacao: varchar("observacao", { length: 1000 }),
+  operadorId: int("operadorId").notNull(),
+  operadorNome: varchar("operadorNome", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  recebimentoIdx: index("dec_destinacoes_recebimento_idx").on(table.recebimentoId),
+  clienteIdx: index("dec_destinacoes_cliente_idx").on(table.clienteId),
+}));
+
+export const decAuditoria = mysqlTable("dec_auditoria", {
+  id: int("id").autoincrement().primaryKey(),
+  entidade: mysqlEnum("entidade", ["categoria", "recebimento", "destinacao"]).notNull(),
+  entidadeId: int("entidadeId").notNull(),
+  acao: varchar("acao", { length: 40 }).notNull(),
+  antes: text("antes"),
+  depois: text("depois"),
+  operadorId: int("operadorId").notNull(),
+  operadorNome: varchar("operadorNome", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  entidadeIdx: index("dec_auditoria_entidade_idx").on(table.entidade, table.entidadeId),
+}));
+
 // ─── Consultas de Certidões ──────────────────────────────────────────────────
 // Cada execução gera um registro imutável de auditoria; novas consultas nunca
 // sobrescrevem versões anteriores.

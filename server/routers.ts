@@ -12,6 +12,7 @@ import { usuariosRouter } from "./routers/usuarios";
 import { negociacoesRouter } from "./routers/negociacoes";
 import { adminRouter } from "./routers/admin";
 import { certidoesRouter } from "./routers/certidoes";
+import { decRouter } from "./routers/dec";
 
 export const appRouter = router({
   system: systemRouter,
@@ -33,6 +34,7 @@ export const appRouter = router({
   negociacoes: negociacoesRouter,
   admin: adminRouter,
   certidoes: certidoesRouter,
+  dec: decRouter,
   permissoes: permissoesRouter,
 });
 

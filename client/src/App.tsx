@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
@@ -21,7 +21,8 @@ import PipelineComercial from "./pages/PipelineComercial";
 import ManutencaoPage from "./pages/ManutencaoPage";
 import PermissoesPage from "./pages/PermissoesPage";
 import PortalController from "./pages/PortalController";
-import CertidoesDashboard from "./pages/CertidoesDashboard";
+import DecDashboard from "./pages/DecDashboard";
+import DecCategorias from "./pages/DecCategorias";
 
 function AlvarasRoutes() {
   return (
@@ -61,25 +62,24 @@ function AppRoutes() {
   return (
     <Switch>
       <Route path="/" component={PortalController} />
-      <Route path="/certidoes/clientes/novo">
-        {() => <DashboardLayout area="certidoes"><ClienteForm basePath="/certidoes/clientes" /></DashboardLayout>}
+      <Route path="/dec/clientes/novo">
+        {() => <DashboardLayout area="dec"><ClienteForm basePath="/dec/clientes" /></DashboardLayout>}
       </Route>
-      <Route path="/certidoes/clientes/:id/editar">
-        {(params) => <DashboardLayout area="certidoes"><ClienteForm id={Number(params.id)} basePath="/certidoes/clientes" /></DashboardLayout>}
+      <Route path="/dec/clientes/:id/editar">
+        {(params) => <DashboardLayout area="dec"><ClienteForm id={Number(params.id)} basePath="/dec/clientes" /></DashboardLayout>}
       </Route>
-      <Route path="/certidoes/clientes/:id">
-        {(params) => <DashboardLayout area="certidoes"><ClienteDetail id={Number(params.id)} basePath="/certidoes/clientes" /></DashboardLayout>}
+      <Route path="/dec/clientes/:id">
+        {(params) => <DashboardLayout area="dec"><ClienteDetail id={Number(params.id)} basePath="/dec/clientes" /></DashboardLayout>}
       </Route>
-      <Route path="/certidoes/clientes">
-        {() => <DashboardLayout area="certidoes"><ClientesList basePath="/certidoes/clientes" contexto="certidoes" /></DashboardLayout>}
+      <Route path="/dec/clientes">
+        {() => <DashboardLayout area="dec"><ClientesList basePath="/dec/clientes" contexto="dec" /></DashboardLayout>}
       </Route>
-      <Route path="/certidoes">
-        {() => (
-          <DashboardLayout area="certidoes">
-            <CertidoesDashboard />
-          </DashboardLayout>
-        )}
+      <Route path="/dec/categorias">
+        {() => <DashboardLayout area="dec"><DecCategorias /></DashboardLayout>}
       </Route>
+      <Route path="/dec">{() => <DashboardLayout area="dec"><DecDashboard /></DashboardLayout>}</Route>
+      <Route path="/certidoes/:rest*">{() => <Redirect to="/dec" />}</Route>
+      <Route path="/certidoes">{() => <Redirect to="/dec" />}</Route>
       <Route>{() => <AlvarasRoutes />}</Route>
     </Switch>
   );
