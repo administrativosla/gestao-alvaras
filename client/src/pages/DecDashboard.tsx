@@ -34,7 +34,7 @@ export default function DecDashboard() {
   const operadores = Array.from(new Map(todos.map(l => [l.operadorId, l.operadorNome])).entries());
   const registros = todos.filter(l => operadorFiltro === "all" || l.operadorId === Number(operadorFiltro));
   const anterioresFiltrados = anteriores.filter(l => operadorFiltro === "all" || l.operadorId === Number(operadorFiltro));
-  const somar = (lista: typeof registros, chave: "quantidade" | "redirecionadas" | "internas" | "semAcao" | "inativos" | "pendentes") => lista.reduce((total, linha) => total + linha[chave], 0);
+  const somar = (lista: typeof registros, chave: "quantidade" | "redirecionadas" | "varias" | "internas" | "semAcao" | "inativos" | "pendentes") => lista.reduce((total, linha) => total + linha[chave], 0);
   const total = somar(registros, "quantidade");
   const pendentes = somar(registros, "pendentes");
   const totalAnterior = somar(anterioresFiltrados, "quantidade");
@@ -64,16 +64,16 @@ export default function DecDashboard() {
     </CardContent></Card>
     {!periodoValido && <p className="text-sm text-destructive">A data inicial deve ser anterior à data final.</p>}
     {(error || erroCategorias) && <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">Não foi possível carregar os dados: {(error || erroCategorias)?.message}</p>}
-    {clienteFiltro && <p className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">Filtro de cliente: os totais abaixo incluem <strong>somente mensagens vinculadas a esse cliente</strong>, não os encaminhamentos internos nem todos os recebimentos dos mesmos lotes.</p>}
+    {clienteFiltro && <p className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">Filtro de cliente: os totais abaixo incluem <strong>somente mensagens vinculadas a esse cliente</strong>, não envios para Várias, encaminhamentos internos nem todos os recebimentos dos mesmos lotes.</p>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
       {([
         { label: clienteFiltro ? "Vinculadas ao cliente" : "Recebidas no período", value: total, icon: Inbox, tone: "text-teal-700 bg-teal-50" },
-        { label: "Redirecionadas", value: somar(registros, "redirecionadas"), icon: Send, tone: "text-blue-700 bg-blue-50" },
+        { label: "Enviadas a clientes", value: somar(registros, "redirecionadas"), detalhe: !clienteFiltro ? `${somar(registros, "varias")} em Várias (já incluídas)` : undefined, icon: Send, tone: "text-blue-700 bg-blue-50" },
         { label: "Time interno", value: somar(registros, "internas"), icon: UsersRound, tone: "text-indigo-700 bg-indigo-50" },
         { label: "Arquivadas sem ação", value: somar(registros, "semAcao"), icon: Archive, tone: "text-slate-700 bg-slate-100" },
         { label: "Clientes inativos", value: somar(registros, "inativos"), icon: Users, tone: "text-amber-700 bg-amber-50" },
         { label: "A classificar", value: pendentes, icon: ClipboardList, tone: "text-orange-700 bg-orange-50" },
-      ]).map(item => <Card key={item.label}><CardContent className="p-5"><div className={`mb-4 inline-flex rounded-lg p-2 ${item.tone}`}><item.icon className="h-5 w-5" /></div><p className="text-sm text-muted-foreground">{item.label}</p><p className="mt-1 text-3xl font-semibold tabular-nums text-slate-950">{item.value.toLocaleString("pt-BR")}</p></CardContent></Card>)}
+      ]).map(item => <Card key={item.label}><CardContent className="p-5"><div className={`mb-4 inline-flex rounded-lg p-2 ${item.tone}`}><item.icon className="h-5 w-5" /></div><p className="text-sm text-muted-foreground">{item.label}</p><p className="mt-1 text-3xl font-semibold tabular-nums text-slate-950">{item.value.toLocaleString("pt-BR")}</p>{"detalhe" in item && item.detalhe && <p className="mt-1 text-xs text-blue-700">{item.detalhe}</p>}</CardContent></Card>)}
     </div>
     {pendentes > 0 && <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900"><span><strong>{pendentes} mensagem(ns)</strong> ainda aguardam classificação no período.</span><Button size="sm" variant="outline" className="bg-white" onClick={() => navigate(rotaHistorico)}>Classificar no histórico</Button></div>}
     {periodoValido && !error && <DecGraficosDestinacao registros={registros} carregando={isLoading} clienteFiltrado={!!clienteFiltro} />}

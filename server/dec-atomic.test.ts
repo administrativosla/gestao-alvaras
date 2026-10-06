@@ -39,14 +39,16 @@ describe("lançamento DEC com classificação no mesmo envio", () => {
     const resultado = await criarRecebimentoDec({ ...base, destinacoes: [
       { tipo: "redirecionada_ativo", quantidade: 2, clienteId: 34 },
       { tipo: "encaminhada_time_interno", quantidade: 1, observacao: "Equipe fiscal" },
+      { tipo: "redirecionada_varias", quantidade: 1, observacao: "DEC Anatel a todas as empresas" },
     ] }, operador);
     expect(resultado).toEqual({ id: 50 });
     expect(gravados.filter(item => item.tabela === decRecebimentos)).toHaveLength(1);
     expect(gravados.filter(item => item.tabela === decDestinacoes).map(item => item.valores)).toMatchObject([
       { recebimentoId: 50, tipo: "redirecionada_ativo", quantidade: 2, clienteId: 34, clienteNome: "Cliente ativo", operadorId: 5 },
       { recebimentoId: 50, tipo: "encaminhada_time_interno", quantidade: 1, clienteId: null, operadorId: 5 },
+      { recebimentoId: 50, tipo: "redirecionada_varias", quantidade: 1, clienteId: null, clienteNome: null, operadorId: 5 },
     ]);
-    expect(gravados.filter(item => item.tabela === decAuditoria)).toHaveLength(3);
+    expect(gravados.filter(item => item.tabela === decAuditoria)).toHaveLength(4);
   });
   it("mantém lançamento sem destinação para classificação posterior", async () => {
     const gravados = bancoSimulado();
@@ -58,6 +60,7 @@ describe("lançamento DEC com classificação no mesmo envio", () => {
     const gravados = bancoSimulado();
     await expect(criarRecebimentoDec({ ...base, destinacoes: [{ tipo: "arquivada_sem_acao", quantidade: 6 }] }, operador)).rejects.toThrow(/Restam 5/);
     await expect(criarRecebimentoDec({ ...base, destinacoes: [{ tipo: "redirecionada_ativo", quantidade: 1 }] }, operador)).rejects.toThrow(/cliente ativo/);
+    await expect(criarRecebimentoDec({ ...base, destinacoes: [{ tipo: "redirecionada_varias", quantidade: 1, clienteId: 34 }] }, operador)).rejects.toThrow(/não pode ser vinculado/);
     expect(gravados).toHaveLength(0);
   });
   it("reverte o lote se a gravação de um destino falhar", async () => {

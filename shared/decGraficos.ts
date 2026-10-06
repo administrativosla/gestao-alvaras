@@ -3,6 +3,7 @@ export type RegistroDecGraficos = {
   categoria: string;
   quantidade: number;
   redirecionadas: number;
+  varias: number;
   internas: number;
   semAcao: number;
   inativos: number;
@@ -26,13 +27,14 @@ function percentuais(direcionadas: number, internas: number, arquivadas: number)
 
 export function resumirDestinacaoDec(registros: readonly RegistroDecGraficos[]) {
   const porCategoria = new Map<number, {
-    categoriaId: number; categoria: string; recebidas: number; direcionadas: number;
+    categoriaId: number; categoria: string; recebidas: number; direcionadas: number; varias: number;
     internas: number; arquivadasSemAcao: number; arquivadasInativos: number; arquivadas: number;
     classificadas: number; pendentes: number; percentualDirecionadas: number;
     percentualInternas: number; percentualArquivadas: number;
   }>();
   let recebidas = 0;
   let direcionadas = 0;
+  let varias = 0;
   let internas = 0;
   let arquivadasSemAcao = 0;
   let arquivadasInativos = 0;
@@ -41,18 +43,20 @@ export function resumirDestinacaoDec(registros: readonly RegistroDecGraficos[]) 
   for (const registro of registros) {
     recebidas += registro.quantidade;
     direcionadas += registro.redirecionadas;
+    varias += registro.varias;
     internas += registro.internas;
     arquivadasSemAcao += registro.semAcao;
     arquivadasInativos += registro.inativos;
     pendentes += registro.pendentes;
     const anterior = porCategoria.get(registro.categoriaId) ?? {
       categoriaId: registro.categoriaId, categoria: registro.categoria,
-      recebidas: 0, direcionadas: 0, internas: 0, arquivadasSemAcao: 0,
+      recebidas: 0, direcionadas: 0, varias: 0, internas: 0, arquivadasSemAcao: 0,
       arquivadasInativos: 0, arquivadas: 0, classificadas: 0,
       pendentes: 0, percentualDirecionadas: 0, percentualInternas: 0, percentualArquivadas: 0,
     };
     anterior.recebidas += registro.quantidade;
     anterior.direcionadas += registro.redirecionadas;
+    anterior.varias += registro.varias;
     anterior.internas += registro.internas;
     anterior.arquivadasSemAcao += registro.semAcao;
     anterior.arquivadasInativos += registro.inativos;
@@ -71,7 +75,7 @@ export function resumirDestinacaoDec(registros: readonly RegistroDecGraficos[]) 
   }).sort((a, b) => b.classificadas - a.classificadas || a.categoria.localeCompare(b.categoria, "pt-BR"));
 
   return {
-    recebidas, classificadas, direcionadas, internas, arquivadas, arquivadasSemAcao,
+    recebidas, classificadas, direcionadas, varias, internas, arquivadas, arquivadasSemAcao,
     arquivadasInativos, pendentes, percentualDirecionadas, percentualInternas,
     percentualArquivadas, categorias,
   };

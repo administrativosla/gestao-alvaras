@@ -60,6 +60,15 @@ describe("Quantificador DEC", () => {
     await caller.salvarDestinacao({ recebimentoId: 12, tipo: "encaminhada_time_interno", quantidade: 3, observacao: "Equipe fiscal" });
     expect(mocks.salvarDestinacaoDec).toHaveBeenCalledWith(expect.objectContaining({ tipo: "encaminhada_time_interno", quantidade: 3, observacao: "Equipe fiscal" }), { id: 5, nome: "Operadora DEC" });
   });
+  it("aceita Várias como envio em grupo sem exigir cliente individual", async () => {
+    const caller = decRouter.createCaller(contexto("operator"));
+    mocks.salvarDestinacaoDec.mockResolvedValue({ id: 11 });
+    await caller.salvarDestinacao({ recebimentoId: 12, tipo: "redirecionada_varias", quantidade: 1, observacao: "DEC Anatel para todas as empresas" });
+    expect(mocks.salvarDestinacaoDec).toHaveBeenCalledWith(expect.objectContaining({ tipo: "redirecionada_varias", quantidade: 1 }), { id: 5, nome: "Operadora DEC" });
+    mocks.criarRecebimentoDec.mockResolvedValue({ id: 12 });
+    await caller.criarRecebimento({ categoriaId: 2, dia: "2026-10-06", quantidade: 1, destinacoes: [{ tipo: "redirecionada_varias", quantidade: 1 }] });
+    expect(mocks.criarRecebimentoDec).toHaveBeenCalledWith(expect.objectContaining({ destinacoes: [{ tipo: "redirecionada_varias", quantidade: 1 }] }), { id: 5, nome: "Operadora DEC" });
+  });
   it("impede contagens negativas, fracionárias e datas inexistentes", async () => {
     const caller = decRouter.createCaller(contexto());
     await expect(caller.criarRecebimento({ categoriaId: 1, dia: "2026-02-30", quantidade: 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
@@ -79,13 +88,16 @@ describe("Quantificador DEC", () => {
     expect(() => validarStatusClienteDec("arquivada_inativo", null)).not.toThrow();
     expect(() => validarStatusClienteDec("encaminhada_time_interno", null)).not.toThrow();
     expect(() => validarStatusClienteDec("encaminhada_time_interno", { ativo: true })).toThrow(/não pode ser vinculado/);
+    expect(() => validarStatusClienteDec("redirecionada_varias", null)).not.toThrow();
+    expect(() => validarStatusClienteDec("redirecionada_varias", { ativo: true })).toThrow(/não pode ser vinculado/);
   });
   it("conta encaminhamentos internos separadamente dos envios a clientes e dos arquivos", () => {
     expect(somarDestinacoesDec([
       { tipo: "encaminhada_time_interno", quantidade: 2 },
       { tipo: "redirecionada_ativo", quantidade: 3 },
+      { tipo: "redirecionada_varias", quantidade: 1 },
       { tipo: "arquivada_sem_acao", quantidade: 4 },
       { tipo: "arquivada_inativo", quantidade: 1 },
-    ])).toEqual({ redirecionadas: 3, internas: 2, semAcao: 4, inativos: 1 });
+    ])).toEqual({ redirecionadas: 4, varias: 1, internas: 2, semAcao: 4, inativos: 1 });
   });
 });

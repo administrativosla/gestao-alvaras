@@ -10,7 +10,7 @@ const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data no formato
 const quantidade = z.number().int().positive().max(1_000_000);
 const id = z.number().int().positive();
 const obs = z.string().trim().max(1000).optional().nullable();
-const tipoDestino = z.enum(["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno"]);
+const tipoDestino = z.enum(["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno", "redirecionada_varias"]);
 const novaDestinacao = z.object({ tipo: tipoDestino, quantidade, clienteId: id.optional().nullable(), observacao: obs });
 const operador = (user: { id: number; name: string | null }) => ({ id: user.id, nome: user.name || `Usuário ${user.id}` });
 

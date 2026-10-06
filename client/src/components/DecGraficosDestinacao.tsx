@@ -14,7 +14,7 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
 }) {
   const resumo = resumirDestinacaoDec(registros);
   const dadosRosca = [
-    { nome: "Direcionadas a clientes ativos", quantidade: resumo.direcionadas, percentual: resumo.percentualDirecionadas, cor: CORES.direcionadas },
+    { nome: "Enviadas a clientes (inclui Várias)", quantidade: resumo.direcionadas, percentual: resumo.percentualDirecionadas, cor: CORES.direcionadas },
     { nome: "Encaminhadas ao time interno", quantidade: resumo.internas, percentual: resumo.percentualInternas, cor: CORES.internas },
     { nome: "Arquivadas", quantidade: resumo.arquivadas, percentual: resumo.percentualArquivadas, cor: CORES.arquivadas },
   ].filter(item => item.quantidade > 0);
@@ -35,7 +35,7 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
           <p className="mt-1 text-xs text-muted-foreground">{clienteFiltrado ? "Mensagens vinculadas ao cliente no período" : "Mensagens classificadas no período"}</p>
           {carregando ? <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">Carregando distribuição...</div> : resumo.classificadas === 0 ?
             <div className="flex h-60 flex-col items-center justify-center gap-3 text-center"><div className="h-28 w-28 rounded-full border-[16px] border-slate-100" aria-hidden="true" /><p className="max-w-64 text-sm text-muted-foreground">Ainda não há mensagens classificadas para gerar a proporção.</p></div> :
-            <div className="relative mx-auto h-60 max-w-xs" role="img" aria-label={`${resumo.percentualDirecionadas}% direcionadas a clientes ativos, ${resumo.percentualInternas}% encaminhadas ao time interno e ${resumo.percentualArquivadas}% arquivadas; ${numero(resumo.classificadas)} classificadas`}>
+            <div className="relative mx-auto h-60 max-w-xs" role="img" aria-label={`${resumo.percentualDirecionadas}% enviadas a clientes incluindo Várias, ${resumo.percentualInternas}% encaminhadas ao time interno e ${resumo.percentualArquivadas}% arquivadas; ${numero(resumo.classificadas)} classificadas`}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={dadosRosca} dataKey="quantidade" nameKey="nome" cx="50%" cy="50%" innerRadius={70} outerRadius={98} paddingAngle={dadosRosca.length > 1 ? 2 : 0} stroke="none" isAnimationActive={false}>
@@ -51,7 +51,8 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center" aria-hidden="true"><strong className="text-3xl tabular-nums text-slate-950">{numero(resumo.classificadas)}</strong><span className="text-xs text-muted-foreground">classificadas</span></div>
             </div>}
           <div className="mt-3 space-y-3 border-t border-slate-100 pt-4">
-            <div className="flex items-center justify-between gap-3 text-sm"><div className="flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: CORES.direcionadas }} /><Send className="h-4 w-4 text-teal-800" aria-hidden="true" /><span>Direcionadas a ativos</span></div><strong className="tabular-nums">{numero(resumo.direcionadas)} · {resumo.classificadas ? `${resumo.percentualDirecionadas}%` : "—"}</strong></div>
+            <div className="flex items-center justify-between gap-3 text-sm"><div className="flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: CORES.direcionadas }} /><Send className="h-4 w-4 text-teal-800" aria-hidden="true" /><span>Enviadas a clientes</span></div><strong className="tabular-nums">{numero(resumo.direcionadas)} · {resumo.classificadas ? `${resumo.percentualDirecionadas}%` : "—"}</strong></div>
+            <p className="pl-5 text-xs text-muted-foreground">{numero(resumo.varias)} em Várias (já incluídas acima)</p>
             <div className="flex items-center justify-between gap-3 text-sm"><div className="flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: CORES.internas }} /><UsersRound className="h-4 w-4 text-indigo-700" aria-hidden="true" /><span>Time interno</span></div><strong className="tabular-nums">{numero(resumo.internas)} · {resumo.classificadas ? `${resumo.percentualInternas}%` : "—"}</strong></div>
             <div className="flex items-center justify-between gap-3 text-sm"><div className="flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: CORES.arquivadas }} /><Archive className="h-4 w-4 text-amber-700" aria-hidden="true" /><span>Arquivadas</span></div><strong className="tabular-nums">{numero(resumo.arquivadas)} · {resumo.classificadas ? `${resumo.percentualArquivadas}%` : "—"}</strong></div>
             <p className="pl-5 text-xs text-muted-foreground">{numero(resumo.arquivadasSemAcao)} sem encaminhamento · {numero(resumo.arquivadasInativos)} de clientes inativos</p>
@@ -72,7 +73,7 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
                     <Tooltip cursor={{ fill: "#f8fafc" }} content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const item = payload[0].payload as (typeof dadosCategorias)[number];
-                      return <div className="max-w-64 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-lg"><strong className="break-words">{item.categoria}</strong><p className="mt-1 text-teal-800">Direcionadas: {numero(item.direcionadas)} ({item.percentualDirecionadas}%)</p><p className="text-indigo-700">Time interno: {numero(item.internas)} ({item.percentualInternas}%)</p><p className="text-amber-700">Arquivadas: {numero(item.arquivadas)} ({item.percentualArquivadas}%)</p><p className="mt-1 text-muted-foreground">{numero(item.pendentes)} ainda pendentes</p></div>;
+                      return <div className="max-w-64 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-lg"><strong className="break-words">{item.categoria}</strong><p className="mt-1 text-teal-800">Clientes: {numero(item.direcionadas)} ({item.percentualDirecionadas}%) · {numero(item.varias)} em Várias</p><p className="text-indigo-700">Time interno: {numero(item.internas)} ({item.percentualInternas}%)</p><p className="text-amber-700">Arquivadas: {numero(item.arquivadas)} ({item.percentualArquivadas}%)</p><p className="mt-1 text-muted-foreground">{numero(item.pendentes)} ainda pendentes</p></div>;
                     }} />
                     <Bar dataKey="percentualDirecionadas" stackId="destino" fill={CORES.direcionadas} isAnimationActive={false} />
                     <Bar dataKey="percentualInternas" stackId="destino" fill={CORES.internas} isAnimationActive={false} />
@@ -81,7 +82,7 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
                 </ResponsiveContainer>
               </div>
             </div>}
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-100 pt-4 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES.direcionadas }} /> Direcionadas</span><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES.internas }} /> Time interno</span><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES.arquivadas }} /> Arquivadas</span></div>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-100 pt-4 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES.direcionadas }} /> Clientes (inclui Várias)</span><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES.internas }} /> Time interno</span><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES.arquivadas }} /> Arquivadas</span></div>
           {resumo.categorias.length > dadosCategorias.length && <p className="mt-2 text-xs text-muted-foreground">Categorias sem mensagens classificadas não aparecem nas barras.</p>}
         </CardContent></Card>
       </div>

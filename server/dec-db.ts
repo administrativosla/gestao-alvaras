@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { clientes, decAuditoria, decCategorias, decDestinacoes, decRecebimentos } from "../drizzle/schema";
+import type { TipoDestinacaoDec } from "../shared/decTipos";
 import { getDb } from "./db";
 
-export type TipoDestino = "redirecionada_ativo" | "arquivada_sem_acao" | "arquivada_inativo" | "encaminhada_time_interno";
+export type TipoDestino = TipoDestinacaoDec;
 export type NovaDestinacaoDec = { tipo: TipoDestino; quantidade: number; clienteId?: number | null; observacao?: string | null };
 type Operador = { id: number; nome: string };
 const indisponivel = () => new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
@@ -22,11 +23,16 @@ export function validarStatusClienteDec(tipo: TipoDestino, cliente: { ativo: boo
   if (tipo === "redirecionada_ativo" && !cliente?.ativo) throw conflito("Para redirecionar, selecione um cliente ativo.");
   if (tipo === "arquivada_inativo" && cliente?.ativo) throw conflito("Para arquivar como inativo, selecione um cliente inativo.");
   if (tipo === "encaminhada_time_interno" && cliente) throw conflito("Encaminhamento ao time interno não pode ser vinculado a um cliente.");
+  if (tipo === "redirecionada_varias" && cliente) throw conflito("Envio para várias empresas não pode ser vinculado a um cliente individual.");
 }
 export function somarDestinacoesDec(destinacoes: readonly { tipo: TipoDestino; quantidade: number }[]) {
-  const totais = { redirecionadas: 0, internas: 0, semAcao: 0, inativos: 0 };
+  const totais = { redirecionadas: 0, varias: 0, internas: 0, semAcao: 0, inativos: 0 };
   for (const destino of destinacoes) {
     if (destino.tipo === "redirecionada_ativo") totais.redirecionadas += destino.quantidade;
+    else if (destino.tipo === "redirecionada_varias") {
+      totais.redirecionadas += destino.quantidade;
+      totais.varias += destino.quantidade;
+    }
     else if (destino.tipo === "encaminhada_time_interno") totais.internas += destino.quantidade;
     else if (destino.tipo === "arquivada_sem_acao") totais.semAcao += destino.quantidade;
     else totais.inativos += destino.quantidade;
@@ -106,6 +112,7 @@ export async function corrigirRecebimentoDec(input: { id: number; quantidade: nu
 async function validarCliente(tx: any, tipo: TipoDestino, clienteId?: number | null) {
   if (tipo === "redirecionada_ativo" && !clienteId) throw conflito("Indique o cliente ativo que recebeu a mensagem.");
   if (tipo === "encaminhada_time_interno" && clienteId) throw conflito("Encaminhamento ao time interno não pode ser vinculado a um cliente.");
+  if (tipo === "redirecionada_varias" && clienteId) throw conflito("Envio para várias empresas não pode ser vinculado a um cliente individual.");
   if (!clienteId) return null;
   const [cliente] = await tx.select().from(clientes).where(eq(clientes.id, clienteId)).limit(1);
   if (!cliente) throw inexistente("Cliente");
@@ -168,9 +175,9 @@ export async function listarRecebimentosDec(input: { inicio: string; fim: string
   const destinos = await db.select().from(decDestinacoes).where(inArray(decDestinacoes.recebimentoId, recebimentos.map(l => l.lote.id)));
   return recebimentos.map(({ lote, categoria }) => {
     const alocacoes = destinos.filter(d => d.quantidade > 0 && d.recebimentoId === lote.id && (!input.clienteId || d.clienteId === input.clienteId));
-    const { redirecionadas, internas, semAcao, inativos } = somarDestinacoesDec(alocacoes);
+    const { redirecionadas, varias, internas, semAcao, inativos } = somarDestinacoesDec(alocacoes);
     return { ...lote, categoria, quantidade: input.clienteId ? redirecionadas + semAcao + inativos : lote.quantidade,
-      destinacoes: alocacoes, redirecionadas, internas, semAcao, inativos,
+      destinacoes: alocacoes, redirecionadas, varias, internas, semAcao, inativos,
       pendentes: input.clienteId ? 0 : lote.quantidade - redirecionadas - internas - semAcao - inativos };
   }).filter(l => !input.clienteId || l.destinacoes.length > 0);
 }

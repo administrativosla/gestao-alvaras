@@ -134,6 +134,13 @@
       "when": 1791227286400,
       "tag": "0018_aromatic_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1791293484140,
+      "tag": "0019_high_living_lightning",
+      "breakpoints": true
     }
   ]
 }
