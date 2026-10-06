@@ -7,10 +7,11 @@ import { resumirDestinacaoDec, type RegistroDecGraficos } from "@shared/decGrafi
 const CORES = { direcionadas: "#0f766e", internas: "#6366f1", arquivadas: "#d97706" } as const;
 const numero = (valor: number) => valor.toLocaleString("pt-BR");
 
-export default function DecGraficosDestinacao({ registros, carregando, clienteFiltrado = false }: {
+export default function DecGraficosDestinacao({ registros, carregando, clienteFiltrado = false, modoRelatorio = false }: {
   registros: readonly RegistroDecGraficos[];
   carregando?: boolean;
   clienteFiltrado?: boolean;
+  modoRelatorio?: boolean;
 }) {
   const resumo = resumirDestinacaoDec(registros);
   const dadosRosca = [
@@ -29,7 +30,7 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
         </div>
         <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">{numero(resumo.pendentes)} a classificar</Badge>
       </div>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+      <div className={modoRelatorio ? "grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-5" : "grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]"}>
         <Card className="border-slate-200 shadow-sm"><CardContent className="p-5 sm:p-6">
           <h3 className="font-semibold">Distribuição das destinações</h3>
           <p className="mt-1 text-xs text-muted-foreground">{clienteFiltrado ? "Mensagens vinculadas ao cliente no período" : "Mensagens classificadas no período"}</p>
@@ -63,7 +64,7 @@ export default function DecGraficosDestinacao({ registros, carregando, clienteFi
           <p className="mt-1 text-xs text-muted-foreground">Cada barra representa 100% das classificadas naquela categoria.</p>
           {carregando ? <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">Carregando categorias...</div> : dadosCategorias.length === 0 ?
             <div className="flex h-60 items-center justify-center px-5 text-center text-sm text-muted-foreground">As categorias aparecerão aqui após a primeira destinação.</div> :
-            <div className="max-h-[380px] overflow-y-auto" role="img" aria-label={`Comparação por categoria para ${dadosCategorias.length} categoria(s) com mensagens classificadas`}>
+            <div className={modoRelatorio ? "overflow-visible" : "max-h-[380px] overflow-y-auto"} role="img" aria-label={`Comparação por categoria para ${dadosCategorias.length} categoria(s) com mensagens classificadas`}>
               <div style={{ height: Math.max(230, dadosCategorias.length * 51 + 44) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart layout="vertical" data={dadosCategorias} margin={{ top: 12, right: 16, left: 0, bottom: 2 }} barSize={23}>

@@ -24,6 +24,8 @@ import PortalController from "./pages/PortalController";
 import DecDashboard from "./pages/DecDashboard";
 import DecCategorias from "./pages/DecCategorias";
 import DecHistorico from "./pages/DecHistorico";
+import DecRelatorio from "./pages/DecRelatorio";
+import { ROTA_RELATORIO_DEC } from "@shared/portal";
 
 function AlvarasRoutes() {
   return (
@@ -80,6 +82,9 @@ function AppRoutes() {
       </Route>
       <Route path="/dec/historico">
         {() => <DashboardLayout area="dec"><DecHistorico /></DashboardLayout>}
+      </Route>
+      <Route path={ROTA_RELATORIO_DEC}>
+        {() => <DashboardLayout area="dec"><DecRelatorio /></DashboardLayout>}
       </Route>
       <Route path="/dec">{() => <DashboardLayout area="dec"><DecDashboard /></DashboardLayout>}</Route>
       <Route path="/certidoes/:rest*">{() => <Redirect to="/dec" />}</Route>

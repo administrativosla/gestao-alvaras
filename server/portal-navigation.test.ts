@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { identificarAreaPortal, obterAreaAlternativa, PORTAL_AREAS, ROTA_HISTORICO_DEC, ROTAS_CADASTRO_EMPRESARIAL } from "../shared/portal";
+import { identificarAreaPortal, obterAreaAlternativa, PORTAL_AREAS, ROTA_HISTORICO_DEC, ROTA_RELATORIO_DEC, ROTAS_CADASTRO_EMPRESARIAL } from "../shared/portal";
 
 describe("navegação do Portal Controller", () => {
   it("mantém rotas iniciais distintas para as duas ferramentas", () => {
@@ -13,6 +13,8 @@ describe("navegação do Portal Controller", () => {
     expect(identificarAreaPortal("/dec/categorias")).toBe("dec");
     expect(ROTA_HISTORICO_DEC).toBe("/dec/historico");
     expect(identificarAreaPortal(ROTA_HISTORICO_DEC)).toBe("dec");
+    expect(ROTA_RELATORIO_DEC).toBe("/dec/relatorio");
+    expect(identificarAreaPortal(ROTA_RELATORIO_DEC)).toBe("dec");
     expect(identificarAreaPortal("/clientes")).toBe("alvaras");
   });
   it("alterna diretamente entre Alvarás e DEC", () => {

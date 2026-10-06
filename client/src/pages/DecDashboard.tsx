@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownRight, ArrowUpRight, Archive, ClipboardList, History, Inbox, Plus, Send, Tags, Users, UsersRound } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Archive, ClipboardList, FileDown, History, Inbox, Plus, Send, Tags, Users, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import DecGraficosDestinacao from "@/components/DecGraficosDestinacao";
 import DecLancamentoDialog from "@/components/DecLancamentoDialog";
 import { dataExibida, dataLocal, diaLocal, periodoAnterior } from "@/lib/decFormat";
+import { linkRelatorioDec } from "@/lib/decRelatorio";
 import { ROTA_HISTORICO_DEC } from "@shared/portal";
 
 export default function DecDashboard() {
@@ -53,7 +54,7 @@ export default function DecDashboard() {
   return <div className="mx-auto max-w-7xl space-y-7 pb-10">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div><div className="mb-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[.16em] text-teal-700"><Inbox className="h-3.5 w-3.5" /> Operação DEC</div><h1 className="text-3xl font-semibold tracking-tight text-slate-950">Mensagens recebidas</h1><p className="mt-2 text-sm text-muted-foreground">Acompanhe recebimentos, classificações e pendências por categoria.</p></div>
-      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate(rotaHistorico)} className="gap-2"><History className="h-4 w-4" /> Histórico</Button><Button variant="outline" onClick={() => navigate("/dec/categorias")} className="gap-2"><Tags className="h-4 w-4" /> Categorias</Button><Button onClick={() => setLancamentoOpen(true)} className="gap-2 bg-teal-700 text-white hover:bg-teal-800"><Plus className="h-4 w-4" /> Lançar recebimentos</Button></div>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate(rotaHistorico)} className="gap-2"><History className="h-4 w-4" /> Histórico</Button><Button variant="outline" onClick={() => navigate("/dec/categorias")} className="gap-2"><Tags className="h-4 w-4" /> Categorias</Button><Button variant="outline" disabled={!periodoValido || isLoading || !!error || !!erroCategorias} onClick={() => window.open(linkRelatorioDec({ inicio, fim, categoriaId: filtroBase.categoriaId, operadorId: operadorFiltro === "all" ? undefined : Number(operadorFiltro), clienteId: clienteFiltro ?? undefined }), "_blank", "noopener,noreferrer")} className="gap-2"><FileDown className="h-4 w-4" /> Exportar PDF</Button><Button onClick={() => setLancamentoOpen(true)} className="gap-2 bg-teal-700 text-white hover:bg-teal-800"><Plus className="h-4 w-4" /> Lançar recebimentos</Button></div>
     </div>
     <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
       <div><Label htmlFor="dec-inicio" className="text-xs">De</Label><Input id="dec-inicio" type="date" value={inicio} onChange={e => setInicio(e.target.value)} /></div>
