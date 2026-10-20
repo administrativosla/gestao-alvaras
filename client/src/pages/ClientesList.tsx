@@ -73,7 +73,7 @@ type CoberturaStatus = "Sem Registro" | "Sem Alvará" | "Parcial" | "Coberto";
 
 interface ClientesListProps {
   basePath?: string;
-  contexto?: "alvaras" | "dec";
+  contexto?: "alvaras" | "dec" | "pendencias";
 }
 
 function CnpjCopyCell({ cnpj }: { cnpj: string }) {
@@ -307,12 +307,14 @@ export default function ClientesList({ basePath = "/clientes", contexto = "alvar
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {contexto === "dec" ? "Cadastro empresarial" : "Clientes"}
+            {contexto === "dec" ? "Cadastro empresarial" : contexto === "pendencias" ? "Clientes compartilhados" : "Clientes"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {contexto === "dec"
               ? "Base única compartilhada com o Gestor de Alvarás"
-              : "Gerencie os clientes e acompanhe a cobertura de alvarás"}
+              : contexto === "pendencias"
+                ? "Base central compartilhada com os gestores de Alvarás e DEC"
+                : "Gerencie os clientes e acompanhe a cobertura de alvarás"}
           </p>
         </div>
         <div className="flex gap-2">

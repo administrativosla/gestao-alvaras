@@ -5,7 +5,7 @@ import { DashboardLayoutSkeleton } from "@/components/DashboardLayoutSkeleton";
 import { getLoginUrl } from "@/const";
 import AcessoPendente from "@/pages/AcessoPendente";
 import { PORTAL_AREAS } from "@shared/portal";
-import { ArrowRight, Inbox, Landmark, LogOut } from "lucide-react";
+import { ArrowRight, FileCheck2, Inbox, Landmark, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 
 const areas = [
@@ -20,6 +20,12 @@ const areas = [
     icon: Inbox,
     className: "from-emerald-950 via-slate-900 to-teal-950",
     iconClassName: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/20",
+  },
+  {
+    id: "pendencias" as const,
+    icon: FileCheck2,
+    className: "from-violet-950 via-slate-900 to-fuchsia-950",
+    iconClassName: "bg-violet-400/15 text-violet-200 ring-violet-300/20",
   },
 ];
 
@@ -79,7 +85,7 @@ export default function PortalController() {
           Escolha a ferramenta desejada
         </h1>
 
-        <section className="mt-9 grid gap-6 lg:grid-cols-2">
+        <section className="mt-9 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {areas.map((area) => {
             const conteudo = PORTAL_AREAS[area.id];
             const Icon = area.icon;

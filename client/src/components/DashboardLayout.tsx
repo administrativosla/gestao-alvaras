@@ -41,6 +41,9 @@ import {
   Inbox,
   Tags,
   History,
+  FileCheck2,
+  ListTodo,
+  CircleAlert,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -50,7 +53,7 @@ import { Badge } from "./ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import AcessoPendente from "@/pages/AcessoPendente";
-import { obterAreaAlternativa, ROTA_HISTORICO_DEC, ROTAS_CADASTRO_EMPRESARIAL } from "@shared/portal";
+import { ROTA_HISTORICO_DEC, ROTAS_CADASTRO_EMPRESARIAL } from "@shared/portal";
 
 type UserRole = "operator" | "gestor" | "master";
 
@@ -77,7 +80,7 @@ const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
 
-export default function DashboardLayout({ children, area = "alvaras" }: { children: React.ReactNode; area?: "alvaras" | "dec" }) {
+export default function DashboardLayout({ children, area = "alvaras" }: { children: React.ReactNode; area?: "alvaras" | "dec" | "pendencias" }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
@@ -100,9 +103,9 @@ export default function DashboardLayout({ children, area = "alvaras" }: { childr
               alt="MJP Controller"
               className="h-14 w-auto object-contain mb-1"
             />
-            <h1 className="text-xl font-semibold tracking-tight text-center">{area === "dec" ? "Quantificador de Mensagens DEC" : "Gestor de Alvarás"}</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-center">{area === "dec" ? "Quantificador de Mensagens DEC" : area === "pendencias" ? "Gestor de Pendências" : "Gestor de Alvarás"}</h1>
             <p className="text-sm text-muted-foreground text-center">
-              {area === "dec" ? "Acompanhe as mensagens recebidas e sua destinação. Faça login para continuar." : "Sistema de controle de alvarás de funcionamento. Faça login para continuar."}
+              {area === "dec" ? "Acompanhe as mensagens recebidas e sua destinação. Faça login para continuar." : area === "pendencias" ? "Acompanhe pendências e assinaturas de contratos. Faça login para continuar." : "Sistema de controle de alvarás de funcionamento. Faça login para continuar."}
             </p>
           </div>
           <Button
@@ -139,7 +142,7 @@ function DashboardLayoutContent({
 }: {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
-  area: "alvaras" | "dec";
+  area: "alvaras" | "dec" | "pendencias";
 }) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -151,7 +154,6 @@ function DashboardLayoutContent({
 
   const userRole = ((user as any)?.role ?? "operator") as UserRole;
   const userLevel = ROLE_LEVEL[userRole] ?? 1;
-  const areaAlternativa = obterAreaAlternativa(area);
 
   // Badge de usuários pendentes (somente master)
   const { data: pendentes } = trpc.usuarios.contarPendentes.useQuery(undefined, {
@@ -166,6 +168,13 @@ function DashboardLayoutContent({
     { icon: History, label: "Histórico de lançamentos", path: ROTA_HISTORICO_DEC, minLevel: 1 },
     { icon: Tags, label: "Categorias", path: "/dec/categorias", minLevel: 2 },
     { icon: Users, label: "Empresas", path: ROTAS_CADASTRO_EMPRESARIAL.dec, minLevel: 1 },
+  ] : area === "pendencias" ? [
+    { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
+    { icon: FileCheck2, label: "Painel", path: "/pendencias-contrato", minLevel: 1 },
+    { icon: ListTodo, label: "Pendências", path: "/pendencias-contrato/lista", minLevel: 1 },
+    { icon: Upload, label: "Importar", path: "/pendencias-contrato/importar", minLevel: 2 },
+    { icon: CircleAlert, label: "Exceções", path: "/pendencias-contrato/excecoes", minLevel: 2 },
+    { icon: Users, label: "Clientes", path: ROTAS_CADASTRO_EMPRESARIAL.pendencias, minLevel: 1 },
   ] : [
     { icon: PanelsTopLeft, label: "Portal Controller", path: "/", minLevel: 1 },
     { icon: LayoutDashboard, label: "Dashboard", path: "/gestor-alvaras", minLevel: 1 },
@@ -180,7 +189,7 @@ function DashboardLayoutContent({
   ]).filter((item) => userLevel >= item.minLevel);
 
   const activeMenuItem = menuItems.find(
-    (item) => item.path === location || (item.path !== "/" && item.path !== "/dec" && location.startsWith(item.path + "/"))
+    (item) => item.path === location || (item.path !== "/" && item.path !== "/dec" && item.path !== "/pendencias-contrato" && location.startsWith(item.path + "/"))
   );
 
   useEffect(() => {
@@ -231,7 +240,7 @@ function DashboardLayoutContent({
                     style={{ height: '55px', width: 'auto', objectFit: 'contain' }}
                   />
                   <span className="text-[10px] font-medium tracking-wide uppercase mt-0.5" style={{ color: '#ffffff', textAlign: 'center', width: '110px', display: 'block' }}>
-                    {area === "dec" ? "Quantificador DEC" : "Gestor de Alvarás"}
+                    {area === "dec" ? "Quantificador DEC" : area === "pendencias" ? "Gestor de Pendências" : "Gestor de Alvarás"}
                   </span>
                 </div>
               )}
@@ -249,18 +258,18 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0 pt-2">
             <div className="px-2 pb-2">
               <SidebarMenuButton
-                onClick={() => setLocation(areaAlternativa.rota)}
-                tooltip={`Ir para ${areaAlternativa.nome}`}
+                onClick={() => setLocation("/")}
+                tooltip="Ir para o Portal Controller"
                 className="h-10 border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 <ArrowLeftRight className="h-4 w-4 shrink-0 text-sidebar-primary" />
-                <span className="truncate">Ir para {areaAlternativa.nome.replace("Gestor de ", "")}</span>
+                <span className="truncate">Ir para Portal Controller</span>
               </SidebarMenuButton>
             </div>
             <SidebarMenu className="px-2 gap-0.5">
               {menuItems.map((item) => {
                 const isActive =
-                  location === item.path || (item.path !== "/" && item.path !== "/dec" && location.startsWith(item.path + "/"));
+                  location === item.path || (item.path !== "/" && item.path !== "/dec" && item.path !== "/pendencias-contrato" && location.startsWith(item.path + "/"));
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
@@ -346,12 +355,12 @@ function DashboardLayoutContent({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setLocation(areaAlternativa.rota)}
+              onClick={() => setLocation("/")}
               className="h-8 gap-1.5 px-2.5 text-xs"
-              aria-label={`Ir para ${areaAlternativa.nome}`}
+              aria-label="Ir para o Portal Controller"
             >
               <ArrowLeftRight className="h-3.5 w-3.5" />
-              {areaAlternativa.nome.replace("Gestor de ", "")}
+              Portal Controller
             </Button>
           </div>
         )}

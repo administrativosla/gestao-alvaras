@@ -559,3 +559,14 @@
 - [x] Conciliar registros por CNPJ com a base atual e definir campos seguros para atualização
 - [x] Aplicar atualizações sem exclusão automática, preservando dados operacionais do portal
 - [x] Gerar relatório de atualização com alterações, divergências e indicadores relevantes
+
+## V3.37 — Gestor de Pendências de Contrato
+
+- [x] Validar escopo, status de origem e conciliação da planilha Controle de Pendências CPS
+- [x] Criar estruturas de pendências contratuais e histórico de abordagens com justificativa obrigatória
+- [x] Implementar importação e classificação por contrato de prestação de serviço ou coworking
+- [x] Implementar atualização de status, transição automática de 48 horas e permissões
+- [x] Criar painel operacional com indicadores, filtros e acompanhamento de prazos
+- [x] Importar o status de origem "ASSINADO" como "Assinado parcial" e manter exceções de CNPJ gerenciáveis
+- [x] Separar o Gestor de Pendências como terceira área do Portal Controller, mantendo a base de clientes compartilhada
+- [x] Validar fluxos, gerar relatório de implantação e registrar checkpoint

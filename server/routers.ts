@@ -13,6 +13,7 @@ import { negociacoesRouter } from "./routers/negociacoes";
 import { adminRouter } from "./routers/admin";
 import { certidoesRouter } from "./routers/certidoes";
 import { decRouter } from "./routers/dec";
+import { pendenciasContratoRouter } from "./routers/pendenciasContrato";
 
 export const appRouter = router({
   system: systemRouter,
@@ -35,6 +36,7 @@ export const appRouter = router({
   admin: adminRouter,
   certidoes: certidoesRouter,
   dec: decRouter,
+  pendenciasContrato: pendenciasContratoRouter,
   permissoes: permissoesRouter,
 });
 

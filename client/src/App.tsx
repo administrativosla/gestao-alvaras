@@ -25,7 +25,9 @@ import DecDashboard from "./pages/DecDashboard";
 import DecCategorias from "./pages/DecCategorias";
 import DecHistorico from "./pages/DecHistorico";
 import DecRelatorio from "./pages/DecRelatorio";
-import { ROTA_RELATORIO_DEC } from "@shared/portal";
+import PendenciasContrato from "./pages/PendenciasContrato";
+import PendenciaContratoDetail from "./pages/PendenciaContratoDetail";
+import { ROTA_PENDENCIAS_CONTRATO, ROTA_RELATORIO_DEC } from "@shared/portal";
 
 function AlvarasRoutes() {
   return (
@@ -61,6 +63,43 @@ function AlvarasRoutes() {
   );
 }
 
+function PendenciasRoutes() {
+  return (
+    <DashboardLayout area="pendencias">
+      <Switch>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/clientes/novo`}>
+          {() => <ClienteForm basePath={`${ROTA_PENDENCIAS_CONTRATO}/clientes`} />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/clientes/:id/editar`}>
+          {(params) => <ClienteForm id={Number(params.id)} basePath={`${ROTA_PENDENCIAS_CONTRATO}/clientes`} />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/clientes/:id`}>
+          {(params) => <ClienteDetail id={Number(params.id)} basePath={`${ROTA_PENDENCIAS_CONTRATO}/clientes`} />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/clientes`}>
+          {() => <ClientesList basePath={`${ROTA_PENDENCIAS_CONTRATO}/clientes`} contexto="pendencias" />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/importar`}>
+          {() => <PendenciasContrato view="importar" />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/excecoes`}>
+          {() => <PendenciasContrato view="excecoes" />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/lista`}>
+          {() => <PendenciasContrato view="lista" />}
+        </Route>
+        <Route path={`${ROTA_PENDENCIAS_CONTRATO}/:id`}>
+          {(params) => <PendenciaContratoDetail id={Number(params.id)} />}
+        </Route>
+        <Route path={ROTA_PENDENCIAS_CONTRATO}>
+          {() => <PendenciasContrato view="dashboard" />}
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+    </DashboardLayout>
+  );
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -87,6 +126,8 @@ function AppRoutes() {
         {() => <DashboardLayout area="dec"><DecRelatorio /></DashboardLayout>}
       </Route>
       <Route path="/dec">{() => <DashboardLayout area="dec"><DecDashboard /></DashboardLayout>}</Route>
+      <Route path={`${ROTA_PENDENCIAS_CONTRATO}/:rest*`}>{() => <PendenciasRoutes />}</Route>
+      <Route path={ROTA_PENDENCIAS_CONTRATO}>{() => <PendenciasRoutes />}</Route>
       <Route path="/certidoes/:rest*">{() => <Redirect to="/dec" />}</Route>
       <Route path="/certidoes">{() => <Redirect to="/dec" />}</Route>
       <Route>{() => <AlvarasRoutes />}</Route>

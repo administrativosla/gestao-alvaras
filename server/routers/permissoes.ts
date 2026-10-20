@@ -13,6 +13,7 @@ export const MODULOS_LABELS: Record<string, string> = {
   exportacao: "Exportação",
   alertas: "Alertas",
   manutencao: "Manutenção",
+  pendencias_contrato: "Pendências de contrato",
 };
 
 export const ACOES_LABELS: Record<string, string> = {
@@ -32,6 +33,9 @@ export const ACOES_LABELS: Record<string, string> = {
   gerenciar_emails: "Gerenciar e-mails de alerta",
   acessar_painel: "Acessar painel de manutenção",
   reprocessar_pdfs: "Reprocessar PDFs / Revalidar todos",
+  importar: "Importar planilha de pendências",
+  atualizar_status: "Atualizar status e registrar abordagem",
+  gerenciar_excecoes: "Vincular ou excluir exceções de importação",
 };
 
 export const permissoesRouter = router({

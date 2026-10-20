@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { alertasHeartbeatHandler } from "../handlers/alertasHeartbeat";
 import { relatorioHeartbeatHandler } from "../handlers/relatorioHeartbeat";
+import { pendenciasContratoHeartbeatHandler } from "../handlers/pendenciasContratoHeartbeat";
 import { storagePut } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -42,6 +43,7 @@ async function startServer() {
   // Scheduled heartbeat handlers
   app.post("/api/scheduled/alertas-vencimento", alertasHeartbeatHandler);
   app.post("/api/scheduled/relatorio-diario", relatorioHeartbeatHandler);
+  app.post("/api/scheduled/pendencias-contrato", pendenciasContratoHeartbeatHandler);
 
   // Endpoint de upload de PDF para armazenamento persistente no storage S3
   app.post("/api/upload-pdf", async (req, res) => {

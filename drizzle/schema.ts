@@ -446,6 +446,126 @@ export const negociacoesHistorico = mysqlTable("negociacoes_historico", {
 export type NegociacaoHistorico = typeof negociacoesHistorico.$inferSelect;
 export type InsertNegociacaoHistorico = typeof negociacoesHistorico.$inferInsert;
 
+// ─── Pendências de Contrato ───────────────────────────────────────────────────
+// Controle independente das pendências de assinatura. Um cliente pode ter uma
+// pendência para prestação de serviço e outra para coworking ao mesmo tempo.
+export const PENDENCIA_CONTRATO_TIPOS = ["prestacao_servico", "coworking"] as const;
+export const PENDENCIA_CONTRATO_STATUS = [
+  "sem_contato",
+  "cliente_contatado",
+  "contato_sem_retorno",
+  "fase_ajustes",
+  "aprovacao_minuta",
+  "links_enviados",
+  "assinado_parcial",
+  "assinado_total",
+] as const;
+
+export type PendenciaContratoTipo = (typeof PENDENCIA_CONTRATO_TIPOS)[number];
+export type PendenciaContratoStatus = (typeof PENDENCIA_CONTRATO_STATUS)[number];
+
+export const PENDENCIA_CONTRATO_TIPO_LABELS: Record<PendenciaContratoTipo, string> = {
+  prestacao_servico: "Contrato de prestação de serviço",
+  coworking: "Contrato de coworking",
+};
+
+export const PENDENCIA_CONTRATO_STATUS_LABELS: Record<PendenciaContratoStatus, string> = {
+  sem_contato: "Sem contato",
+  cliente_contatado: "Cliente contatado",
+  contato_sem_retorno: "Contato sem retorno",
+  fase_ajustes: "Fase de ajustes",
+  aprovacao_minuta: "Aprovação de minuta",
+  links_enviados: "Links enviados",
+  assinado_parcial: "Assinado parcial",
+  assinado_total: "Assinado total",
+};
+
+export const pendenciasContrato = mysqlTable("pendencias_contrato", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  tipo: mysqlEnum("tipo", ["prestacao_servico", "coworking"]).notNull(),
+  status: mysqlEnum("status", [
+    "sem_contato",
+    "cliente_contatado",
+    "contato_sem_retorno",
+    "fase_ajustes",
+    "aprovacao_minuta",
+    "links_enviados",
+    "assinado_parcial",
+    "assinado_total",
+  ]).default("sem_contato").notNull(),
+  descricaoOrigem: varchar("descricaoOrigem", { length: 500 }),
+  arquivoOrigem: varchar("arquivoOrigem", { length: 255 }),
+  linhaOrigem: int("linhaOrigem"),
+  contatadoEm: timestamp("contatadoEm"),
+  retornoAte: timestamp("retornoAte"),
+  ativa: boolean("ativa").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  clienteTipoUnique: uniqueIndex("pendencias_contrato_cliente_tipo_uq").on(table.clienteId, table.tipo),
+  statusIdx: index("pendencias_contrato_status_idx").on(table.status),
+  retornoIdx: index("pendencias_contrato_retorno_idx").on(table.retornoAte),
+}));
+
+export type PendenciaContrato = typeof pendenciasContrato.$inferSelect;
+export type InsertPendenciaContrato = typeof pendenciasContrato.$inferInsert;
+
+export const pendenciasContratoHistorico = mysqlTable("pendencias_contrato_historico", {
+  id: int("id").autoincrement().primaryKey(),
+  pendenciaId: int("pendenciaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  statusAnterior: varchar("statusAnterior", { length: 32 }),
+  statusNovo: varchar("statusNovo", { length: 32 }).notNull(),
+  tipoEvento: mysqlEnum("tipoEvento", ["importacao", "manual", "automatico"]).notNull(),
+  justificativa: text("justificativa"),
+  usuarioId: int("usuarioId"),
+  usuarioNome: varchar("usuarioNome", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  pendenciaIdx: index("pendencias_contrato_historico_pendencia_idx").on(table.pendenciaId),
+  clienteIdx: index("pendencias_contrato_historico_cliente_idx").on(table.clienteId),
+}));
+
+export type PendenciaContratoHistorico = typeof pendenciasContratoHistorico.$inferSelect;
+export type InsertPendenciaContratoHistorico = typeof pendenciasContratoHistorico.$inferInsert;
+
+// Linhas que não puderam ser vinculadas com segurança a um cliente existente.
+// Permanecem editáveis para posterior vinculação ou exclusão sem perder a origem.
+export const pendenciasContratoExcecoes = mysqlTable("pendencias_contrato_excecoes", {
+  id: int("id").autoincrement().primaryKey(),
+  documento: varchar("documento", { length: 18 }).notNull(),
+  nomeClienteOrigem: varchar("nomeClienteOrigem", { length: 255 }).notNull(),
+  descricaoOrigem: varchar("descricaoOrigem", { length: 500 }),
+  tipoSugerido: mysqlEnum("tipoSugerido", ["prestacao_servico", "coworking"]).notNull(),
+  statusSugerido: mysqlEnum("statusSugerido", [
+    "sem_contato",
+    "cliente_contatado",
+    "contato_sem_retorno",
+    "fase_ajustes",
+    "aprovacao_minuta",
+    "links_enviados",
+    "assinado_parcial",
+    "assinado_total",
+  ]).default("sem_contato").notNull(),
+  statusOrigem: varchar("statusOrigem", { length: 500 }),
+  motivo: varchar("motivo", { length: 500 }).notNull(),
+  situacao: mysqlEnum("situacao", ["pendente", "excluida", "vinculada"]).default("pendente").notNull(),
+  clienteId: int("clienteId"),
+  justificativaResolucao: text("justificativaResolucao"),
+  arquivoOrigem: varchar("arquivoOrigem", { length: 255 }).notNull(),
+  linhaOrigem: int("linhaOrigem").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  situacaoIdx: index("pendencias_contrato_excecoes_situacao_idx").on(table.situacao),
+  documentoIdx: index("pendencias_contrato_excecoes_documento_idx").on(table.documento),
+  origemLinhaUnique: uniqueIndex("pendencias_contrato_excecoes_origem_linha_uq").on(table.arquivoOrigem, table.linhaOrigem),
+}));
+
+export type PendenciaContratoExcecao = typeof pendenciasContratoExcecoes.$inferSelect;
+export type InsertPendenciaContratoExcecao = typeof pendenciasContratoExcecoes.$inferInsert;
+
 // ─── Histórico de PDFs por Alvará ─────────────────────────────────────────────
 export const alvaraPdfs = mysqlTable("alvara_pdfs", {
   id: int("id").autoincrement().primaryKey(),
