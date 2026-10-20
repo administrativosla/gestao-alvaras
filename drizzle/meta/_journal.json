@@ -141,6 +141,13 @@
       "when": 1791293484140,
       "tag": "0019_high_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1792471929980,
+      "tag": "0020_add_cliente_dados_comerciais",
+      "breakpoints": true
     }
   ]
 }

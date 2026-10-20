@@ -552,3 +552,10 @@
 - [x] Criar helper `requirePermissao(modulo, acao)` no núcleo tRPC com consulta à tabela `permissoes`
 - [x] Aplicar `requirePermissao` às ações de importar PDF, excluir alvará, marcar Sem Registro, atualizar Receita e revalidar RFB
 - [x] Executar `pnpm check` e documentar procedures públicas remanescentes com justificativa
+
+## V3.36 — Atualização da Base de Clientes por Planilha
+
+- [x] Analisar a estrutura e a qualidade da planilha `CONTATOSDECLIENTESATIVOSMJPCONTROLLER2025.xlsx`
+- [x] Conciliar registros por CNPJ com a base atual e definir campos seguros para atualização
+- [x] Aplicar atualizações sem exclusão automática, preservando dados operacionais do portal
+- [x] Gerar relatório de atualização com alterações, divergências e indicadores relevantes

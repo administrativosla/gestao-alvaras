@@ -103,6 +103,35 @@ export const clientes = mysqlTable("clientes", {
 export type Cliente = typeof clientes.$inferSelect;
 export type InsertCliente = typeof clientes.$inferInsert;
 
+// ─── Dados comerciais de origem externa ─────────────────────────────────────
+// Uma única fotografia vigente por cliente, atualizada por planilha de contatos.
+// Mantém campos operacionais da fonte sem interferir nos dados fiscais e de alvarás.
+export const clienteDadosComerciais = mysqlTable("cliente_dados_comerciais", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  grupo: varchar("grupo", { length: 255 }),
+  classificacao: varchar("classificacao", { length: 64 }),
+  situacaoBase: varchar("situacaoBase", { length: 32 }),
+  situacaoOnvio: varchar("situacaoOnvio", { length: 32 }),
+  contatoPrimario: varchar("contatoPrimario", { length: 255 }),
+  emailPrimario: varchar("emailPrimario", { length: 320 }),
+  contatoSecundario: varchar("contatoSecundario", { length: 255 }),
+  emailSecundario: varchar("emailSecundario", { length: 320 }),
+  servicosUtilizados: text("servicosUtilizados"),
+  arquivoOrigem: varchar("arquivoOrigem", { length: 255 }).notNull(),
+  linhaOrigem: int("linhaOrigem"),
+  atualizadoOrigemEm: timestamp("atualizadoOrigemEm").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  clienteUnique: uniqueIndex("cliente_dados_comerciais_cliente_uq").on(table.clienteId),
+  grupoIdx: index("cliente_dados_comerciais_grupo_idx").on(table.grupo),
+  situacaoBaseIdx: index("cliente_dados_comerciais_situacao_base_idx").on(table.situacaoBase),
+}));
+
+export type ClienteDadosComerciais = typeof clienteDadosComerciais.$inferSelect;
+export type InsertClienteDadosComerciais = typeof clienteDadosComerciais.$inferInsert;
+
 // ─── Quantificador de mensagens recebidas via DEC ─────────────────────────────
 export const decCategorias = mysqlTable("dec_categorias", {
   id: int("id").autoincrement().primaryKey(),

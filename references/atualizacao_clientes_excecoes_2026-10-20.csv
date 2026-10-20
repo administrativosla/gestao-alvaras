@@ -1,0 +1,24 @@
+tipo;linha;cnpj;empresa;detalhe
+CNPJ inválido;282;05365275000126;MILHAS LUCRATIVAS / LAB SCP;Registro não aplicado
+CNPJ inválido;369;24829330000103;SDN COMERCIO DE PRODUTOS ALIMENTICIOS E ARTIGOS ESPORTIVOS LTDA;Registro não aplicado
+CNPJ duplicado conflitante;"53, 54";61784509000167;BCFORLIFE NEGOCIOS DIGITAIS LTDA SCP E MN | BCFORLIFE NEGOCIOS DIGITAIS LTDA SCP E MN;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"65, 74";03488576000561;CENTRO DE EXTENSAO UNIVERSITARIA | CENTRO DE EXTENSAO UNIVERSITARIA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"104, 129";57823240000103;EVO EVENTOS LTDA | EVO TECNOLOGIA LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"116, 198";48432895000160;EDNA M DE CASTRO | INSTRUCTIVA EQUIPAMENTOS ELETONICOS LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado idêntico;"143, 149";65900832000100;LARANJEIRAS PARTICIPACOES ADMINISTRACAO DE BENS PROPRIOS LTDA | LARANJEIRAS PARTICIPACOES ADMINISTRACAO DE BENS PROPRIOS LTDA;Registros idênticos ignorados por segurança
+CNPJ duplicado conflitante;"225, 419";27049739000144;INSTITUTO DESTINY TREINAMENTO E DESENVOLVIMENTO LTDA | TJ EMPREENDIMENTOS LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"231, 242";43009582000180;MP23 PRODUTOS DIGITAIS LTDA | MJP COWORKING FOR BUSINESS ESCRITORIOS ADMINISTRATIVOS UNIDADE BARUERI LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"238, 239, 253, 257";96603709000150;MJP CONTROLLER CONTAB E ASSOCIADOS LTDA | MJP CONTROLLER CONTABILISTAS E ASSOCIADOS LTDA | M.J.P. CONTROLLER CONTABILISTAS E ASSOCIADOS LTDA | MJP CONTROLLER CONTABILISTAS E ASSOCIADOS LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"243, 255";49534901000152;MJP EDUCACIONAL LTDA | M.J.P. EDUCACIONAL LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"252, 281";46762764000115;SALUS LIBER SOLUCOES EM TECNOLOGIA LTDA | MP30 PRODUTOS DIGITAIS LTDA;Dados conflitantes ignorados por segurança
+CNPJ duplicado conflitante;"334, 434";45698700000130;UNIFAST EDUCACIONAL LTDA - SCP AGORA TREINAMENTOS | UNIFAST EDUCACIONAL LTDA - SCP;Dados conflitantes ignorados por segurança
+CNPJ duplicado idêntico;"355, 356";68522605000186;UNIFAST FOOD BUSINESS ACADEMY SCP | UNIFAST FOOD BUSINESS ACADEMY SCP;Registros idênticos ignorados por segurança
+CNPJ duplicado conflitante;"510, 511";60822410000140;MOOVE SERVICOS LTDA | MOOVE SERVICOS LTDA;Dados conflitantes ignorados por segurança
+E-mail principal inválido;84;46.436.397/0001-60;CLUBE DE TRANSICAO PLATAFORMA DE ENSINO LTDA;gestao@pdnpro.com / Administrativo@pdnpro.com
+E-mail principal inválido;96;54.731.520/0001-01;ENSINO FERIDAS PLUS LTDA;gabriela dragabrieladeutsch@gmail.com
+E-mail principal inválido;112;29.309.397/0001-80;CURSO BE SMART LTDA;gabriela dragabrieladeutsch@gmail.com
+E-mail principal inválido;113;25.540.594/0001-54;ENSINO FERIDAS LTDA;gabriela dragabrieladeutsch@gmail.com
+E-mail principal inválido;114;62.865.806/0001-08;PHOENIX PLUS LTDA;gabriela dragabrieladeutsch@gmail.com
+E-mail principal inválido;173;27.261.958/0001-92;F R CARDOSO NEGOCIOS DIGITAIS LTDA;flaviorib15@gmail.com / contato@frcdigital.com.br
+E-mail principal inválido;177;45.863.881/0001-02;FRC HOLDING LTDA;flaviorib15@gmail.com / contato@frcdigital.com.br
+E-mail principal inválido;201;59.644.493/0002-26;IK PLUS LTDA;jp.alencar@iksolution.com.br / lucas.ferreira@ik.com.br
