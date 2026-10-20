@@ -27,7 +27,8 @@ import DecHistorico from "./pages/DecHistorico";
 import DecRelatorio from "./pages/DecRelatorio";
 import PendenciasContrato from "./pages/PendenciasContrato";
 import PendenciaContratoDetail from "./pages/PendenciaContratoDetail";
-import { ROTA_PENDENCIAS_CONTRATO, ROTA_RELATORIO_DEC } from "@shared/portal";
+import PendenciasRelatorio from "./pages/PendenciasRelatorio";
+import { ROTA_PENDENCIAS_CONTRATO, ROTA_RELATORIO_DEC, ROTA_RELATORIO_PENDENCIAS_CONTRATO } from "@shared/portal";
 
 function AlvarasRoutes() {
   return (
@@ -87,6 +88,9 @@ function PendenciasRoutes() {
         </Route>
         <Route path={`${ROTA_PENDENCIAS_CONTRATO}/lista`}>
           {() => <PendenciasContrato view="lista" />}
+        </Route>
+        <Route path={ROTA_RELATORIO_PENDENCIAS_CONTRATO}>
+          {() => <PendenciasRelatorio />}
         </Route>
         <Route path={`${ROTA_PENDENCIAS_CONTRATO}/:id`}>
           {(params) => <PendenciaContratoDetail id={Number(params.id)} />}

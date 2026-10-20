@@ -570,3 +570,9 @@
 - [x] Importar o status de origem "ASSINADO" como "Assinado parcial" e manter exceções de CNPJ gerenciáveis
 - [x] Separar o Gestor de Pendências como terceira área do Portal Controller, mantendo a base de clientes compartilhada
 - [x] Validar fluxos, gerar relatório de implantação e registrar checkpoint
+
+## V3.38 — Relatório Periódico de Pendências Contratuais
+
+- [x] Criar relatório PDF periódico com período, indicadores, distribuição e lista de pendências
+- [x] Adicionar botão de acesso ao relatório no painel de pendências
+- [x] Validar a geração do PDF e os testes do portal

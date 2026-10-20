@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { identificarAreaPortal, obterAreasAlternativas, PORTAL_AREAS, ROTA_HISTORICO_DEC, ROTA_PENDENCIAS_CONTRATO, ROTA_RELATORIO_DEC, ROTAS_CADASTRO_EMPRESARIAL } from "../shared/portal";
+import { identificarAreaPortal, obterAreasAlternativas, PORTAL_AREAS, ROTA_HISTORICO_DEC, ROTA_PENDENCIAS_CONTRATO, ROTA_RELATORIO_DEC, ROTA_RELATORIO_PENDENCIAS_CONTRATO, ROTAS_CADASTRO_EMPRESARIAL } from "../shared/portal";
 
 describe("navegação do Portal Controller", () => {
   it("mantém rotas iniciais distintas para as três ferramentas", () => {
@@ -18,6 +18,8 @@ describe("navegação do Portal Controller", () => {
     expect(identificarAreaPortal(ROTA_RELATORIO_DEC)).toBe("dec");
     expect(ROTA_PENDENCIAS_CONTRATO).toBe("/pendencias-contrato");
     expect(identificarAreaPortal(`${ROTA_PENDENCIAS_CONTRATO}/lista`)).toBe("pendencias");
+    expect(ROTA_RELATORIO_PENDENCIAS_CONTRATO).toBe("/pendencias-contrato/relatorio");
+    expect(identificarAreaPortal(ROTA_RELATORIO_PENDENCIAS_CONTRATO)).toBe("pendencias");
     expect(identificarAreaPortal("/clientes")).toBe("alvaras");
   });
   it("oferece as demais áreas como alternativas", () => {

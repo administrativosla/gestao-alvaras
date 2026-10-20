@@ -6,6 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
+  FileDown,
   FileSpreadsheet,
   FileText,
   Filter,
@@ -122,6 +123,7 @@ function PainelPendencias() {
           <p className="mt-1 text-sm text-muted-foreground">Controle as abordagens, documentos e assinaturas usando a base central de clientes.</p>
         </div>
         <div className="flex gap-2">
+          {pode("pendencias_contrato", "exportar_relatorio") && <Button variant="outline" onClick={() => navegar("/pendencias-contrato/relatorio")} className="gap-2"><FileDown className="h-4 w-4" /> Exportar PDF</Button>}
           {pode("pendencias_contrato", "importar") && <Button onClick={() => navegar("/pendencias-contrato/importar")} className="gap-2"><Upload className="h-4 w-4" /> Importar planilha</Button>}
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-4 w-4" /> Atualizar</Button>
         </div>

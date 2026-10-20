@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, lte } from "drizzle-orm";
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import {
@@ -16,6 +16,10 @@ import { gestorProcedure, protectedProcedure, requirePermissao, router } from ".
 const statusSchema = z.enum(PENDENCIA_CONTRATO_STATUS);
 const tipoSchema = z.enum(PENDENCIA_CONTRATO_TIPOS);
 const ARQUIVO_ORIGEM_PADRAO = "Controle de Pendências CPS";
+const dataPeriodoSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data no formato AAAA-MM-DD.").refine((valor) => {
+  const data = new Date(`${valor}T12:00:00Z`);
+  return !Number.isNaN(data.getTime()) && data.toISOString().slice(0, 10) === valor;
+}, "Data inválida.");
 
 function normalizarTexto(valor: unknown): string {
   return String(valor ?? "")
@@ -196,6 +200,92 @@ export const pendenciasContratoRouter = router({
           || cliente.cnpj.replace(/\D/g, "").includes(search.replace(/\D/g, ""))
           || normalizarTexto(cliente.nomeFantasia).includes(search);
       });
+    }),
+
+  /** Dados consolidados para o relatório PDF periódico do gestor. */
+  relatorio: protectedProcedure.use(requirePermissao("pendencias_contrato", "exportar_relatorio"))
+    .input(z.object({
+      inicio: dataPeriodoSchema,
+      fim: dataPeriodoSchema,
+      status: statusSchema.optional(),
+      tipo: tipoSchema.optional(),
+    }))
+    .query(async ({ input }) => {
+      if (input.inicio > input.fim) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "A data inicial não pode ser posterior à data final." });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível." });
+
+      // Datas do usuário são dias de operação em São Paulo. O limite final é exclusivo.
+      const inicio = new Date(`${input.inicio}T00:00:00-03:00`);
+      const fimExclusivo = new Date(`${input.fim}T00:00:00-03:00`);
+      fimExclusivo.setUTCDate(fimExclusivo.getUTCDate() + 1);
+
+      const [pendencias, movimentacoes] = await Promise.all([
+        db.select({
+          pendencia: pendenciasContrato,
+          cliente: {
+            id: clientes.id,
+            cnpj: clientes.cnpj,
+            razaoSocial: clientes.razaoSocial,
+            nomeContato: clientes.nomeContato,
+          },
+        })
+          .from(pendenciasContrato)
+          .innerJoin(clientes, eq(pendenciasContrato.clienteId, clientes.id))
+          .where(and(eq(pendenciasContrato.ativa, true), eq(clientes.ativo, true)))
+          .orderBy(asc(clientes.razaoSocial)),
+        db.select({
+          evento: pendenciasContratoHistorico,
+          pendencia: {
+            id: pendenciasContrato.id,
+            tipo: pendenciasContrato.tipo,
+            status: pendenciasContrato.status,
+          },
+          cliente: {
+            id: clientes.id,
+            cnpj: clientes.cnpj,
+            razaoSocial: clientes.razaoSocial,
+          },
+        })
+          .from(pendenciasContratoHistorico)
+          .innerJoin(pendenciasContrato, eq(pendenciasContratoHistorico.pendenciaId, pendenciasContrato.id))
+          .innerJoin(clientes, eq(pendenciasContratoHistorico.clienteId, clientes.id))
+          .where(and(
+            gte(pendenciasContratoHistorico.createdAt, inicio),
+            lt(pendenciasContratoHistorico.createdAt, fimExclusivo),
+          ))
+          .orderBy(desc(pendenciasContratoHistorico.createdAt)),
+      ]);
+
+      const atendeFiltros = (pendencia: { status: string; tipo: string }) =>
+        (!input.status || pendencia.status === input.status)
+        && (!input.tipo || pendencia.tipo === input.tipo);
+      const pendenciasFiltradas = pendencias.filter(({ pendencia }) => atendeFiltros(pendencia));
+      const movimentacoesFiltradas = movimentacoes.filter(({ pendencia }) => atendeFiltros(pendencia));
+      const porStatus: Record<string, number> = Object.fromEntries(PENDENCIA_CONTRATO_STATUS.map((status) => [status, 0]));
+      const porTipo: Record<string, number> = Object.fromEntries(PENDENCIA_CONTRATO_TIPOS.map((tipo) => [tipo, 0]));
+      for (const { pendencia } of pendenciasFiltradas) {
+        porStatus[pendencia.status] = (porStatus[pendencia.status] ?? 0) + 1;
+        porTipo[pendencia.tipo] = (porTipo[pendencia.tipo] ?? 0) + 1;
+      }
+
+      return {
+        filtros: input,
+        pendencias: pendenciasFiltradas,
+        movimentacoes: movimentacoesFiltradas,
+        resumo: {
+          totalPendencias: pendenciasFiltradas.length,
+          abertas: pendenciasFiltradas.filter(({ pendencia }) => pendencia.status !== "assinado_total").length,
+          porStatus,
+          porTipo,
+          movimentacoesNoPeriodo: movimentacoesFiltradas.length,
+          movimentacoesManuais: movimentacoesFiltradas.filter(({ evento }) => evento.tipoEvento === "manual").length,
+          movimentacoesAutomaticas: movimentacoesFiltradas.filter(({ evento }) => evento.tipoEvento === "automatico").length,
+          assinaturasTotaisNoPeriodo: movimentacoesFiltradas.filter(({ evento }) => evento.statusNovo === "assinado_total").length,
+        },
+      };
     }),
 
   get: protectedProcedure.use(requirePermissao("pendencias_contrato", "visualizar"))

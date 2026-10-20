@@ -36,6 +36,7 @@ export const ACOES_LABELS: Record<string, string> = {
   importar: "Importar planilha de pendências",
   atualizar_status: "Atualizar status e registrar abordagem",
   gerenciar_excecoes: "Vincular ou excluir exceções de importação",
+  exportar_relatorio: "Exportar relatório periódico em PDF",
 };
 
 export const permissoesRouter = router({

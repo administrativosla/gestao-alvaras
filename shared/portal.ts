@@ -22,6 +22,7 @@ type PortalAreaConfig = (typeof PORTAL_AREAS)[PortalArea];
 export const ROTA_HISTORICO_DEC = "/dec/historico";
 export const ROTA_RELATORIO_DEC = "/dec/relatorio";
 export const ROTA_PENDENCIAS_CONTRATO = "/pendencias-contrato";
+export const ROTA_RELATORIO_PENDENCIAS_CONTRATO = "/pendencias-contrato/relatorio";
 
 export const ROTAS_CADASTRO_EMPRESARIAL: Record<PortalArea, string> = {
   alvaras: "/clientes",
