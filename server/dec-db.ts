@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
-import { clientes, decAuditoria, decCategorias, decDestinacoes, decRecebimentos } from "../drizzle/schema";
+import { clientes, decAuditoria, decCategorias, decDestinacoes, decDirecionamentos, decRecebimentos } from "../drizzle/schema";
 import type { TipoDestinacaoDec } from "../shared/decTipos";
 import { getDb } from "./db";
 
 export type TipoDestino = TipoDestinacaoDec;
-export type NovaDestinacaoDec = { tipo: TipoDestino; quantidade: number; clienteId?: number | null; observacao?: string | null };
+export type NovaDestinacaoDec = { direcionamentoId?: number; tipo?: TipoDestino; quantidade: number; clienteId?: number | null; observacao?: string | null };
 type Operador = { id: number; nome: string };
 const indisponivel = () => new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
 const inexistente = (nome: string) => new TRPCError({ code: "NOT_FOUND", message: `${nome} não encontrado.` });
@@ -39,7 +39,7 @@ export function somarDestinacoesDec(destinacoes: readonly { tipo: TipoDestino; q
   }
   return totais;
 }
-const auditor = (operador: Operador, entidade: "categoria" | "recebimento" | "destinacao", entidadeId: number, acao: string, antes: unknown, depois: unknown) => ({
+const auditor = (operador: Operador, entidade: "categoria" | "direcionamento" | "recebimento" | "destinacao", entidadeId: number, acao: string, antes: unknown, depois: unknown) => ({
   entidade, entidadeId, acao, antes: antes == null ? null : JSON.stringify(antes), depois: depois == null ? null : JSON.stringify(depois),
   operadorId: operador.id, operadorNome: operador.nome,
 });
@@ -69,6 +69,49 @@ export async function salvarCategoriaDec(input: { id?: number; nome: string; des
   });
 }
 
+export async function listarDirecionamentosDec(somenteAtivos = false) {
+  const db = await getDb(); if (!db) throw indisponivel();
+  return db.select().from(decDirecionamentos)
+    .where(somenteAtivos ? eq(decDirecionamentos.ativa, true) : undefined)
+    .orderBy(asc(decDirecionamentos.nome));
+}
+
+export async function salvarDirecionamentoDec(input: { id?: number; nome: string; descricao?: string | null; tipoBase: TipoDestino; ativa?: boolean }, operador: Operador) {
+  const db = await getDb(); if (!db) throw indisponivel();
+  return db.transaction(async tx => {
+    const [duplicado] = await tx.select({ id: decDirecionamentos.id }).from(decDirecionamentos).where(eq(decDirecionamentos.nome, input.nome)).limit(1);
+    if (duplicado && duplicado.id !== input.id) throw conflito("Esse direcionamento já está cadastrado.");
+    if (input.id) {
+      const [anterior] = await tx.select().from(decDirecionamentos).where(eq(decDirecionamentos.id, input.id)).for("update");
+      if (!anterior) throw inexistente("Direcionamento");
+      const alteracoes = { nome: input.nome, descricao: input.descricao ?? null, tipoBase: input.tipoBase, ativa: input.ativa ?? anterior.ativa };
+      await tx.update(decDirecionamentos).set(alteracoes).where(eq(decDirecionamentos.id, input.id));
+      await tx.insert(decAuditoria).values(auditor(operador, "direcionamento", input.id, "atualizado", anterior, alteracoes));
+      return { id: input.id };
+    }
+    const valores = { nome: input.nome, descricao: input.descricao ?? null, tipoBase: input.tipoBase };
+    const [result] = await tx.insert(decDirecionamentos).values(valores);
+    await tx.insert(decAuditoria).values(auditor(operador, "direcionamento", result.insertId, "criado", null, valores));
+    return { id: result.insertId };
+  });
+}
+
+async function obterDirecionamentoDec(tx: any, input: Pick<NovaDestinacaoDec, "direcionamentoId" | "tipo">) {
+  if (input.direcionamentoId) {
+    const [direcionamento] = await tx.select().from(decDirecionamentos).where(eq(decDirecionamentos.id, input.direcionamentoId)).limit(1);
+    if (!direcionamento) throw inexistente("Direcionamento");
+    if (!direcionamento.ativa) throw conflito("Selecione um direcionamento ativo.");
+    return direcionamento;
+  }
+  // Compatibilidade para automações e lançamentos antigos que ainda informam apenas o tipo-base.
+  if (!input.tipo) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione um direcionamento." });
+  const [direcionamento] = await tx.select().from(decDirecionamentos)
+    .where(and(eq(decDirecionamentos.tipoBase, input.tipo), eq(decDirecionamentos.ativa, true)))
+    .limit(1);
+  if (!direcionamento) throw conflito("Não há direcionamento ativo compatível com esta classificação.");
+  return direcionamento;
+}
+
 export async function criarRecebimentoDec(input: { categoriaId: number; dia: string; quantidade: number; observacao?: string | null; destinacoes?: NovaDestinacaoDec[] }, operador: Operador) {
   const db = await getDb(); if (!db) throw indisponivel();
   return db.transaction(async tx => {
@@ -79,8 +122,9 @@ export async function criarRecebimentoDec(input: { categoriaId: number; dia: str
     // Confere todos os vínculos antes de gravar o lote; qualquer erro reverte a transação inteira.
     const destinos = [];
     for (const destino of input.destinacoes ?? []) {
-      const cliente = await validarCliente(tx, destino.tipo, destino.clienteId);
-      destinos.push({ ...destino, clienteId: cliente?.id ?? null, clienteNome: cliente?.razaoSocial ?? null });
+      const direcionamento = await obterDirecionamentoDec(tx, destino);
+      const cliente = await validarCliente(tx, direcionamento.tipoBase, destino.clienteId);
+      destinos.push({ ...destino, direcionamentoId: direcionamento.id, direcionamentoNome: direcionamento.nome, tipo: direcionamento.tipoBase, clienteId: cliente?.id ?? null, clienteNome: cliente?.razaoSocial ?? null });
     }
     const valores = { categoriaId: input.categoriaId, dataRecebimento: data(input.dia), quantidade: input.quantidade, observacao: input.observacao ?? null, operadorId: operador.id, operadorNome: operador.nome };
     const [result] = await tx.insert(decRecebimentos).values(valores);
@@ -91,6 +135,23 @@ export async function criarRecebimentoDec(input: { categoriaId: number; dia: str
       await tx.insert(decAuditoria).values(auditor(operador, "destinacao", destinoResult.insertId, "criada", null, valorDestino));
     }
     return { id: result.insertId };
+  });
+}
+
+/** Registra vários recebimentos da mesma categoria em uma única transação. */
+export async function criarRecebimentosMultiplosDec(input: { categoriaId: number; recebimentos: Array<{ dia: string; quantidade: number; observacao?: string | null }> }, operador: Operador) {
+  const db = await getDb(); if (!db) throw indisponivel();
+  return db.transaction(async tx => {
+    const [categoria] = await tx.select().from(decCategorias).where(eq(decCategorias.id, input.categoriaId)).limit(1);
+    if (!categoria?.ativa) throw conflito("Selecione uma categoria ativa.");
+    const ids: number[] = [];
+    for (const recebimento of input.recebimentos) {
+      const valores = { categoriaId: input.categoriaId, dataRecebimento: data(recebimento.dia), quantidade: recebimento.quantidade, observacao: recebimento.observacao ?? null, operadorId: operador.id, operadorNome: operador.nome };
+      const [result] = await tx.insert(decRecebimentos).values(valores);
+      await tx.insert(decAuditoria).values(auditor(operador, "recebimento", result.insertId, "criado_em_lote", null, valores));
+      ids.push(result.insertId);
+    }
+    return { ids, total: ids.length };
   });
 }
 
@@ -120,7 +181,7 @@ async function validarCliente(tx: any, tipo: TipoDestino, clienteId?: number | n
   return cliente;
 }
 
-export async function salvarDestinacaoDec(input: { id?: number; recebimentoId: number; tipo: TipoDestino; quantidade: number; clienteId?: number | null; observacao?: string | null }, operador: Operador) {
+export async function salvarDestinacaoDec(input: { id?: number; recebimentoId: number; direcionamentoId?: number; tipo?: TipoDestino; quantidade: number; clienteId?: number | null; observacao?: string | null }, operador: Operador) {
   const db = await getDb(); if (!db) throw indisponivel();
   return db.transaction(async tx => {
     // Trava o recebimento para serializar correções e destinações concorrentes.
@@ -128,11 +189,12 @@ export async function salvarDestinacaoDec(input: { id?: number; recebimentoId: n
     if (!recebimento) throw inexistente("Lançamento");
     const [anterior] = input.id ? await tx.select().from(decDestinacoes).where(eq(decDestinacoes.id, input.id)).for("update") : [];
     if (input.id && (!anterior || anterior.recebimentoId !== input.recebimentoId || !anterior.quantidade)) throw inexistente("Destinação");
-    const cliente = await validarCliente(tx, input.tipo, input.clienteId);
+    const direcionamento = await obterDirecionamentoDec(tx, input);
+    const cliente = await validarCliente(tx, direcionamento.tipoBase, input.clienteId);
     const vinculadas = await tx.select({ id: decDestinacoes.id, quantidade: decDestinacoes.quantidade }).from(decDestinacoes).where(eq(decDestinacoes.recebimentoId, input.recebimentoId));
     const outras = vinculadas.reduce((n, item) => n + (item.id === input.id ? 0 : item.quantidade), 0);
     validarSaldoDec(recebimento.quantidade, outras, input.quantidade);
-    const valores = { tipo: input.tipo, quantidade: input.quantidade, clienteId: cliente?.id ?? null, clienteNome: cliente?.razaoSocial ?? null, observacao: input.observacao ?? null, operadorId: operador.id, operadorNome: operador.nome };
+    const valores = { direcionamentoId: direcionamento.id, direcionamentoNome: direcionamento.nome, tipo: direcionamento.tipoBase, quantidade: input.quantidade, clienteId: cliente?.id ?? null, clienteNome: cliente?.razaoSocial ?? null, observacao: input.observacao ?? null, operadorId: operador.id, operadorNome: operador.nome };
     if (input.id) {
       await tx.update(decDestinacoes).set(valores).where(eq(decDestinacoes.id, input.id));
       await tx.insert(decAuditoria).values(auditor(operador, "destinacao", input.id, "corrigida", anterior, valores));

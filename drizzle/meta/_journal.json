@@ -155,6 +155,20 @@
       "when": 1792473060896,
       "tag": "0021_add_pendencias_contrato",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "5",
+      "when": 1793125569020,
+      "tag": "0022_add_dec_direcionamentos",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1793125637691,
+      "tag": "0023_add_dec_direcionamento_auditoria",
+      "breakpoints": true
     }
   ]
 }

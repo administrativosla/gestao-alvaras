@@ -5,6 +5,7 @@ import { somarDestinacoesDec, validarSaldoDec, validarStatusClienteDec } from ".
 const mocks = vi.hoisted(() => ({
   listarCategoriasDec: vi.fn(), salvarCategoriaDec: vi.fn(), listarClientesDec: vi.fn(),
   listarRecebimentosDec: vi.fn(), criarRecebimentoDec: vi.fn(), corrigirRecebimentoDec: vi.fn(),
+  criarRecebimentosMultiplosDec: vi.fn(), listarDirecionamentosDec: vi.fn(), salvarDirecionamentoDec: vi.fn(),
   salvarDestinacaoDec: vi.fn(), cancelarDestinacaoDec: vi.fn(), listarAuditoriaDec: vi.fn(),
 }));
 vi.mock("./dec-db", async importOriginal => ({ ...await importOriginal<typeof import("./dec-db")>(), ...mocks }));
@@ -17,7 +18,7 @@ function contexto(role: "master" | "operator" = "master", logado = true): TrpcCo
 }
 
 describe("Quantificador DEC", () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.listarCategoriasDec.mockResolvedValue([]); mocks.listarRecebimentosDec.mockResolvedValue([]); });
+  beforeEach(() => { vi.clearAllMocks(); mocks.listarCategoriasDec.mockResolvedValue([]); mocks.listarDirecionamentosDec.mockResolvedValue([]); mocks.listarRecebimentosDec.mockResolvedValue([]); });
   it("só permite acesso ao operador autenticado", async () => {
     await expect(decRouter.createCaller(contexto("operator", false)).categorias()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
@@ -27,6 +28,16 @@ describe("Quantificador DEC", () => {
     mocks.criarRecebimentoDec.mockResolvedValue({ id: 12 });
     await caller.criarRecebimento({ categoriaId: 4, dia: "2026-10-05", quantidade: 10 });
     expect(mocks.criarRecebimentoDec).toHaveBeenCalledWith(expect.objectContaining({ quantidade: 10 }), { id: 5, nome: "Operadora DEC" });
+  });
+  it("reserva manutenção de direcionamentos ao gestor e lista os ativos para o lançamento", async () => {
+    const operador = decRouter.createCaller(contexto("operator"));
+    await expect(operador.salvarDirecionamento({ nome: "Assinatura digital", tipoBase: "redirecionada_ativo" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await operador.direcionamentos({ somenteAtivos: true });
+    expect(mocks.listarDirecionamentosDec).toHaveBeenCalledWith(true);
+    const gestor = decRouter.createCaller(contexto("master"));
+    mocks.salvarDirecionamentoDec.mockResolvedValue({ id: 7 });
+    await gestor.salvarDirecionamento({ nome: "Assinatura digital", tipoBase: "redirecionada_ativo" });
+    expect(mocks.salvarDirecionamentoDec).toHaveBeenCalledWith(expect.objectContaining({ nome: "Assinatura digital", tipoBase: "redirecionada_ativo" }), { id: 5, nome: "Operadora DEC" });
   });
   it("aceita classificações parciais no lançamento e recusa quantidade classificada acima do recebido", async () => {
     const caller = decRouter.createCaller(contexto("operator"));
@@ -68,6 +79,18 @@ describe("Quantificador DEC", () => {
     mocks.criarRecebimentoDec.mockResolvedValue({ id: 12 });
     await caller.criarRecebimento({ categoriaId: 2, dia: "2026-10-06", quantidade: 1, destinacoes: [{ tipo: "redirecionada_varias", quantidade: 1 }] });
     expect(mocks.criarRecebimentoDec).toHaveBeenCalledWith(expect.objectContaining({ destinacoes: [{ tipo: "redirecionada_varias", quantidade: 1 }] }), { id: 5, nome: "Operadora DEC" });
+  });
+  it("registra várias datas com o mesmo volume e rejeita distribuição inconsistente", async () => {
+    const caller = decRouter.createCaller(contexto("operator"));
+    mocks.criarRecebimentosMultiplosDec.mockResolvedValue({ ids: [20, 21], total: 2 });
+    const input = { categoriaId: 4, quantidadeTotal: 5, recebimentos: [
+      { dia: "2026-10-02", quantidade: 2 },
+      { dia: "2026-10-05", quantidade: 3 },
+    ] };
+    await caller.criarRecebimentosMultiplos(input);
+    expect(mocks.criarRecebimentosMultiplosDec).toHaveBeenCalledWith(input, { id: 5, nome: "Operadora DEC" });
+    await expect(caller.criarRecebimentosMultiplos({ ...input, recebimentos: [{ dia: "2026-10-02", quantidade: 4 }, { dia: "2026-10-02", quantidade: 1 }] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(mocks.criarRecebimentosMultiplosDec).toHaveBeenCalledTimes(1);
   });
   it("impede contagens negativas, fracionárias e datas inexistentes", async () => {
     const caller = decRouter.createCaller(contexto());

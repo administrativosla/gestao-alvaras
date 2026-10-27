@@ -83,12 +83,14 @@ export default function DecDashboard() {
       <Card><CardContent className="p-5"><h2 className="font-semibold">Comparativo do período</h2><p className="mt-5 text-xs text-muted-foreground">Período anterior ({dataLocal(passado.inicio).toLocaleDateString("pt-BR")} a {dataLocal(passado.fim).toLocaleDateString("pt-BR")})</p><p className="mt-1 text-3xl font-semibold tabular-nums">{totalAnterior}</p><p className="mt-3 flex items-center gap-1 text-sm">{diferenca === null ? "Sem base anterior para variação percentual" : <>{diferenca >= 0 ? <ArrowUpRight className="h-4 w-4 text-teal-700" /> : <ArrowDownRight className="h-4 w-4 text-orange-700" />}<strong>{diferenca > 0 ? "+" : ""}{diferenca}%</strong> em mensagens recebidas</>}</p></CardContent></Card>
     </div>
     {porDia.length > 0 && <Card><CardContent className="p-5"><h2 className="mb-5 font-semibold">Evolução diária</h2><div className="flex min-h-36 items-end gap-2 overflow-x-auto pb-2">{porDia.map(item => <div key={item.data} className="flex min-w-12 flex-1 flex-col items-center gap-2" title={`${item.data}: ${item.total} mensagens`}><span className="text-xs font-semibold tabular-nums">{item.total}</span><div className="w-full rounded-t-md bg-teal-600/85" style={{ height: `${Math.max(12, item.total / maxDia * 100)}px` }} /><span className="whitespace-nowrap text-[10px] text-muted-foreground">{item.data.slice(0, 5)}</span></div>)}</div></CardContent></Card>}
-    {lancamentoOpen && <DecLancamentoDialog open={lancamentoOpen} onOpenChange={setLancamentoOpen} categorias={categorias} onSaved={(_id, classificadas, restantes, dia) => {
-      setInicio(atual => dia < atual ? dia : atual);
-      setFim(atual => dia > atual ? dia : atual);
+    {lancamentoOpen && <DecLancamentoDialog open={lancamentoOpen} onOpenChange={setLancamentoOpen} categorias={categorias} onSaved={({ classificadas, pendentes, dias }) => {
+      const primeiraData = [...dias].sort()[0];
+      const ultimaData = [...dias].sort().at(-1) ?? primeiraData;
+      setInicio(atual => primeiraData < atual ? primeiraData : atual);
+      setFim(atual => ultimaData > atual ? ultimaData : atual);
       setCategoriaFiltro("all"); setOperadorFiltro("all"); setClienteFiltro(null); setBuscaClienteFiltro("");
       void utils.dec.listar.invalidate();
-      toast.success(`Recebimento registrado: ${classificadas} classificadas e ${restantes} a classificar. Consulte os detalhes no Histórico.`);
+      toast.success(`${dias.length > 1 ? `${dias.length} recebimentos registrados` : "Recebimento registrado"}: ${classificadas} classificadas e ${pendentes} a classificar. Consulte os detalhes no Histórico.`);
     }} />}
   </div>;
 }

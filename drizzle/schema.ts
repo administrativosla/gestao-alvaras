@@ -156,9 +156,26 @@ export const decRecebimentos = mysqlTable("dec_recebimentos", {
   dataCategoriaIdx: index("dec_recebimentos_data_categoria_idx").on(table.dataRecebimento, table.categoriaId),
 }));
 
+// Direcionamentos selecionáveis na classificação de mensagens DEC. O tipo-base
+// mantém as regras de vínculo com clientes e os indicadores históricos estáveis.
+export const decDirecionamentos = mysqlTable("dec_direcionamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 120 }).notNull().unique(),
+  descricao: varchar("descricao", { length: 500 }),
+  tipoBase: mysqlEnum("tipoBase", ["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno", "redirecionada_varias"]).notNull(),
+  ativa: boolean("ativa").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  tipoBaseIdx: index("dec_direcionamentos_tipo_base_idx").on(table.tipoBase),
+}));
+
 export const decDestinacoes = mysqlTable("dec_destinacoes", {
   id: int("id").autoincrement().primaryKey(),
   recebimentoId: int("recebimentoId").notNull(),
+  direcionamentoId: int("direcionamentoId"),
+  // Fotografia do rótulo escolhido para que renomeações futuras não reescrevam o histórico.
+  direcionamentoNome: varchar("direcionamentoNome", { length: 120 }),
   tipo: mysqlEnum("tipo", ["redirecionada_ativo", "arquivada_sem_acao", "arquivada_inativo", "encaminhada_time_interno", "redirecionada_varias"]).notNull(),
   quantidade: int("quantidade").notNull(),
   clienteId: int("clienteId"),
@@ -170,12 +187,13 @@ export const decDestinacoes = mysqlTable("dec_destinacoes", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   recebimentoIdx: index("dec_destinacoes_recebimento_idx").on(table.recebimentoId),
+  direcionamentoIdx: index("dec_destinacoes_direcionamento_idx").on(table.direcionamentoId),
   clienteIdx: index("dec_destinacoes_cliente_idx").on(table.clienteId),
 }));
 
 export const decAuditoria = mysqlTable("dec_auditoria", {
   id: int("id").autoincrement().primaryKey(),
-  entidade: mysqlEnum("entidade", ["categoria", "recebimento", "destinacao"]).notNull(),
+  entidade: mysqlEnum("entidade", ["categoria", "direcionamento", "recebimento", "destinacao"]).notNull(),
   entidadeId: int("entidadeId").notNull(),
   acao: varchar("acao", { length: 40 }).notNull(),
   antes: text("antes"),

@@ -1,0 +1,1 @@
+ALTER TABLE `dec_auditoria` MODIFY COLUMN `entidade` enum('categoria','direcionamento','recebimento','destinacao') NOT NULL;

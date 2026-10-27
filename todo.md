@@ -1,5 +1,12 @@
 # Gestão de Alvarás — TODO
 
+## V3.39 — Direcionamentos configuráveis no DEC
+
+- [x] Criar cadastro e edição de direcionamentos diretamente na página de Categorias do DEC
+- [x] Integrar os direcionamentos ativos ao lançamento e ao histórico de recebimentos DEC
+- [x] Criar modo de lançamento por múltiplas datas com distribuição do total por dia e classificação posterior
+- [x] Preservar os direcionamentos legados e validar permissões, migração e testes
+
 ## Banco de Dados
 - [x] Schema: tabela `clientes` (CNPJ, razão social, nome fantasia, IE, IM, endereço, contato, telefone, email, data abertura, obs preventivas)
 - [x] Schema: tabela `alvaras` (vinculado ao cliente, número, tipo, órgão emissor, datas, status, arquivo PDF key)
